@@ -12,21 +12,12 @@ import { Search, Bell, Settings } from 'lucide-react';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [now, setNow] = useState('');
   const pathname = usePathname();
   const isDashboard = pathname === '/dashboard';
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    if (!isDashboard) return;
-    const tick = () => setNow(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [isDashboard]);
 
   return (
     <header className="bg-white/80 dark:bg-dark-primary/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50 py-2 lg:py-2.5 transition-all duration-300">

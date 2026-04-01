@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Activity, Clock, Droplets, Waves, Cpu, ChevronRight } from 'lucide-react';
+import { Activity, Clock, Droplets, Waves, Cpu } from 'lucide-react';
 
 const alerts = [
   {

@@ -24,7 +24,7 @@ const FeatureCard = ({
   iconBg, 
   iconColor 
 }: { 
-  icon: any, 
+  icon: React.ElementType, 
   title: string, 
   description: string, 
   iconBg: string, 

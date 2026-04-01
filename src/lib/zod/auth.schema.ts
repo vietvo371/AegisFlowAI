@@ -2,19 +2,19 @@ import { z } from 'zod';
 
 export const authSchema = z.object({
   firstName: z
-    .string({ required_error: 'First name is required' })
+    .string({ message: 'First name is required' })
     .min(1, 'First name is required')
     .trim(),
   lastName: z
-    .string({ required_error: 'Last name is required' })
+    .string({ message: 'Last name is required' })
     .min(1, 'Last name is required')
     .trim(),
   email: z
-    .string({ required_error: 'Email is required' })
+    .string({ message: 'Email is required' })
     .email('Invalid email')
     .trim(),
   password: z
-    .string({ required_error: 'Password is required' })
+    .string({ message: 'Password is required' })
     .min(8, 'Password must be at least 8 characters long')
     .trim(),
 });

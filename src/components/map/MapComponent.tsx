@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from '@openmapvn/openmapvn-gl';
 import '@openmapvn/openmapvn-gl/dist/maplibre-gl.css';
 import { reverseGeocode, decodePolyline } from '@/lib/openmap';
-import type { EvacuationRoute, LatLng } from '@/lib/openmap';
+import type { EvacuationRoute } from '@/lib/openmap';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ export interface MapComponentProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MapComponent({ evacuationRoute }: MapComponentProps): JSX.Element {
+export default function MapComponent({ evacuationRoute }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [loaded, setLoaded] = useState(false);

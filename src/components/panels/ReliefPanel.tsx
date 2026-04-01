@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Navigation2, Users, Truck, Target, Loader2, CheckCircle, Clock, Route, Shield } from 'lucide-react';
+import { Navigation2, Users, Truck, Target, Loader2, CheckCircle, Clock, Route } from 'lucide-react';
 import { fetchEvacuationRoute, type EvacuationRoute } from '@/lib/openmap';
 
 const reliefPoints = [

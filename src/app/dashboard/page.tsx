@@ -1,8 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import React, { useState, useEffect } from 'react';
-import { Shield, Bell, Search, Settings, LayoutDashboard, Map, AlertTriangle, Zap } from 'lucide-react';
+import React, { useState } from 'react';
 import ForecastPanel from '@/components/panels/ForecastPanel';
 import ReliefPanel from '@/components/panels/ReliefPanel';
 import type { EvacuationRoute } from '@/lib/openmap';
