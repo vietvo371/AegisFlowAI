@@ -37,7 +37,8 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0",
     "use-stick-to-bottom": "^1.1.0",
-    "zod": "^4.3.6"
+    
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

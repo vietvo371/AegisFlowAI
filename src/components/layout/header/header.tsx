@@ -6,18 +6,24 @@ import { useEffect, useState } from 'react';
 import DesktopNav from './desktop-nav';
 import MainMobileNav from './main-mobile-nav';
 import ThemeToggle from './theme-toggle';
+import NotificationPanel from './notification-panel';
+import SettingsPanel from './settings-panel';
 import { usePathname } from 'next/navigation';
 import { navItems, dashboardNavItems } from './nav-items';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const isDashboard = pathname === '/dashboard';
+  const isAuthPage = ['/signin', '/signup', '/reset-password'].includes(pathname);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  // Auth pages manage their own layout (no shared header)
+  if (isAuthPage) return null;
 
   return (
     <header className="bg-white/80 dark:bg-dark-primary/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50 py-2 lg:py-2.5 transition-all duration-300">
@@ -60,12 +66,8 @@ export default function Header() {
                 {/* Widgets etc. */}
                 <ThemeToggle />
                 <div className="flex items-center gap-1.5 ml-2">
-                  <button className="relative p-2 rounded-full border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-500 transition-colors">
-                    <Bell size={18} />
-                  </button>
-                  <button className="p-2 rounded-full border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-500 transition-colors">
-                    <Settings size={18} />
-                  </button>
+                  <NotificationPanel />
+                  <SettingsPanel />
                 </div>
               </div>
             ) : (

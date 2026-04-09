@@ -25,21 +25,32 @@ export default function ForgotPasswordForm({ invalidToken }: PropsType) {
     },
   });
 
+  function onError(errors: typeof form.formState.errors) {
+    Object.entries(errors).forEach(([, err]) => {
+      toast.error(err?.message ?? 'Invalid value', {
+        duration: 4000,
+      });
+    });
+  }
+
   async function onSubmit(data: Inputs) {
     setIsLoading(true);
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
 
-      toast.success(
-        <pre>
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      );
+      toast.success(`Password reset link sent to ${data.email}. Check your inbox! 📧`, {
+        duration: 6000,
+      });
 
       form.reset();
     } catch (error) {
-      console.error(error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.';
+
+      toast.error(message, { duration: 5000 });
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +74,7 @@ export default function ForgotPasswordForm({ invalidToken }: PropsType) {
         </p>
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} noValidate>
         <div className="grid gap-5">
           <Controller
             control={form.control}

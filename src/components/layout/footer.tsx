@@ -11,6 +11,28 @@ const FooterLink = ({ href, label }: { href: string; label: string }) => (
   </Link>
 );
 
+const SOCIAL_LINKS = [
+  {
+    label: 'Facebook',
+    href: 'https://facebook.com',
+    paths: ['M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z'],
+  },
+  {
+    label: 'Twitter / X',
+    href: 'https://twitter.com',
+    paths: ['M4 4l16 16', 'M4 20L20 4'],
+  },
+  {
+    label: 'LinkedIn',
+    href: 'https://linkedin.com',
+    paths: [
+      'M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z',
+      'M2 9h4v12H2z',
+      'M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+    ],
+  },
+];
+
 export default function Footer() {
   return (
     <footer className="relative overflow-hidden bg-white border-t border-gray-100 py-20 lg:py-24">
@@ -41,11 +63,19 @@ export default function Footer() {
               để bảo vệ cộng đồng trước thiên tai và biến đổi khí hậu.
             </p>
             <div className="flex items-center gap-4">
-               {/* Simplified Social Icons for Clean Look */}
-               {[1, 2, 3].map((i) => (
-                <div key={i} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 hover:bg-primary-50 hover:border-primary-100 transition-colors cursor-pointer text-gray-400 hover:text-primary-600">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                </div>
+              {SOCIAL_LINKS.map(({ label, href, paths }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 hover:bg-primary-50 hover:border-primary-100 transition-colors text-gray-400 hover:text-primary-600"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {paths.map((d, i) => <path key={i} d={d} />)}
+                  </svg>
+                </a>
               ))}
             </div>
           </div>

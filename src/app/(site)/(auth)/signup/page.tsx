@@ -1,156 +1,436 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import SignupForm from './signup-form';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Sign Up',
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import SignupForm from './signup-form';
+import {
+  Shield, Activity, Users, MapPin, Zap, CheckCircle2,
+  UserPlus, ArrowRight, Sparkles,
+} from 'lucide-react';
+
+/* ------------------------------------------------------------------ */
+/*  Data                                                                */
+/* ------------------------------------------------------------------ */
+
+const FEATURES = [
+  { icon: Zap,    text: 'Early warning under 5 minutes', color: '#fbbf24' },
+  { icon: Users,  text: 'Real-time rescue coordination', color: '#60a5fa' },
+  { icon: MapPin, text: 'High-accuracy AI flood mapping', color: '#34d399' },
+  { icon: Shield, text: 'AES-256 & ISO 27001 encrypted',  color: '#a78bfa' },
+];
+
+const TESTIMONIAL = {
+  avatar: 'TN',
+  name: 'Tran Ngoc Hai',
+  role: 'Head of Flood Prevention, Da Nang City',
+  quote: '"AegisFlow AI helped us respond 3× faster than before — truly life-saving."',
 };
 
+const STATS = [
+  { value: '94.7%', label: 'AI Accuracy' },
+  { value: '< 5min', label: 'Alert Time' },
+  { value: '500K+',  label: 'People Protected' },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                           */
+/* ------------------------------------------------------------------ */
+
 export default function SignUpPage() {
+  const router = useRouter();
+  const [leaving, setLeaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
+  /* signup enters from LEFT, exits to LEFT  */
+  /* signin enters from RIGHT, exits to RIGHT */
+  /* → when going signin→signup: signin exits right, signup enters from left ✓ */
+  const handleNavTo = (href: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLeaving(true);
+    setTimeout(() => router.push(href), 400);
+  };
+
   return (
-    <section className="py-28 relative overflow-hidden">
-      <div className="wrapper">
-        <div className="relative max-w-[600px] mx-auto">
-          <div className="contact-wrapper border p-14 relative z-30 bg-white dark:bg-dark-primary dark:border-dark-primary border-gray-100">
-            <div className="text-center mb-8">
-              <h3 className="text-gray-800 dark:text-white/90 font-bold text-3xl mb-2">
-                Sign Up
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Enter your details to create a account
-              </p>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+        background: '#07070f',
+        /* enter: slide in from left; exit: slide out to left */
+        opacity:   mounted && !leaving ? 1 : 0,
+        transform: mounted && !leaving
+          ? 'none'
+          : leaving
+            ? 'translateX(-36px)'
+            : 'translateX(-36px)',
+        transition: 'opacity 0.4s cubic-bezier(0.4,0,0.2,1), transform 0.4s cubic-bezier(0.4,0,0.2,1)',
+      }}
+    >
+
+      {/* ══════════════════════════════════════════
+          COL LEFT — FORM  (opposite of signin)
+      ══════════════════════════════════════════ */}
+      <div
+        style={{
+          width: '100%', maxWidth: 500,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '40px 48px',
+          background: 'linear-gradient(160deg, #0d0d1a 0%, #0a0a16 100%)',
+          overflowY: 'auto', flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+        }}
+        className="auth-form-panel"
+      >
+        {/* Back link */}
+        <a
+          href="/"
+          onClick={handleNavTo('/')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.35)',
+            textDecoration: 'none', marginBottom: 32, transition: 'color 0.15s',
+            cursor: 'pointer',
+          }}
+          className="back-link"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to home
+        </a>
+
+        {/* Heading */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+              background: 'linear-gradient(135deg, #17b26a, #0ea5e9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(23,178,106,0.4)',
+            }}>
+              <UserPlus size={19} style={{ color: '#fff' }} />
             </div>
-            <div className="flex flex-col sm:flex-row justify-center gap-5">
-              <button className="bg-gray-100 w-full h-12 justify-center dark:hover:bg-white/10 dark:hover:text-white/90 dark:bg-white/5 transition dark:text-gray-400 font-normal text-sm hover:bg-gray-200 rounded-full text-gray-700 hover:text-gray-800 flex items-center gap-3 px-8 py-2.5">
-                <svg
-                  width="21"
-                  height="20"
-                  viewBox="0 0 21 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M19.2511 10.1943C19.2511 9.47489 19.1915 8.94989 19.0626 8.40546H10.6797V11.6526H15.6003C15.5011 12.4596 14.9654 13.6749 13.7749 14.4915L13.7582 14.6002L16.4087 16.6125L16.5924 16.6305C18.2788 15.104 19.2511 12.8582 19.2511 10.1943Z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M10.6788 18.75C13.0895 18.75 15.1133 17.9722 16.5915 16.6305L13.774 14.4916C13.0201 15.0069 12.0081 15.3666 10.6788 15.3666C8.31773 15.3666 6.31379 13.8402 5.59944 11.7305L5.49473 11.7392L2.73868 13.8295L2.70264 13.9277C4.17087 16.786 7.18674 18.75 10.6788 18.75Z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.60014 11.7305C5.41165 11.1861 5.30257 10.6027 5.30257 9.99998C5.30257 9.39716 5.41165 8.81385 5.59022 8.26941L5.58523 8.15346L2.79464 6.0296L2.70333 6.07216C2.0982 7.25829 1.75098 8.59026 1.75098 9.99998C1.75098 11.4097 2.0982 12.7416 2.70333 13.9277L5.60014 11.7305Z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M10.6789 4.63331C12.3554 4.63331 13.4864 5.34303 14.1312 5.93612L16.6511 3.525C15.1035 2.11528 13.0895 1.25 10.6789 1.25C7.18676 1.25 4.17088 3.21387 2.70264 6.07218L5.58953 8.26943C6.31381 6.15972 8.31776 4.63331 10.6789 4.63331Z"
-                    fill="#EB4335"
-                  />
-                </svg>
-                Sign up with Google
-              </button>
-              <button className="bg-gray-100 w-full h-12 justify-center dark:hover:bg-white/10 dark:hover:text-white/90 dark:bg-white/5 transition dark:text-gray-400 font-normal text-sm hover:bg-gray-200 rounded-full text-gray-700 hover:text-gray-800 flex items-center gap-3 px-8 py-2.5">
-                <svg
-                  className="size-6"
-                  width="80"
-                  height="80"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  transform="rotate(0 0 0)"
-                >
-                  <path
-                    d="M12 2.24902C6.51613 2.24902 2 6.70064 2 12.249C2 16.6361 4.87097 20.3781 8.87097 21.7329C9.3871 21.8297 9.54839 21.5071 9.54839 21.2813C9.54839 21.0555 9.54839 20.4103 9.51613 19.5393C6.74194 20.1845 6.16129 18.1845 6.16129 18.1845C5.70968 17.0555 5.03226 16.7329 5.03226 16.7329C4.12903 16.0877 5.06452 16.0877 5.06452 16.0877C6.06452 16.12 6.6129 17.12 6.6129 17.12C7.48387 18.6684 8.96774 18.2168 9.51613 17.9264C9.6129 17.2813 9.87097 16.8297 10.1613 16.5716C7.96774 16.3458 5.6129 15.4748 5.6129 11.6684C5.6129 10.5716 6.03226 9.70064 6.64516 9.02322C6.54839 8.79741 6.19355 7.76515 6.74194 6.37806C6.74194 6.37806 7.6129 6.11999 9.51613 7.41031C10.3226 7.18451 11.1613 7.05548 12.0323 7.05548C12.9032 7.05548 13.7742 7.15225 14.5484 7.41031C16.4516 6.15225 17.2903 6.37806 17.2903 6.37806C17.8387 7.73289 17.5161 8.79741 17.3871 9.02322C18.0323 9.70064 18.4194 10.6039 18.4194 11.6684C18.4194 15.4748 16.0645 16.3458 13.871 16.5716C14.2258 16.8942 14.5484 17.5393 14.5484 18.4426C14.5484 19.7974 14.5161 20.8619 14.5161 21.1845C14.5161 21.4426 14.7097 21.7329 15.1935 21.6361C19.129 20.3135 22 16.6039 22 12.1845C21.9677 6.70064 17.4839 2.24902 12 2.24902Z"
-                    fill="currentColor"
-                  />
-                </svg>
-                Sign up with Github
-              </button>
-            </div>
-            <div className="relative py-3 sm:py-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="p-2 text-gray-400 bg-white dark:bg-dark-primary sm:px-5 sm:py-2">
-                  Or
-                </span>
-              </div>
-            </div>
-            <SignupForm />
-            <div className="mt-5">
-              <p className="text-gray-700 dark:text-gray-400 font-normal text-sm">
-                Already have an account?{' '}
-                <Link
-                  href="/signin"
-                  className="text-sm font-semibold text-primary-500"
-                >
-                  Sign In
-                </Link>
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.03em' }}>
+                Create account
+              </h1>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+                Start protecting your community today
               </p>
             </div>
           </div>
         </div>
+
+        {/* Social auth — dark-styled */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
+          {[
+            {
+              label: 'Sign up with Google',
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+              ),
+            },
+            {
+              label: 'Sign up with Github',
+              icon: (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+              ),
+            },
+          ].map(({ label, icon }) => (
+            <button
+              key={label}
+              type="button"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                width: '100%', height: 44,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10,
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: 13.5, fontWeight: 500,
+                fontFamily: "'Be Vietnam Pro', sans-serif",
+                cursor: 'pointer',
+                transition: 'background 0.2s, border-color 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.25)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+            Or sign up with email
+          </span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+        </div>
+
+        {/* Form */}
+        <SignupForm />
+
+        {/* Sign in link */}
+        <div style={{ marginTop: 22, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+            Already have an account?{' '}
+            <a
+              href="/signin"
+              onClick={handleNavTo('/signin')}
+              style={{ fontWeight: 700, color: '#34d399', textDecoration: 'none', cursor: 'pointer' }}
+              className="auth-link"
+            >
+              Sign in
+            </a>
+          </p>
+        </div>
+
+        {/* Terms */}
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
+          By signing up, you agree to our{' '}
+          <Link href="/terms" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontWeight: 600 }}>Terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</Link>.
+        </p>
+
+        {/* Security badge */}
+        <div style={{
+          marginTop: 20, padding: '10px 14px',
+          background: 'rgba(23,178,106,0.07)', border: '1px solid rgba(23,178,106,0.15)',
+          borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <Shield size={13} style={{ color: '#34d399', flexShrink: 0 }} />
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.5 }}>
+            Encrypted with <strong style={{ color: 'rgba(255,255,255,0.6)' }}>AES-256</strong> · Protected under <strong style={{ color: 'rgba(255,255,255,0.6)' }}>ISO 27001</strong>
+          </p>
+        </div>
       </div>
-      <span className="absolute -bottom-32 left-1/2 -translate-x-1/2 z-0">
-        <svg
-          width="930"
-          height="760"
-          viewBox="0 0 930 760"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <g opacity="0.3" filter="url(#filter0_f_9248_10254)">
-            <circle cx="380.335" cy="380.335" r="179.665" fill="#FF58D5" />
-          </g>
-          <g opacity="0.7" filter="url(#filter1_f_9248_10254)">
-            <circle cx="549.665" cy="380.335" r="179.665" fill="#4E6EFF" />
-          </g>
-          <defs>
-            <filter
-              id="filter0_f_9248_10254"
-              x="0.669922"
-              y="0.6698"
-              width="759.33"
-              height="759.33"
-              filterUnits="userSpaceOnUse"
-              colorInterpolationFilters="sRGB"
-            >
-              <feFlood floodOpacity="0" result="BackgroundImageFix" />
-              <feBlend
-                mode="normal"
-                in="SourceGraphic"
-                in2="BackgroundImageFix"
-                result="shape"
-              />
-              <feGaussianBlur
-                stdDeviation="100"
-                result="effect1_foregroundBlur_9248_10254"
-              />
-            </filter>
-            <filter
-              id="filter1_f_9248_10254"
-              x="170"
-              y="0.6698"
-              width="759.33"
-              height="759.33"
-              filterUnits="userSpaceOnUse"
-              colorInterpolationFilters="sRGB"
-            >
-              <feFlood floodOpacity="0" result="BackgroundImageFix" />
-              <feBlend
-                mode="normal"
-                in="SourceGraphic"
-                in2="BackgroundImageFix"
-                result="shape"
-              />
-              <feGaussianBlur
-                stdDeviation="100"
-                result="effect1_foregroundBlur_9248_10254"
-              />
-            </filter>
-          </defs>
-        </svg>
-      </span>
-    </section>
+
+      {/* ══════════════════════════════════════════
+          COL MID — IMAGE
+      ══════════════════════════════════════════ */}
+      <div
+        style={{ flex: 1, display: 'none', position: 'relative', overflow: 'hidden' }}
+        className="lg-mid-col"
+      >
+        <Image
+          src="/signup-bg.png"
+          alt="Rescue operations during flood"
+          fill
+          sizes="(min-width: 1024px) 40vw, 0px"
+          priority
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+        {/* Blend left→dark-form, right→dark-brand */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to right, rgba(7,7,15,0.55) 0%, transparent 20%, transparent 75%, rgba(5,5,8,0.85) 100%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, transparent 60%, rgba(7,7,15,0.5) 100%)',
+          pointerEvents: 'none',
+        }} />
+        {/* Bottom label */}
+        <div style={{
+          position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(10,10,20,0.65)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99,
+          padding: '5px 14px',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <Activity size={10} style={{ color: '#34d399' }} />
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+            Join for free · No credit card required
+          </span>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════
+          COL RIGHT — BRAND  (opposite of signin)
+      ══════════════════════════════════════════ */}
+      <div
+        style={{
+          width: 380, flexShrink: 0, display: 'none', flexDirection: 'column',
+          padding: '48px 36px',
+          background: 'linear-gradient(160deg, #08080f 0%, #0a0818 50%, #050508 100%)',
+          position: 'relative', overflow: 'hidden',
+        }}
+        className="lg-right-col"
+      >
+        {/* Glow orbs */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{
+            position: 'absolute', top: '-15%', left: '-20%',
+            width: 380, height: 380, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(23,178,106,0.15) 0%, transparent 70%)',
+            filter: 'blur(50px)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: '-10%', right: '-15%',
+            width: 320, height: 320, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(105,56,239,0.1) 0%, transparent 70%)',
+            filter: 'blur(55px)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.025,
+            backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
+            backgroundSize: '36px 36px',
+          }} />
+          {/* Left-edge fade to blend with image */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0, width: 80,
+            background: 'linear-gradient(to left, transparent, rgba(5,5,8,0.95))',
+          }} />
+        </div>
+
+        {/* Logo */}
+        <Link href="/" onClick={handleNavTo('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', position: 'relative', zIndex: 10, marginBottom: 40 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, overflow: 'hidden',
+            boxShadow: '0 0 20px rgba(23,178,106,0.5)',
+            position: 'relative', flexShrink: 0,
+          }}>
+            <Image src="/logo-aegisflow.png" alt="AegisFlow" fill sizes="40px" priority style={{ objectFit: 'cover' }} />
+          </div>
+          <span style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
+            AegisFlow AI
+          </span>
+        </Link>
+
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {/* Badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 18,
+            background: 'rgba(23,178,106,0.15)', border: '1px solid rgba(23,178,106,0.3)',
+            borderRadius: 99, padding: '5px 12px', width: 'fit-content',
+          }}>
+            <Sparkles size={10} style={{ color: '#34d399' }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Join the Community
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h1 style={{
+            fontSize: 30, fontWeight: 900, color: '#fff',
+            lineHeight: 1.2, letterSpacing: '-0.035em', margin: '0 0 12px',
+          }}>
+            Together<br />
+            <span style={{
+              background: 'linear-gradient(90deg, #34d399, #60a5fa)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              protect lives
+            </span>
+          </h1>
+
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65, margin: '0 0 28px' }}>
+            Thousands of officers and volunteers are using AegisFlow AI to respond faster and save more lives.
+          </p>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+            {STATS.map(({ value, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', minWidth: 70 }}>{value}</div>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', fontWeight: 500, textAlign: 'right' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Features */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '14px 16px',
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            {FEATURES.map(({ icon: Icon, text, color }) => (
+              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  background: `rgba(${color === '#fbbf24' ? '251,191,36' : color === '#60a5fa' ? '96,165,250' : color === '#34d399' ? '52,211,153' : '167,139,250'},0.12)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={13} style={{ color }} />
+                </div>
+                <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{text}</span>
+                <CheckCircle2 size={11} style={{ marginLeft: 'auto', color: 'rgba(52,211,153,0.5)', flexShrink: 0 }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12, padding: '14px 16px', marginTop: 14,
+          }}>
+            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.65, margin: '0 0 12px', fontStyle: 'italic' }}>
+              {TESTIMONIAL.quote}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, #17b26a, #6938ef)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 800, color: '#fff',
+              }}>
+                {TESTIMONIAL.avatar}
+              </div>
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#fff' }}>{TESTIMONIAL.name}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{TESTIMONIAL.role}</div>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 1 }}>
+                {[1,2,3,4,5].map(i => <span key={i} style={{ color: '#fbbf24', fontSize: 12 }}>★</span>)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, marginTop: 24 }}>
+          <Shield size={10} style={{ color: 'rgba(255,255,255,0.15)' }} />
+          <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.15)' }}>AegisFlow AI · © 2025</span>
+        </div>
+      </div>
+
+      {/* ── Global Styles ── */}
+      <style>{`
+        @media (min-width: 1200px) {
+          .lg-right-col { display: flex !important; }
+          .lg-mid-col   { display: block !important; }
+          .auth-form-panel { max-width: 500px !important; }
+        }
+        @media (min-width: 900px) and (max-width: 1199px) {
+          .lg-right-col { display: flex !important; width: 340px !important; }
+          .lg-mid-col   { display: none !important; }
+          .auth-form-panel { max-width: 500px !important; }
+        }
+        @media (max-width: 899px) {
+          .auth-form-panel {
+            max-width: 100% !important;
+            padding: 40px 24px 52px !important;
+            background: linear-gradient(160deg, #0d0d1a 0%, #0a0a16 100%) !important;
+          }
+        }
+        .back-link:hover { color: rgba(255,255,255,0.7) !important; }
+        .auth-link:hover  { color: #6ee7b7 !important; }
+      `}</style>
+    </div>
   );
 }
