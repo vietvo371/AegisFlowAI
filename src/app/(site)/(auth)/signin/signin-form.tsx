@@ -31,22 +31,46 @@ export default function SignInForm() {
     setIsShowPassword(!isShowPassword);
   };
 
+  /** Hiển thị toast lỗi khi form có lỗi validation */
+  function onError(errors: typeof form.formState.errors) {
+    const fieldLabels: Record<string, string> = {
+      email: 'Email',
+      password: 'Password',
+    };
+
+    Object.entries(errors).forEach(([field, err]) => {
+      const label = fieldLabels[field] ?? field;
+      toast.error(`${label}: ${err?.message ?? 'Invalid value'}`, {
+        duration: 4000,
+      });
+    });
+  }
+
   async function onSubmit(data: Inputs) {
     setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
 
-    toast.success(
-      <pre>
-        <code>{JSON.stringify(data, null, 2)}</code>
-      </pre>
-    );
+      toast.success('Signed in successfully! Welcome back 👋', {
+        duration: 5000,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.';
 
-    setIsLoading(false);
+      toast.error(message, {
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit, onError)} noValidate>
       <div className="grid gap-5">
         <Controller
           control={form.control}

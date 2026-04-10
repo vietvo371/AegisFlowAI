@@ -29,8 +29,9 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body
         className={`bg-gray-50 dark:bg-dark-secondary min-h-screen flex flex-col ${beVietnamPro.className}`}
+        suppressHydrationWarning
       >
-        <ThemeProvider disableTransitionOnChange>
+        <ThemeProvider attribute="data-theme" defaultTheme="light" disableTransitionOnChange>
           {/* ToasterProvider must render before the children components */}
           {/* https://github.com/emilkowalski/sonner/issues/168#issuecomment-1773734618 */}
           <ToasterProvider />
