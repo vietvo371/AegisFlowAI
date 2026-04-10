@@ -36,6 +36,16 @@ export default function DashboardLayout({
             <LayoutDashboard size={20} />
             {t('common.dashboard')}
           </Link>
+          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+            {t('nav.liveMap')}
+          </Link>
+          <Link href="/#features" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <ShieldCheck size={20} />
+            {t('nav.solutions')}
+          </Link>
           <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
             <Bell size={20} />
             {t('common.notifications')}
@@ -83,7 +93,17 @@ export default function DashboardLayout({
                     <LayoutDashboard size={20} />
                     {t('common.dashboard')}
                   </Link>
-                  <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+                  <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-all">
+                    <div className="w-5 h-5 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                    {t('nav.liveMap')}
+                  </Link>
+                  <Link href="/#features" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-all">
+                    <ShieldCheck size={20} />
+                    {t('nav.solutions')}
+                  </Link>
+                  <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-all">
                     <Bell size={20} />
                     {t('common.notifications')}
                   </Link>

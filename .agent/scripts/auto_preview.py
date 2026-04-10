@@ -96,7 +96,7 @@ def stop_server():
         if is_running(pid):
             # Try gentle kill first
             os.kill(pid, signal.SIGTERM) if sys.platform != 'win32' else subprocess.call(['taskkill', '/F', '/T', '/PID', str(pid)])
-            print(f"🛑 Preview stopped (PID: {pid})")
+            print(f" Preview stopped (PID: {pid})")
         else:
             print("ℹ️  Process was not running.")
     except Exception as e:

@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Overview
+##  Overview
 
 While Antigravity's base models (like Gemini) are powerful generalists, they don't know your specific project context or your team's standards. Loading every rule or tool into the agent's context window leads to "tool bloat," higher costs, latency, and confusion.
 
@@ -165,7 +165,7 @@ The Agent will read the template, convert the comments to Python style, and auto
 
 ---
 
-## 🎯 Conclusion
+##  Conclusion
 
 By creating Skills, you transform a general AI model into an expert for your project:
 

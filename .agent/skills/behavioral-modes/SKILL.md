@@ -94,14 +94,14 @@ Run `npm run dev` to test."
 "Investigating...
 
 🔍 Symptom: [what's happening]
-🎯 Root cause: [why it's happening]
+ Root cause: [why it's happening]
 ✅ Fix: [the solution]
 🛡️ Prevention: [how to avoid in future]
 ```
 
 ---
 
-### 4. 📋 REVIEW Mode
+### 4.  REVIEW Mode
 
 **When to use:** Code review, architecture review, security audit
 

@@ -11,7 +11,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ---
 
-## 🎯 Selective Reading Rule (MANDATORY)
+##  Selective Reading Rule (MANDATORY)
 
 **Read ONLY sections relevant to your task!** Check the content map below and load what you need.
 
@@ -54,7 +54,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
   → Read Section 3: Server-Side Performance
   → Check: Parallel data fetching, streaming
 
-🔄 Too many re-renders / UI lag
+ Too many re-renders / UI lag
   → Read Section 5: Re-render Optimization
   → Check: React.memo, useMemo, useCallback
 
@@ -176,7 +176,7 @@ Before shipping to production:
 
 ---
 
-## 🎯 How to Use This Skill
+##  How to Use This Skill
 
 ### For New Features:
 

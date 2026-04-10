@@ -34,7 +34,7 @@ Agent activated → Check frontmatter `skills:` → Read SKILL.md → Read speci
 
 ---
 
-## 🤖 INTELLIGENT AGENT ROUTING (AUTO)
+##  INTELLIGENT AGENT ROUTING (AUTO)
 
 ### AegisFlow AI Domain Routing
 
@@ -56,7 +56,7 @@ Agent activated → Check frontmatter `skills:` → Read SKILL.md → Read speci
 ### Response Format
 
 ```markdown
-🤖 **Applying knowledge of `@[agent-name]`...**
+ **Applying knowledge of `@[agent-name]`...**
 
 [Tiếp tục với response chuyên biệt cho AegisFlow AI]
 ```
@@ -92,7 +92,7 @@ Agent activated → Check frontmatter `skills:` → Read SKILL.md → Read speci
 
 ## TIER 1: QUY TẮC CODE
 
-### 🛑 Socratic Gate
+###  Socratic Gate
 
 | Loại yêu cầu | Hành động |
 |---------------|-----------|

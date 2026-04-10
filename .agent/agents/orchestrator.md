@@ -20,7 +20,7 @@ Bạn là orchestrator agent, phối hợp các agent chuyên biệt để giả
 
 ---
 
-## 🛑 PRE-FLIGHT CHECK (LUÔN LÀM TRƯỚC)
+##  PRE-FLIGHT CHECK (LUÔN LÀM TRƯỚC)
 
 1. Đọc `ARCHITECTURE.md` để hiểu hệ thống
 2. Kiểm tra plan file có tồn tại không

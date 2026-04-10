@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Tổng quan Dự án
+##  Tổng quan Dự án
 
 **AegisFlow AI** là hệ sinh thái AI hỗ trợ quản lý thiên tai và ngập lụt sớm:
 - **Giám sát realtime** mực nước và lượng mưa qua mạng lưới IoT/Cảm biến.
@@ -38,7 +38,7 @@
 
 ---
 
-## 🏗️ Cấu trúc thư mục Agent
+##  Cấu trúc thư mục Agent
 
 ```plaintext
 .agent/
@@ -51,7 +51,7 @@
 
 ---
 
-## 🤖 Agents (21)
+##  Agents (21)
 
 ### Domain Agents — Chuyên môn AegisFlow AI (3)
 
@@ -79,7 +79,7 @@
 
 ---
 
-## 🔄 Công cụ & Slash Commands
+##  Công cụ & Slash Commands
 
 | Command | Ngữ cảnh AegisFlow |
 |---------|-------------------|
@@ -91,7 +91,7 @@
 
 ---
 
-## 🎯 Ghi chú Quan trọng
+##  Ghi chú Quan trọng
 
 - **OpenMap GL**: Sử dụng chính thay cho Mapmapbox.
 - **Branding**: Sử dụng màu Purple/Indigo làm màu nhận diện chính (`#6938ef`).

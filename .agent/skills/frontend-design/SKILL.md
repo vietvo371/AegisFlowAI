@@ -11,7 +11,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ---
 
-## 🎯 Selective Reading Rule (MANDATORY)
+##  Selective Reading Rule (MANDATORY)
 
 **Read REQUIRED files always, OPTIONAL only when needed:**
 

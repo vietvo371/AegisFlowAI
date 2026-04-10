@@ -390,7 +390,7 @@ Long press → Context menu appears
 ┌─────────────────────────────┐
 │       Preview Card          │
 ├─────────────────────────────┤
-│  📋 Copy                    │
+│   Copy                    │
 │  📤 Share                   │
 │  ➕ Add to...               │
 ├─────────────────────────────┤

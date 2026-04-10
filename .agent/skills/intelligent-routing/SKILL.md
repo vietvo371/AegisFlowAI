@@ -85,7 +85,7 @@ function analyzeRequest(userMessage) {
 **When auto-selecting an agent, inform the user concisely:**
 
 ```markdown
-🤖 **Applying knowledge of `@security-auditor` + `@backend-specialist`...**
+ **Applying knowledge of `@security-auditor` + `@backend-specialist`...**
 
 [Proceed with specialized response]
 ```
@@ -169,7 +169,7 @@ Example: "Create a secure login system with dark mode UI"
 **DO inform which expertise is being applied:**
 
 ```markdown
-🤖 **Applying knowledge of `@frontend-specialist`...**
+ **Applying knowledge of `@frontend-specialist`...**
 
 I will create the component with the following characteristics:
 [Continue with specialized response]

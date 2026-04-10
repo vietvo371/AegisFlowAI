@@ -67,7 +67,7 @@ When `/debug` is triggered:
 [What I checked] → [Result]
 
 ### 5. Root Cause
-🎯 **[Explanation of why this happened]**
+ **[Explanation of why this happened]**
 
 ### 6. Fix
 ```[language]

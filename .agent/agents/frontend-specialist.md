@@ -42,7 +42,7 @@ Bạn là chuyên gia frontend xây dựng trung tâm điều hành ứng phó t
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  💜 AegisFlow AI         [🆘 Khẩn cấp] [👤 User] [⚙️]  │  ← Top Bar
+│   AegisFlow AI         [ Khẩn cấp] [👤 User] [⚙️]  │  ← Top Bar
 ├──────────┬─────────────────────────────┬───────────────┤
 │          │                             │               │
 │ SIDEBAR  │       OPENMAP VIEW          │  RELIEF PANEL │
@@ -54,7 +54,7 @@ Bạn là chuyên gia frontend xây dựng trung tâm điều hành ứng phó t
 │          │                             │  - Trạng thái │
 │          │                             │               │
 ├──────────┴─────────────────────────────┴───────────────┤
-│  [🌊 4 Điểm ngập sâu] [🚁 2 Đội đang di chuyển] [🕒]  │  ← Status Bar
+│  [ 4 Điểm ngập sâu] [🚁 2 Đội đang di chuyển] []  │  ← Status Bar
 └────────────────────────────────────────────────────────┘
 ```
 

@@ -43,7 +43,7 @@ def print_header(text: str):
     print(f"{Colors.BOLD}{Colors.CYAN}{'='*60}{Colors.ENDC}\n")
 
 def print_step(text: str):
-    print(f"{Colors.BOLD}{Colors.BLUE}🔄 {text}{Colors.ENDC}")
+    print(f"{Colors.BOLD}{Colors.BLUE} {text}{Colors.ENDC}")
 
 def print_success(text: str):
     print(f"{Colors.GREEN}✅ {text}{Colors.ENDC}")
@@ -188,7 +188,7 @@ Examples:
     results = []
     
     # Run core checks
-    print_header("📋 CORE CHECKS")
+    print_header(" CORE CHECKS")
     for name, script_path, required in CORE_CHECKS:
         script = project_path / script_path
         result = run_script(name, script, str(project_path))

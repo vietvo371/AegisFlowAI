@@ -46,7 +46,7 @@ def print_header(text: str):
     print(f"{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.ENDC}\n")
 
 def print_step(text: str):
-    print(f"{Colors.BOLD}{Colors.BLUE}🔄 {text}{Colors.ENDC}")
+    print(f"{Colors.BOLD}{Colors.BLUE} {text}{Colors.ENDC}")
 
 def print_success(text: str):
     print(f"{Colors.GREEN}✅ {text}{Colors.ENDC}")
@@ -304,7 +304,7 @@ Examples:
         if args.no_e2e and category == "E2E Testing":
             continue
         
-        print_header(f"📋 {category.upper()}")
+        print_header(f" {category.upper()}")
         
         for name, script_path, required in suite["checks"]:
             script = project_path / script_path

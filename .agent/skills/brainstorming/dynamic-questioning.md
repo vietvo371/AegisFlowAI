@@ -63,7 +63,7 @@ If a question doesn't reduce implementation paths → **DELETE IT**.
 
 ---
 
-## 📋 Question Generation Algorithm
+##  Question Generation Algorithm
 
 ```
 INPUT: User request + Context (greenfield/feature/refactor/debug)
@@ -93,7 +93,7 @@ INPUT: User request + Context (greenfield/feature/refactor/debug)
 
 ---
 
-## 🎯 Domain-Specific Question Banks
+##  Domain-Specific Question Banks
 
 ### E-Commerce
 
@@ -173,7 +173,7 @@ Based on your request for [DOMAIN] [FEATURE]:
 
 ---
 
-## 🔄 Iterative Questioning
+##  Iterative Questioning
 
 ### First Pass (3-5 Questions)
 Focus on **blocking decisions**. Don't proceed without answers.
@@ -324,7 +324,7 @@ Based on your Instagram clone request:
 
 ---
 
-## 📋 Summary
+##  Summary
 
 | Decision | Recommendation | If Changed |
 |----------|----------------|------------|
@@ -340,7 +340,7 @@ Based on your Instagram clone request:
 
 ---
 
-## 🎯 Principles Recap
+##  Principles Recap
 
 1. **Every question = Architectural decision** → Not data gathering
 2. **Show trade-offs** → User understands consequences

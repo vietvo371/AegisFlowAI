@@ -343,7 +343,7 @@ MANUAL:
 
 ---
 
-## 🎯 Testing Questions to Ask
+##  Testing Questions to Ask
 
 Before writing tests, answer:
 

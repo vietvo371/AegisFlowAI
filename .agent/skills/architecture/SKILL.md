@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Grep
 
 > "Requirements drive architecture. Trade-offs inform decisions. ADRs capture rationale."
 
-## 🎯 Selective Reading Rule
+##  Selective Reading Rule
 
 **Read ONLY files relevant to the request!** Check the content map, find what you need.
 

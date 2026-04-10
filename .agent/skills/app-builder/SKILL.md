@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 
 > Analyzes user's requests, determines tech stack, plans structure, and coordinates agents.
 
-## 🎯 Selective Reading Rule
+##  Selective Reading Rule
 
 **Read ONLY files relevant to the request!** Check the content map, find what you need.
 

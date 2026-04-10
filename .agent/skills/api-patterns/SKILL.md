@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 > API design principles and decision-making for 2025.
 > **Learn to THINK, not copy fixed patterns.**
 
-## 🎯 Selective Reading Rule
+##  Selective Reading Rule
 
 **Read ONLY files relevant to the request!** Check the content map, find what you need.
 

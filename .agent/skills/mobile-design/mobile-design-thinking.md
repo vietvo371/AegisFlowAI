@@ -124,7 +124,7 @@ SCREEN: [Screen Name]
 
 ---
 
-## 🎯 PATTERN QUESTIONING MATRIX
+##  PATTERN QUESTIONING MATRIX
 
 Ask these questions for every default pattern:
 
@@ -246,7 +246,7 @@ DETERMINE PROJECT TYPE:
 
 ---
 
-## 🔄 INTERACTION BREAKDOWN
+##  INTERACTION BREAKDOWN
 
 ### Analysis for Every Gesture
 
