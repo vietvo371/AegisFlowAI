@@ -11,6 +11,8 @@ import { LocaleToggle } from '@/components/theme/locale-toggle';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { useAuth } from '@/lib/auth-context';
+import { AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, Megaphone, BrainCircuit, Users } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -18,6 +20,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const t = useTranslations();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
@@ -33,40 +36,52 @@ export default function DashboardLayout({
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-semibold">
-            <LayoutDashboard size={20} />
-            {t('common.dashboard')}
-          </Link>
           <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <div className="w-5 h-5 flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
-            {t('nav.liveMap')}
+            <LayoutDashboard size={20} />
+            {t('common.dashboard') || 'Tổng quan'}
           </Link>
-          <Link href="/#features" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <div className="w-5 h-5 flex items-center justify-center">
-              <Image src="/images/logo.png" alt="" width={512} height={512} className="w-full h-full object-contain" />
-            </div>
-            {t('nav.solutions')}
+          <Link href="/dashboard/incidents" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <AlertTriangle size={20} />
+            Sự cố
           </Link>
-          <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Bell size={20} />
-            {t('common.notifications')}
+          <Link href="/dashboard/rescue-requests" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <HeartPulse size={20} />
+            Cứu trợ
           </Link>
-          <Link href="/contact" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <User size={20} />
-            {t('common.contact')}
+          <Link href="/dashboard/rescue-teams" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <ShieldAlert size={20} />
+            Đội cứu hộ
+          </Link>
+          <Link href="/dashboard/shelters" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <Home size={20} />
+            Tị nạn
+          </Link>
+          <Link href="/dashboard/sensors" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <Activity size={20} />
+            Cảm biến
+          </Link>
+          <Link href="/dashboard/alerts" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <Megaphone size={20} />
+            Cảnh báo
+          </Link>
+          <Link href="/dashboard/predictions" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <BrainCircuit size={20} />
+            AI Dự báo
+          </Link>
+          <Link href="/dashboard/admin/users" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+            <Users size={20} />
+            Nhân sự
           </Link>
         </nav>
 
         <div className="p-4 border-t border-border">
-          <Link href="/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all mb-1">
+          <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all mb-1">
             <Settings size={20} />
-            {t('common.settings')}
+            {t('common.settings') || 'Cài đặt'}
           </Link>
-          <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5 gap-3">
+          <Button variant="ghost" onClick={() => logout()} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5 gap-3">
             <LogOut size={20} />
-            {t('common.logout')}
+            {t('common.logout') || 'Đăng xuất'}
           </Button>
         </div>
       </aside>
@@ -133,9 +148,9 @@ export default function DashboardLayout({
             
             <div className="h-4 w-px bg-border mx-1" />
 
-            <Avatar className="h-9 w-9 border border-border">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold">VV</AvatarFallback>
+            <Avatar className="h-9 w-9 border border-border mt-1">
+              {user?.avatar_url ? <AvatarImage src={user.avatar_url} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
           </div>
         </header>

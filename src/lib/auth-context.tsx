@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('Auth initialization error:', error);
           localStorage.removeItem('aegisflow_token');
+          document.cookie = 'aegisflow_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           setUser(null);
         }
       }
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
         localStorage.setItem('aegisflow_token', token);
+        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
         setUser(userData);
       }
     } catch (error) {
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
         localStorage.setItem('aegisflow_token', token);
+        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
         setUser(userData);
       }
     } catch (error) {
@@ -106,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post('/auth/logout').catch(() => {});
     } finally {
       localStorage.removeItem('aegisflow_token');
+      document.cookie = 'aegisflow_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       setUser(null);
       if (typeof window !== 'undefined') {
         window.location.href = '/signin';
