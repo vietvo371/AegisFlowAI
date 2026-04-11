@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Search, HeartPulse, Clock, Filter, Phone, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface RescueRequest {
   id: number;
@@ -25,24 +29,73 @@ interface RescueRequest {
 
 export default function RescueRequestsPage() {
   const [requests, setRequests] = useState<RescueRequest[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<RescueRequest | null>(null);
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [updateTeam, setUpdateTeam] = useState('none');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/rescue-requests');
-      if (res.data?.success) {
-        setRequests(res.data.data);
+      const [resReq, resTeams] = await Promise.all([
+         api.get('/rescue-requests'),
+         api.get('/rescue-teams')
+      ]);
+      if (resReq.data?.success) {
+        setRequests(resReq.data.data);
+      }
+      if (resTeams.data?.success) {
+        setTeams(resTeams.data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch rescue requests', error);
+      console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOpenAction = (req: RescueRequest) => {
+    setSelectedRequest(req);
+    setUpdateStatus(req.status);
+    setUpdateTeam('none'); // Ở đây ta có thể parse team_id từ backend nếu backend có trả về (hiện tại thì chưa có field đó trong type RescueRequest nên hiển thị "none")
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!selectedRequest) return;
+    setSubmitting(true);
+    try {
+      if (updateStatus !== selectedRequest.status) {
+        await api.put(`/rescue-requests/${selectedRequest.id}/status`, { status: updateStatus });
+      }
+      if (updateTeam !== 'none') {
+        await api.put(`/rescue-requests/${selectedRequest.id}/assign`, { rescue_team_id: parseInt(updateTeam) });
+      }
+      toast.success('Đã cập nhật trạng thái yêu cầu cứu trợ');
+      setSelectedRequest(null);
+      fetchRequests();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    
+    const handleRefresh = () => {
+      fetchRequests();
+    };
+    
+    window.addEventListener('aegis:rescue_request:created', handleRefresh);
+    window.addEventListener('aegis:rescue_request:updated', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('aegis:rescue_request:created', handleRefresh);
+      window.removeEventListener('aegis:rescue_request:updated', handleRefresh);
+    };
   }, []);
 
   const getUrgencyBadge = (urgency: string) => {
@@ -130,7 +183,7 @@ export default function RescueRequestsPage() {
                   </TableRow>
                 ) : (
                   requests.map((req) => (
-                    <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer">
+                    <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => handleOpenAction(req)}>
                       <TableCell className="font-medium text-muted-foreground">#{(req.id).toString().padStart(4, '0')}</TableCell>
                       <TableCell>{getStatusBadge(req.status)}</TableCell>
                       <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
@@ -167,6 +220,64 @@ export default function RescueRequestsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Xử lý yêu cầu cứu trợ #{selectedRequest?.id}</DialogTitle>
+            <DialogDescription>
+              Cập nhật trạng thái hoặc điều phối lực lượng để giải quyết yêu cầu.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+               <div className="text-sm border p-3 rounded-md bg-muted/30 text-muted-foreground space-y-1">
+                 <p><strong>Nội dung:</strong> {selectedRequest?.notes || 'Không có ghi chú'}</p>
+                 <p><strong>Địa chỉ:</strong> {selectedRequest?.address || 'Không xác định'}</p>
+                 <p><strong>Liên hệ:</strong> {selectedRequest?.contact_phone || 'N/A'}</p>
+               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Trạng thái giải quyết</Label>
+              <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Đang chờ (Pending)</SelectItem>
+                  <SelectItem value="assigned">Đã phân công</SelectItem>
+                  <SelectItem value="in_progress">Đang tiến hành ứng cứu</SelectItem>
+                  <SelectItem value="resolved">Hoàn tất (Resolved)</SelectItem>
+                  <SelectItem value="cancelled">Hủy yêu cầu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(updateStatus === 'assigned' || updateStatus === 'in_progress') && (
+               <div className="space-y-2">
+                 <Label>Điều động đội ứng phó</Label>
+                 <Select value={updateTeam} onValueChange={setUpdateTeam}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Chọn đội cứu hộ..." />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="none">-- Không phân công / Giữ nguyên --</SelectItem>
+                     {teams.filter(t => t.status === 'available').map(t => (
+                       <SelectItem key={t.id} value={t.id.toString()}>{t.name} (Chuyên môn: {t.team_type})</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedRequest(null)}>Đóng</Button>
+            <Button onClick={handleUpdateSubmit} disabled={submitting}>
+              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />} Cập nhật
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

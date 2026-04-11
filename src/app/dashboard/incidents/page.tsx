@@ -10,6 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, MapPin, Search, Filter, Plus, RefreshCw, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface Incident {
   id: number;
@@ -26,6 +31,16 @@ export default function IncidentsPage() {
   const t = useTranslations();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    severity: 'medium',
+    status: 'reported',
+    lat: '',
+    lng: ''
+  });
 
   const fetchIncidents = async () => {
     setLoading(true);
@@ -41,8 +56,43 @@ export default function IncidentsPage() {
     }
   };
 
+  const handleCreateSubmit = async () => {
+    if (!formData.title || !formData.lat || !formData.lng) {
+      toast.error('Vui lòng nhập đủ tên sự cố và tọa độ (Lat/Lng)');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await api.post('/incidents', {
+        title: formData.title,
+        description: formData.description,
+        severity: formData.severity,
+        status: formData.status,
+        latitude: parseFloat(formData.lat),
+        longitude: parseFloat(formData.lng)
+      });
+      if (res.data?.success) {
+        setIsCreateOpen(false);
+        setFormData({ title: '', description: '', severity: 'medium', status: 'reported', lat: '', lng: '' });
+        fetchIncidents();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     fetchIncidents();
+    
+    // Listen for real-time events
+    const handleNewIncident = () => {
+       fetchIncidents(); // Hoặc có thể prepend data từ event detail vào state
+    };
+    
+    window.addEventListener('aegis:incident:created', handleNewIncident);
+    return () => window.removeEventListener('aegis:incident:created', handleNewIncident);
   }, []);
 
   const getSeverityBadge = (severity: string) => {
@@ -77,7 +127,7 @@ export default function IncidentsPage() {
           <Button variant="outline" size="icon" onClick={fetchIncidents} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
             <Plus className="w-4 h-4" /> Báo cáo sự cố
           </Button>
         </div>
@@ -158,6 +208,57 @@ export default function IncidentsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Báo cáo sự cố mới</DialogTitle>
+            <DialogDescription>
+              Tạo biểu mẫu sự kiện khẩn cấp để các đội cứu hộ nhận được thông báo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Tên sự cố</Label>
+              <Input id="title" placeholder="VD: Sạt lở đê bao sông SG" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Mức độ</Label>
+              <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v })}>
+                 <SelectTrigger>
+                    <SelectValue placeholder="Chọn mức độ" />
+                 </SelectTrigger>
+                 <SelectContent>
+                    <SelectItem value="low">Thấp</SelectItem>
+                    <SelectItem value="medium">Trung bình</SelectItem>
+                    <SelectItem value="high">Nghiêm trọng</SelectItem>
+                    <SelectItem value="critical">Nguy cấp</SelectItem>
+                 </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lat">Vĩ độ (Lat)</Label>
+                <Input id="lat" placeholder="10.7626" value={formData.lat} onChange={e => setFormData({ ...formData, lat: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lng">Kinh độ (Lng)</Label>
+                <Input id="lng" placeholder="106.6601" value={formData.lng} onChange={e => setFormData({ ...formData, lng: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desc">Chi tiết sự kiện</Label>
+              <Textarea id="desc" placeholder="Cung cấp thêm thông tin số lượng người ảnh hưởng..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Hủy</Button>
+            <Button onClick={handleCreateSubmit} disabled={submitting}>
+               {submitting ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null} Lưu Sự cố
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

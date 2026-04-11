@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth-context';
 import { AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, Megaphone, BrainCircuit, Users } from 'lucide-react';
+import { RealtimeListener } from '@/components/realtime/RealtimeListener';
 
 export default function DashboardLayout({
   children,
@@ -24,6 +25,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
+      <RealtimeListener />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
         <div className="p-6">

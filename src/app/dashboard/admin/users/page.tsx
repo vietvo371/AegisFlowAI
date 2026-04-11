@@ -10,12 +10,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Search, ShieldCheck, Mail, Phone, Lock, Edit2, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
   const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [updateRole, setUpdateRole] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,6 +49,31 @@ export default function AdminUsersPage() {
       setLoading(false);
     }
   }, [user]);
+
+  const handleEditClick = (u: User) => {
+    setSelectedUser(u);
+    setUpdateRole(u.role);
+    setUpdateStatus(u.status);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    setSubmitting(true);
+    try {
+      await api.put(`/admin/users/${selectedUser.id}`, {
+        role: updateRole,
+        status: updateStatus
+      });
+      toast.success('Đã cập nhật thông tin thành viên');
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (e) {
+      console.error(e);
+      toast.error('Có lỗi xảy ra khi cập nhật');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (user?.role !== 'city_admin') {
     return (
@@ -170,7 +202,7 @@ export default function AdminUsersPage() {
                       <TableCell>{getStatusBadge(u.status)}</TableCell>
                       <TableCell className="text-right">
                          <div className="flex items-center justify-end gap-1">
-                           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50">
+                           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleEditClick(u)}>
                              <Edit2 className="h-4 w-4" />
                            </Button>
                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(u.id)}>
@@ -186,6 +218,52 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Sửa thông tin: {selectedUser?.name}</DialogTitle>
+            <DialogDescription>
+              Cấp quyền mới hoặc thay đổi trạng thái truy cập của nhân sự.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Bộ phận (Role)</Label>
+              <Select value={updateRole} onValueChange={setUpdateRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn quyền" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="citizen">Người dân (Citizen)</SelectItem>
+                  <SelectItem value="rescue_operator">Điều phối cứu hộ (Operator)</SelectItem>
+                  <SelectItem value="sensor_manager">Kỹ thuật IoT (Sensor)</SelectItem>
+                  <SelectItem value="city_admin">Quản trị viên (Admin)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Trạng thái</Label>
+              <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Hoạt động (Active)</SelectItem>
+                  <SelectItem value="inactive">Đang chờ (Inactive)</SelectItem>
+                  <SelectItem value="suspended">Đình chỉ (Suspended)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedUser(null)}>Hủy</Button>
+            <Button onClick={handleUpdateUser} disabled={submitting}>
+              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />} Cập nhật
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
