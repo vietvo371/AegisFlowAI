@@ -30,6 +30,8 @@ export const metadata: Metadata = {
     'AegisFlow AI - Nền tảng AI hỗ trợ dự báo ngập lụt sớm, đề xuất tuyến sơ tán an toàn, và tối ưu phân bổ cứu trợ theo thời gian thực.',
 };
 
+import { AuthProvider } from '@/lib/auth-context';
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -49,8 +51,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <NextIntlClientProvider messages={messages}>
-            <Toaster richColors position="top-right" />
-            {children}
+            <AuthProvider>
+              <Toaster richColors position="top-right" />
+              {children}
+            </AuthProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

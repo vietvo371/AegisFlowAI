@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { EvacuationRoute } from '@/lib/openmap';
+import { ReportIncidentDialog } from './report-incident-dialog';
 
 interface ReliefPanelProps {
   onSelectRoute: (route: EvacuationRoute) => void;
@@ -50,6 +51,11 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
 
   return (
     <div className="space-y-6">
+      {/* SOS Reporting */}
+      <div className="px-1">
+        <ReportIncidentDialog />
+      </div>
+
       {/* Search and Navigation */}
       <Card className="border-border shadow-sm">
         <CardHeader className="p-5 pb-0">
@@ -129,12 +135,9 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
               ))}
             </div>
           </ScrollArea>
-          
-          <Button className="w-full mt-4 bg-primary hover:bg-primary-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-primary/20">
-            {t('dispatch')} Lực lượng mới
-          </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
+

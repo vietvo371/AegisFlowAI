@@ -5,44 +5,11 @@ import maplibregl from '@openmapvn/openmapvn-gl';
 import '@openmapvn/openmapvn-gl/dist/maplibre-gl.css';
 import { reverseGeocode, decodePolyline } from '@/lib/openmap';
 import type { EvacuationRoute } from '@/lib/openmap';
+import api from '@/lib/api';
+import echo from '@/lib/echo';
+import { toast } from 'sonner';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-
-const FLOOD_ZONES = [
-  {
-    id: 'lien-chieu', name: 'Liên Chiểu',
-    coords: [
-      [108.132, 16.085], [108.140, 16.090], [108.145, 16.105], 
-      [108.158, 16.108], [108.165, 16.095], [108.158, 16.085], 
-      [108.145, 16.075], [108.132, 16.085]
-    ],
-    color: '#f04438', opacity: 0.35,
-  },
-  {
-    id: 'cam-le', name: 'Cẩm Lệ (Ven sông)',
-    coords: [
-      [108.185, 16.015], [108.195, 16.025], [108.210, 16.028], 
-      [108.225, 16.020], [108.230, 16.010], [108.215, 16.002], 
-      [108.198, 16.005], [108.185, 16.015]
-    ],
-    color: '#f79009', opacity: 0.28,
-  },
-  {
-    id: 'hoa-vang', name: 'Hoà Vang (Hòa Thọ Tây)',
-    coords: [
-      [108.155, 16.020], [108.165, 16.030], [108.175, 16.035], 
-      [108.180, 16.025], [108.170, 16.015], [108.155, 16.020]
-    ],
-    color: '#f79009', opacity: 0.24,
-  },
-];
-
-const MARKERS = [
-  { id: 1, lng: 108.145, lat: 16.095, label: 'Cảnh báo: Liên Chiểu', color: '#f04438', type: 'critical' },
-  { id: 2, lng: 108.205, lat: 16.022, label: 'Ngập lụt: Sông Cẩm Lệ', color: '#f79009', type: 'warning' },
-  { id: 3, lng: 108.168, lat: 16.028, label: 'Sơ tán: THPT Hoà Vang', color: '#17b26a', type: 'shelter' },
-  { id: 4, lng: 108.222, lat: 16.058, label: 'Sơ tán: BV Đà Nẵng', color: '#17b26a', type: 'shelter' },
-];
 
 export interface MapComponentProps {
   evacuationRoute?: EvacuationRoute | null;
@@ -53,6 +20,45 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [clickAddress, setClickAddress] = useState<string | null>(null);
+  const [mapData, setMapData] = useState<{
+    flood_zones: any;
+    incidents: any;
+    rescue_teams: any;
+    shelters: any;
+  } | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+
+  // 1. Fetch data from API
+  const fetchData = async () => {
+    try {
+      const res = await api.get('/map/all');
+      if (res.data?.success) {
+        setMapData(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch map data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    // 2. Setup Real-time Listeners
+    if (echo) {
+      echo.channel('public-events')
+        .listen('.IncidentCreated', (e: any) => {
+          toast.info(`Sự cố mới: ${e.incident.title}`);
+          fetchData();
+        })
+        .listen('.FloodZoneUpdated', (e: any) => {
+          fetchData();
+        });
+    }
+
+    return () => {
+      if (echo) echo.leaveChannel('public-events');
+    };
+  }, []);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -80,53 +86,6 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
       const layers = map.getStyle().layers;
       const labelLayerId = layers?.find(layer => layer.type === 'symbol' && layer.layout?.['text-field'])?.id;
 
-      // Flood zones - Polygon visualization
-      FLOOD_ZONES.forEach(zone => {
-        map.addSource(zone.id, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: { name: zone.name },
-            geometry: { type: 'Polygon', coordinates: [zone.coords as [number, number][]] },
-          },
-        });
-
-        // Glow layer for "modern" look
-        map.addLayer({
-          id: `${zone.id}-glow`,
-          type: 'fill',
-          source: zone.id,
-          paint: {
-            'fill-color': zone.color,
-            'fill-opacity': zone.opacity * 0.5,
-            'fill-translate': [2, 2],
-          }
-        });
-
-        map.addLayer({
-          id: `${zone.id}-fill`,
-          type: 'fill',
-          source: zone.id,
-          paint: {
-            'fill-color': zone.color,
-            'fill-opacity': zone.opacity,
-            'fill-outline-color': zone.color,
-          }
-        });
-
-        map.addLayer({
-          id: `${zone.id}-outline`,
-          type: 'line',
-          source: zone.id,
-          paint: {
-            'line-color': zone.color,
-            'line-width': 3,
-            'line-opacity': 0.8,
-            'line-blur': 2,
-          }
-        });
-      });
-
       // Route layer
       map.addSource('evacuation-route', {
         type: 'geojson',
@@ -145,44 +104,6 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
         type: 'line', source: 'evacuation-route',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#6938ef', 'line-width': 5, 'line-opacity': 1 },
-      });
-
-      // Modern Markers
-      MARKERS.forEach(m => {
-        const el = document.createElement('div');
-        el.className = 'custom-marker';
-        el.style.cssText = `
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background: ${m.color};
-          border: 2.5px solid white;
-          box-shadow: 0 0 15px ${m.color}66, 0 2px 4px rgba(0,0,0,0.2);
-          cursor: pointer;
-          position: relative;
-        `;
-        
-        const ring = document.createElement('div');
-        ring.className = 'marker-ring';
-        ring.style.cssText = `
-          position: absolute;
-          inset: -10px;
-          border-radius: 50%;
-          border: 2px solid ${m.color};
-          animation: marker-pulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-        `;
-        el.appendChild(ring);
-
-        new maplibregl.Marker({ element: el })
-          .setLngLat([m.lng, m.lat])
-          .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false, className: 'modern-popup' })
-            .setHTML(`
-              <div style="padding: 4px">
-                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${m.color}; margin-bottom: 2px">${m.type}</div>
-                <div style="font-size: 12px; font-weight: 700; color: #1e293b">${m.label}</div>
-              </div>
-            `))
-          .addTo(map);
       });
 
       map.on('click', async (e) => {
@@ -212,6 +133,109 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
       mapRef.current = null;
     };
   }, []);
+
+  // 3. Update Layers & Markers when mapData changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded || !mapData) return;
+
+    // Clear old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    // Sync Flood Zones
+    mapData.flood_zones.features.forEach((zone: any) => {
+      const sourceId = `zone-${zone.id}`;
+      const source = map.getSource(sourceId) as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData(zone);
+      } else {
+        map.addSource(sourceId, { type: 'geojson', data: zone });
+        
+        map.addLayer({
+          id: `${sourceId}-fill`,
+          type: 'fill',
+          source: sourceId,
+          paint: {
+            'fill-color': zone.properties.color || '#f04438',
+            'fill-opacity': zone.properties.opacity || 0.3,
+          }
+        });
+
+        map.addLayer({
+          id: `${sourceId}-outline`,
+          type: 'line',
+          source: sourceId,
+          paint: {
+            'line-color': zone.properties.color || '#f04438',
+            'line-width': 2,
+            'line-opacity': 0.8,
+          }
+        });
+      }
+    });
+
+    // Add Incidents as Markers
+    mapData.incidents.features.forEach((f: any) => {
+      const color = f.properties.severity === 'critical' ? '#f04438' : '#f79009';
+      const el = document.createElement('div');
+      el.className = 'custom-marker';
+      el.style.cssText = `
+        width: 14px; height: 14px; border-radius: 50%;
+        background: ${color}; border: 2.5px solid white;
+        box-shadow: 0 0 15px ${color}66; cursor: pointer; position: relative;
+      `;
+      
+      const ring = document.createElement('div');
+      ring.style.cssText = `
+        position: absolute; inset: -10px; border-radius: 50%;
+        border: 2px solid ${color};
+        animation: marker-pulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      `;
+      el.appendChild(ring);
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat(f.geometry.coordinates)
+        .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false, className: 'modern-popup' })
+          .setHTML(`
+            <div style="padding: 4px">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${color}">${f.properties.severity}</div>
+              <div style="font-size: 12px; font-weight: 700; color: #1e293b">${f.properties.title}</div>
+              <div style="font-size: 10px; color: #64748b">${f.properties.status}</div>
+            </div>
+          `))
+        .addTo(map);
+      
+      markersRef.current.push(marker);
+    });
+
+    // Add Shelters as Markers
+    mapData.shelters.features.forEach((f: any) => {
+      const color = '#17b26a';
+      const el = document.createElement('div');
+      el.className = 'custom-marker';
+      el.style.cssText = `
+        width: 12px; height: 12px; border-radius: 50%;
+        background: ${color}; border: 2px solid white;
+        box-shadow: 0 0 10px ${color}44; cursor: pointer;
+      `;
+      
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat(f.geometry.coordinates)
+        .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false, className: 'modern-popup' })
+          .setHTML(`
+            <div style="padding: 4px">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${color}">Sơ tán</div>
+              <div style="font-size: 12px; font-weight: 700; color: #1e293b">${f.properties.name}</div>
+              <div style="font-size: 10px; color: #64748b">Trống: ${f.properties.available_beds}/${f.properties.capacity}</div>
+            </div>
+          `))
+        .addTo(map);
+      
+      markersRef.current.push(marker);
+    });
+
+  }, [mapData, loaded]);
 
   useEffect(() => {
     const map = mapRef.current;
