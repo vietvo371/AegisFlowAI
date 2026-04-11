@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { ShieldCheck, LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu } from 'lucide-react';
+import { LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
@@ -24,8 +25,8 @@ export default function DashboardLayout({
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
         <div className="p-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-              <ShieldCheck size={20} />
+            <div className="w-8 h-8 flex items-center justify-center">
+              <Image src="/images/logo.png" alt="AegisFlow" width={512} height={512} className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold tracking-tight">AegisFlow</span>
           </Link>
@@ -43,7 +44,9 @@ export default function DashboardLayout({
             {t('nav.liveMap')}
           </Link>
           <Link href="/#features" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <ShieldCheck size={20} />
+            <div className="w-5 h-5 flex items-center justify-center">
+              <Image src="/images/logo.png" alt="" width={512} height={512} className="w-full h-full object-contain" />
+            </div>
             {t('nav.solutions')}
           </Link>
           <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
@@ -82,8 +85,8 @@ export default function DashboardLayout({
                 <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                 <div className="p-6">
                   <Link href="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-                      <ShieldCheck size={20} />
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      <Image src="/images/logo.png" alt="AegisFlow" width={512} height={512} className="w-full h-full object-contain" />
                     </div>
                     <span className="text-xl font-bold tracking-tight">AegisFlow</span>
                   </Link>
@@ -100,7 +103,9 @@ export default function DashboardLayout({
                     {t('nav.liveMap')}
                   </Link>
                   <Link href="/#features" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-all">
-                    <ShieldCheck size={20} />
+                    <div className="w-5 h-5 flex items-center justify-center">
+                      <Image src="/images/logo.png" alt="" width={512} height={512} className="w-full h-full object-contain" />
+                    </div>
                     {t('nav.solutions')}
                   </Link>
                   <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-all">

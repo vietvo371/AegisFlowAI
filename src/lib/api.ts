@@ -84,9 +84,9 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('aegisflow_token');
           // Không văng toast lỗi nếu đang ở trang chủ hoặc login để tránh spam
-          if (!['/', '/login'].includes(window.location.pathname)) {
+          if (!['/', '/signin'].includes(window.location.pathname)) {
             toast.error(message);
-            window.location.href = '/login';
+            window.location.href = '/signin';
           }
         }
         break;

@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('aegisflow_token');
       setUser(null);
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        window.location.href = '/signin';
       }
     }
   };

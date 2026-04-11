@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
+import Image from 'next/image';
 import { 
   Menu, 
   X, 
-  ShieldCheck, 
   ChevronDown,
   LayoutDashboard,
   Bell,
@@ -53,8 +53,15 @@ export default function Header() {
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-            <ShieldCheck size={24} />
+          <div className="relative w-10 h-10 group-hover:scale-110 transition-transform flex items-center justify-center">
+            <Image 
+              src="/images/logo.png" 
+              alt="AegisFlow AI Logo" 
+              width={512} 
+              height={512}
+              className="object-contain w-full h-full drop-shadow-sm"
+              priority
+            />
           </div>
           <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
             AegisFlow <span className="text-primary">AI</span>
