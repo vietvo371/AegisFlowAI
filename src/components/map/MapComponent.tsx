@@ -141,9 +141,13 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
 
       map.on('styleimagemissing', (e) => {
         const id = e.id;
-        const width = 1, height = 1;
-        const data = new Uint8Array(4);
-        map.addImage(id, { width, height, data });
+        // Check if image already exists to avoid throwing duplicate errors
+        if (!map.hasImage(id)) {
+          const width = 1, height = 1;
+          const data = new Uint8Array(4);
+          // Dummy 1x1 transparent image
+          map.addImage(id, { width, height, data });
+        }
       });
 
       setLoaded(true);
@@ -189,7 +193,7 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
           layout: { 'visibility': visibility },
           paint: {
             'fill-color': zone.properties.color || '#f04438',
-            'fill-opacity': zone.properties.opacity || 0.3,
+            'fill-opacity': Number(zone.properties.opacity) || 0.3,
           }
         });
 
@@ -210,6 +214,8 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
     // Add Incidents as Markers
     if (layers.incidents) {
       mapData.incidents.features.forEach((f: any) => {
+        if (!f.geometry || !f.geometry.coordinates) return;
+        
         const color = f.properties.severity === 'critical' ? '#EF4444' : '#F59E0B';
         const el = document.createElement('div');
         el.className = 'custom-marker incident-marker';
@@ -249,6 +255,8 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
     // Add Shelters as Markers
     if (layers.shelters) {
       mapData.shelters.features.forEach((f: any) => {
+        if (!f.geometry || !f.geometry.coordinates) return;
+        
         const color = '#10B981';
         const el = document.createElement('div');
         el.className = 'custom-marker shelter-marker';
@@ -279,6 +287,8 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
     // Add Rescue Teams
     if (layers.rescue_teams) {
       mapData.rescue_teams.features.forEach((f: any) => {
+        if (!f.geometry || !f.geometry.coordinates) return;
+        
         const color = '#3B82F6';
         const el = document.createElement('div');
         el.className = 'custom-marker team-marker';
@@ -308,6 +318,8 @@ export default function MapComponent({ evacuationRoute }: MapComponentProps) {
     // Add Sensors
     if (layers.sensors) {
       mapData.sensors.features.forEach((f: any) => {
+        if (!f.geometry || !f.geometry.coordinates) return;
+        
         const color = '#8B5CF6';
         const el = document.createElement('div');
         el.style.cssText = `

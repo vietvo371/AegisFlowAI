@@ -10,19 +10,38 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Github, Chrome, Loader2, User, Mail, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function SignUpPage() {
   const t = useTranslations('auth');
+  const router = useRouter();
+  const { register } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth
-    await new Promise(r => setTimeout(r, 1500));
-    setIsLoading(false);
-    toast.success('Đăng ký thành công! Hãy kiểm tra email để xác thực.');
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: `${formData.get('firstName')} ${formData.get('lastName')}`,
+      email: formData.get('email'),
+      password: formData.get('password'),
+      password_confirmation: formData.get('password'), // Giả định confirmation trùng khớp để đơn giản hóa UI hiện tại
+    };
+
+    try {
+      await register(data);
+      toast.success('Đăng ký thành công! Đang chuyển hướng...');
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,6 +83,7 @@ export default function SignUpPage() {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input 
                 id="firstName" 
+                name="firstName"
                 placeholder={t('firstNamePlaceholder')} 
                 className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pl-10"
                 required
@@ -76,6 +96,7 @@ export default function SignUpPage() {
             </Label>
             <Input 
               id="lastName" 
+              name="lastName"
               placeholder={t('lastNamePlaceholder')} 
               className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors"
               required
@@ -91,6 +112,7 @@ export default function SignUpPage() {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input 
               id="email" 
+              name="email"
               type="email" 
               placeholder={t('emailPlaceholder')} 
               className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pl-10"
@@ -107,6 +129,7 @@ export default function SignUpPage() {
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input 
               id="password" 
+              name="password"
               type={showPassword ? "text" : "password"} 
               placeholder={t('passwordPlaceholder')} 
               className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors px-10"

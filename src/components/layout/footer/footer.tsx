@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ShieldCheck, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Youtube, ExternalLink } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import Image from 'next/image';
 
 export default function Footer() {
   const t = useTranslations();
@@ -44,8 +45,8 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                <ShieldCheck size={24} />
+              <div className="w-10 h-10 flex items-center justify-center">
+                <Image src="/images/logo.png" alt="AegisFlow" width={512} height={512} className="w-full h-full object-contain" />
               </div>
               <span className="text-xl font-bold tracking-tight">
                 AegisFlow <span className="text-primary">AI</span>

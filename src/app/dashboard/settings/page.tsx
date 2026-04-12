@@ -105,7 +105,7 @@ export default function SettingsPage() {
                     <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-primary/20 text-primary flex items-center justify-center font-bold text-2xl">
-                       {user.name.charAt(0).toUpperCase()}
+                       {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                   )}
                </div>
@@ -113,7 +113,7 @@ export default function SettingsPage() {
                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 justify-center"><Mail className="w-3.5 h-3.5" /> {user.email}</p>
                
                <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                 <Badge variant="secondary" className="capitalize"><ShieldCheck className="w-3 h-3 mr-1" /> {user.role.replace('_', ' ')}</Badge>
+                 <Badge variant="secondary" className="capitalize"><ShieldCheck className="w-3 h-3 mr-1" /> {user.role?.replace('_', ' ') || 'User'}</Badge>
                  {user.status === 'active' ? (
                    <Badge className="bg-emerald-500">Hoạt động</Badge>
                  ) : (

@@ -30,6 +30,10 @@ export const metadata: Metadata = {
     'AegisFlow AI - Nền tảng AI hỗ trợ dự báo ngập lụt sớm, đề xuất tuyến sơ tán an toàn, và tối ưu phân bổ cứu trợ theo thời gian thực tại Đà Nẵng.',
   keywords: ['ngập lụt', 'thiên tai', 'cứu hộ', 'AI', 'Đà Nẵng', 'giám sát thời gian thực', 'AegisFlow'],
   authors: [{ name: 'AegisFlow Team' }],
+  icons: {
+    icon: '/images/logo.png',
+    apple: '/images/logo.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'vi_VN',

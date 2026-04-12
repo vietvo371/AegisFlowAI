@@ -11,11 +11,33 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  avatar_url?: string;
-  role: string;
+  avatar?: string;       // Map từ BE
+  avatar_url?: string;   // BE có thể trả về avatar
+  roles?: string[];      // BE trả về mảng roles
+  role: string;          // FE sử dụng chuỗi đơn
   permissions: string[];
+  is_active?: boolean;   // BE trả về boolean
   status: 'active' | 'inactive' | 'suspended';
 }
+
+/**
+ * Hàm chuẩn hóa dữ liệu người dùng từ Backend sang định dạng Frontend mong đợi
+ */
+const normalizeUser = (data: any): User => {
+  if (!data) return data;
+  
+  return {
+    ...data,
+    // Ưu tiên avatar từ BE map vào avatar_url
+    avatar_url: data.avatar || data.avatar_url,
+    // Ưu tiên lấy role đầu tiên từ mảng roles của BE
+    role: data.role || data.roles?.[0] || 'citizen',
+    // Map is_active sang status
+    status: data.status || (data.is_active ? 'active' : 'inactive'),
+    // Đảm bảo permissions luôn là mảng
+    permissions: data.permissions || [],
+  };
+};
 
 /**
  * Các hàm và trạng thái cung cấp bởi AuthContext
@@ -47,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const res = await api.get('/auth/me');
           if (res.data?.success) {
-            setUser(res.data.data.user);
+            setUser(normalizeUser(res.data.data.user));
           } else {
             throw new Error('Không thể tải thông tin người dùng');
           }
@@ -75,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { token, user: userData } = res.data.data;
         localStorage.setItem('aegisflow_token', token);
         document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
-        setUser(userData);
+        setUser(normalizeUser(userData));
       }
     } catch (error) {
       // Lỗi đã được xử lý bởi interceptor trong api.ts (hiển thị toast)
@@ -94,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { token, user: userData } = res.data.data;
         localStorage.setItem('aegisflow_token', token);
         document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
-        setUser(userData);
+        setUser(normalizeUser(userData));
       }
     } catch (error) {
       throw error;
@@ -124,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success) {
-        setUser(res.data.data.user);
+        setUser(normalizeUser(res.data.data.user));
       }
     } catch (error) {
       console.error('Refresh user error:', error);

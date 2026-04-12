@@ -10,19 +10,34 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Github, Chrome, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function SignInPage() {
   const t = useTranslations('auth');
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth
-    await new Promise(r => setTimeout(r, 1500));
-    setIsLoading(false);
-    toast.success('Đăng nhập thành công! Đang chuyển hướng...');
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      await login(email, password);
+      toast.success('Đăng nhập thành công! Đang chuyển hướng...');
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,6 +76,7 @@ export default function SignInPage() {
           </Label>
           <Input 
             id="email" 
+            name="email"
             type="email" 
             placeholder={t('emailPlaceholder')} 
             className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors"
@@ -80,6 +96,7 @@ export default function SignInPage() {
           <div className="relative">
             <Input 
               id="password" 
+              name="password"
               type={showPassword ? "text" : "password"} 
               placeholder={t('passwordPlaceholder')} 
               className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pr-10"

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, RotateCcw, Home, MessageSquare, LayoutDashboard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants, Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function Error({
@@ -62,17 +62,17 @@ export default function Error({
           <RotateCcw size={20} />
           Thử lại ngay
         </Button>
-        <Button 
-          variant="outline" 
-          size="lg" 
-          render={
-            <Link href="/dashboard" />
-          }
-          className="flex-1 rounded-2xl h-14 font-black gap-3 border-2"
+        <Link 
+          href="/dashboard"
+          className={buttonVariants({
+            variant: "outline", 
+            size: "lg",
+            className: "flex-1 rounded-2xl h-14 font-black gap-3 border-2"
+          })}
         >
           <LayoutDashboard className="w-5 h-5" />
           Bảng điều khiển
-        </Button>
+        </Link>
       </motion.div>
 
       <motion.div 
