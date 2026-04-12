@@ -4,16 +4,22 @@ import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { 
+  LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu,
+  BarChart3, AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, 
+  Megaphone, BrainCircuit, Users 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { useAuth } from '@/lib/auth-context';
-import { AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, Megaphone, BrainCircuit, Users } from 'lucide-react';
 import { RealtimeListener } from '@/components/realtime/RealtimeListener';
+import { PageTransition } from '@/components/ui/page-transition';
 
 export default function DashboardLayout({
   children,
@@ -22,6 +28,7 @@ export default function DashboardLayout({
 }) {
   const t = useTranslations();
   const { user, logout } = useAuth();
+  const pathname = usePathname();
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
@@ -37,53 +44,53 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <LayoutDashboard size={20} />
-            {t('common.dashboard') || 'Tổng quan'}
-          </Link>
-          <Link href="/dashboard/incidents" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <AlertTriangle size={20} />
-            Sự cố
-          </Link>
-          <Link href="/dashboard/rescue-requests" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <HeartPulse size={20} />
-            Cứu trợ
-          </Link>
-          <Link href="/dashboard/rescue-teams" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <ShieldAlert size={20} />
-            Đội cứu hộ
-          </Link>
-          <Link href="/dashboard/shelters" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Home size={20} />
-            Tị nạn
-          </Link>
-          <Link href="/dashboard/sensors" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Activity size={20} />
-            Cảm biến
-          </Link>
-          <Link href="/dashboard/alerts" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Megaphone size={20} />
-            Cảnh báo
-          </Link>
-          <Link href="/dashboard/predictions" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <BrainCircuit size={20} />
-            AI Dự báo
-          </Link>
-          <Link href="/dashboard/admin/users" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Users size={20} />
-            Nhân sự
-          </Link>
+        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scroll">
+          {[
+            { href: '/dashboard', icon: LayoutDashboard, label: t('common.dashboard') || 'Tổng quan' },
+            { href: '/dashboard/analytics', icon: BarChart3, label: 'Thống kê' },
+            { href: '/dashboard/incidents', icon: AlertTriangle, label: 'Sự cố' },
+            { href: '/dashboard/rescue-requests', icon: HeartPulse, label: 'Cứu trợ' },
+            { href: '/dashboard/rescue-teams', icon: ShieldAlert, label: 'Đội cứu hộ' },
+            { href: '/dashboard/shelters', icon: Home, label: 'Tị nạn' },
+            { href: '/dashboard/sensors', icon: Activity, label: 'Cảm biến' },
+            { href: '/dashboard/alerts', icon: Megaphone, label: 'Cảnh báo' },
+            { href: '/dashboard/predictions', icon: BrainCircuit, label: 'AI Dự báo' },
+            { href: '/dashboard/admin/users', icon: Users, label: 'Nhân sự' },
+          ].map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link 
+                key={item.href} 
+                href={item.href} 
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group
+                  ${isActive 
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-bold' 
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+              >
+                <div className={`transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className="text-sm tracking-tight">{item.label}</span>
+                {isActive && (
+                   <motion.div 
+                     layoutId="active-nav-indicator" 
+                     className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground" 
+                   />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all mb-1">
+        <div className="p-4 mt-auto border-t border-border bg-muted/20">
+          <Link href="/dashboard/settings" className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 group ${pathname === '/dashboard/settings' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
             <Settings size={20} />
-            {t('common.settings') || 'Cài đặt'}
+            <span className="text-sm font-medium">{t('common.settings') || 'Cài đặt'}</span>
           </Link>
-          <Button variant="ghost" onClick={() => logout()} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5 gap-3">
+          <Button variant="ghost" onClick={() => logout()} className="w-full justify-start text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 gap-3 h-10 px-4 rounded-xl font-medium transition-all">
             <LogOut size={20} />
-            {t('common.logout') || 'Đăng xuất'}
+            <span className="text-sm">{t('common.logout') || 'Đăng xuất'}</span>
           </Button>
         </div>
       </aside>
@@ -159,7 +166,9 @@ export default function DashboardLayout({
 
         {/* Dynamic Page Content */}
         <main className="flex-1 overflow-auto relative">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

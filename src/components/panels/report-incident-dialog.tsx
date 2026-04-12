@@ -59,11 +59,13 @@ export function ReportIncidentDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black h-12 rounded-xl shadow-lg shadow-rose-200 animate-pulse-subtle">
-          <ShieldAlert className="mr-2 h-5 w-5" />
-          SOS — BÁO CÁO SỰ CỐ KHẨN CẤP
-        </Button>
+      <DialogTrigger
+        render={
+          <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black h-12 rounded-xl shadow-lg shadow-rose-200 animate-pulse-subtle" />
+        }
+      >
+        <ShieldAlert className="mr-2 h-5 w-5" />
+        SOS — BÁO CÁO SỰ CỐ KHẨN CẤP
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] rounded-3xl border-none shadow-2xl overflow-hidden p-0">
         <div className="bg-rose-600 p-6 text-white">

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Mail, Phone, MapPin, User, Save } from 'lucide-react';
+import { ShieldCheck, Mail, Phone, MapPin, User, Save, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 

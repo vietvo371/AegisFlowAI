@@ -23,9 +23,8 @@ export async function POST(req: Request) {
       messages,
     });
 
-    return result.toDataStreamResponse({
-      getErrorMessage:
-        process.env.NODE_ENV === 'development' ? errorHandler : undefined,
+    return result.toTextStreamResponse({
+      status: 200,
     });
   } catch (error) {
     console.log(error);

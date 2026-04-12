@@ -250,22 +250,22 @@ export default function AlertsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Phân loại (Type)</Label>
-                <Select value={formData.alert_type} onValueChange={v => setFormData({ ...formData, alert_type: v })}>
-                   <SelectTrigger>
-                      <SelectValue placeholder="Chọn phân loại" />
-                   </SelectTrigger>
-                   <SelectContent>
-                      <SelectItem value="flood">Lũ Lụt (Flood)</SelectItem>
-                      <SelectItem value="storm">Bão / Gió lốc (Storm)</SelectItem>
-                      <SelectItem value="landslide">Sạt lở (Landslide)</SelectItem>
-                      <SelectItem value="evacuation">Lệnh Sơ tán (Evacuation)</SelectItem>
-                      <SelectItem value="system">Thông báo Hệ thống</SelectItem>
-                   </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Mức độ nguy hiểm (Severity)</Label>
-                <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v })}>
+                <Select value={formData.alert_type} onValueChange={v => setFormData({ ...formData, alert_type: v ?? '' })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Phân loại" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weather">Thời tiết & Mưa lớn</SelectItem>
+                  <SelectItem value="flood_risk">Nguy cơ ngập lụt</SelectItem>
+                  <SelectItem value="evacuation">Lệnh sơ tán</SelectItem>
+                  <SelectItem value="power_outage">Mất điện diện rộng</SelectItem>
+                  <SelectItem value="traffic">Giao thông & Cầu đường</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Mức độ</Label>
+              <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v ?? '' })}>
                    <SelectTrigger>
                       <SelectValue placeholder="Chọn mức độ" />
                    </SelectTrigger>

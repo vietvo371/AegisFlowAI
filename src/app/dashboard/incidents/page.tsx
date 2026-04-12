@@ -224,7 +224,7 @@ export default function IncidentsPage() {
             </div>
             <div className="space-y-2">
               <Label>Mức độ</Label>
-              <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v })}>
+              <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v ?? '' })}>
                  <SelectTrigger>
                     <SelectValue placeholder="Chọn mức độ" />
                  </SelectTrigger>

@@ -206,3 +206,35 @@
   color: hsl(var(--foreground)) !important;
 }
 .maplibregl-popup-tip { display: none !important; }
+
+/* ── Custom Utilities & Glow Effects ── */
+@layer utilities {
+  .animate-glow-pulse-red {
+    animation: glow-pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes glow-pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    border-color: rgba(239, 68, 68, 0.6);
+  }
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}

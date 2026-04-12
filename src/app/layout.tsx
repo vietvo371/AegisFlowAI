@@ -27,7 +27,31 @@ export const metadata: Metadata = {
     template: '%s | AegisFlow AI',
   },
   description:
-    'AegisFlow AI - Nền tảng AI hỗ trợ dự báo ngập lụt sớm, đề xuất tuyến sơ tán an toàn, và tối ưu phân bổ cứu trợ theo thời gian thực.',
+    'AegisFlow AI - Nền tảng AI hỗ trợ dự báo ngập lụt sớm, đề xuất tuyến sơ tán an toàn, và tối ưu phân bổ cứu trợ theo thời gian thực tại Đà Nẵng.',
+  keywords: ['ngập lụt', 'thiên tai', 'cứu hộ', 'AI', 'Đà Nẵng', 'giám sát thời gian thực', 'AegisFlow'],
+  authors: [{ name: 'AegisFlow Team' }],
+  openGraph: {
+    type: 'website',
+    locale: 'vi_VN',
+    url: 'https://aegisflow.ai',
+    siteName: 'AegisFlow AI',
+    title: 'AegisFlow AI - Giám sát thiên tai thông minh',
+    description: 'Hệ thống dự báo và điều phối cứu hộ thiên tai sử dụng AI hàng đầu.',
+    images: [
+      {
+        url: '/images/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'AegisFlow AI Dashboard',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AegisFlow AI',
+    description: 'Giám sát thiên tai thông minh thời gian thực.',
+    images: ['/images/og-image.png'],
+  },
 };
 
 import { AuthProvider } from '@/lib/auth-context';

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, Activity, Waves, CloudRain, Input as InputIcon } from 'lucide-react';
+import { RefreshCw, Search, Activity, Waves, CloudRain, Cpu as InputIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface Sensor {

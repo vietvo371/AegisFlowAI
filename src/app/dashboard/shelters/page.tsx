@@ -143,7 +143,7 @@ export default function SheltersPage() {
                                 <span className="flex items-center text-muted-foreground"><Users className="w-3 h-3 mr-1" /> {shelter.current_occupancy} / {shelter.capacity}</span>
                                 <span>{Math.round(percent)}%</span>
                               </div>
-                              <Progress value={percent} className="h-2 w-full" color={getOccupancyColor(shelter.current_occupancy, shelter.capacity)} />
+                              <Progress value={percent} className="h-2 w-full" indicatorClassName={getOccupancyColor(shelter.current_occupancy, shelter.capacity)} />
                            </div>
                         </TableCell>
                         <TableCell>

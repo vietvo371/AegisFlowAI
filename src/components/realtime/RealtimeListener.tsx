@@ -16,7 +16,7 @@ export const RealtimeListener = () => {
 
     // 1. Lắng nghe Sự cố mới
     channel.listen('.incident.created', (data: any) => {
-      console.log('Realtime: New Incident', data);
+      // Logic handled by toast and events
       
       toast.error(`SỰ CỐ MỚI: ${data.title}`, {
         description: `${data.address || 'Không xác định'} - Mức độ: ${data.severity}`,
@@ -34,7 +34,7 @@ export const RealtimeListener = () => {
 
     // 2. Lắng nghe Cảnh báo mới
     channel.listen('.alert.created', (data: any) => {
-      console.log('Realtime: New Alert', data);
+      // Logic handled by toast and events
       
       toast.warning(`CẢNH BÁO: ${data.title}`, {
         description: data.description,
@@ -78,7 +78,7 @@ export const RealtimeListener = () => {
     });
 
     return () => {
-      echo.leaveChannel('flood');
+      echo?.leaveChannel('flood');
     };
   }, [router]);
 

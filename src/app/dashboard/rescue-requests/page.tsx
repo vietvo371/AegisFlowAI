@@ -239,7 +239,7 @@ export default function RescueRequestsPage() {
             </div>
             <div className="space-y-2">
               <Label>Trạng thái giải quyết</Label>
-              <Select value={updateStatus} onValueChange={setUpdateStatus}>
+              <Select value={updateStatus} onValueChange={(v: string | null) => setUpdateStatus(v ?? '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
@@ -256,7 +256,7 @@ export default function RescueRequestsPage() {
             {(updateStatus === 'assigned' || updateStatus === 'in_progress') && (
                <div className="space-y-2">
                  <Label>Điều động đội ứng phó</Label>
-                 <Select value={updateTeam} onValueChange={setUpdateTeam}>
+                 <Select value={updateTeam} onValueChange={(v: string | null) => setUpdateTeam(v ?? '')}>
                    <SelectTrigger>
                      <SelectValue placeholder="Chọn đội cứu hộ..." />
                    </SelectTrigger>

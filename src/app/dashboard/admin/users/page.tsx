@@ -230,7 +230,7 @@ export default function AdminUsersPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Bộ phận (Role)</Label>
-              <Select value={updateRole} onValueChange={setUpdateRole}>
+              <Select value={updateRole} onValueChange={(val: string | null) => setUpdateRole(val ?? '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn quyền" />
                 </SelectTrigger>
@@ -244,7 +244,7 @@ export default function AdminUsersPage() {
             </div>
             <div className="space-y-2">
               <Label>Trạng thái</Label>
-              <Select value={updateStatus} onValueChange={setUpdateStatus}>
+              <Select value={updateStatus} onValueChange={(val: string | null) => setUpdateStatus(val ?? '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
