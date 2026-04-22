@@ -1,133 +1,79 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
+import { useTable } from '@/lib/use-table';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, HeartPulse, Clock, Filter, Phone, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { RefreshCw, Search, HeartPulse, Clock, Phone, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RescueRequest {
-  id: number;
-  request_number?: string;
-  urgency: 'low' | 'medium' | 'high' | 'critical';
-  urgency_label?: string;
-  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
-  status_label?: string;
-  people_count: number;
-  vulnerable_groups: string[];
-  description?: string;
-  caller_name?: string;
-  caller_phone?: string;
-  priority_score?: number;
-  water_level_m?: number;
-  location: { lat: number; lng: number };
-  address?: string;
+  id: number; request_number?: string;
+  urgency: string; urgency_label?: string;
+  status: string; status_label?: string;
+  people_count: number; vulnerable_groups: string[];
+  description?: string; caller_name?: string; caller_phone?: string;
+  priority_score?: number; water_level_m?: number;
+  location?: { lat: number; lng: number }; address?: string;
   district?: { id: number; name: string };
-  assigned_team?: { id: number; name: string; phone: string; status: string } | null;
-  eta_minutes?: number;
-  created_at: string;
+  assigned_team?: { id: number; name: string; phone: string } | null;
+  eta_minutes?: number; created_at: string;
 }
 
+const URGENCY_BADGE: Record<string, string> = {
+  critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500',
+};
+const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
+  pending:     { cls: 'border-orange-200 text-orange-500', label: 'Đang chờ' },
+  assigned:    { cls: 'bg-indigo-500 text-white', label: 'Đã phân công' },
+  in_progress: { cls: 'bg-blue-500 text-white', label: 'Đang cứu hộ' },
+  completed:   { cls: 'bg-emerald-500 text-white', label: 'Hoàn thành' },
+  cancelled:   { cls: 'text-gray-400', label: 'Đã hủy' },
+};
+
 export default function RescueRequestsPage() {
-  const [requests, setRequests] = useState<RescueRequest[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<RescueRequest | null>(null);
+  const { data: requests, meta, loading, setFilter, setPage, refresh } = useTable<RescueRequest>({
+    endpoint: '/rescue-requests', perPage: 20,
+  });
+  const [teams, setTeams] = React.useState<any[]>([]);
+  const [selected, setSelected] = useState<RescueRequest | null>(null);
   const [updateStatus, setUpdateStatus] = useState('');
   const [updateTeam, setUpdateTeam] = useState('none');
   const [submitting, setSubmitting] = useState(false);
-  const [search, setSearch] = useState('');
 
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
-      const [resReq, resTeams] = await Promise.all([
-         api.get('/rescue-requests'),
-         api.get('/rescue-teams')
-      ]);
-      if (resReq.data?.success) {
-        setRequests(resReq.data.data);
-      }
-      if (resTeams.data?.success) {
-        setTeams(resTeams.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data', error);
-    } finally {
-      setLoading(false);
-    }
+  React.useEffect(() => {
+    api.get('/rescue-teams').then(r => setTeams(r.data?.data ?? []));
+    const h = () => refresh();
+    window.addEventListener('aegis:rescue_request:created', h);
+    window.addEventListener('aegis:rescue_request:updated', h);
+    return () => { window.removeEventListener('aegis:rescue_request:created', h); window.removeEventListener('aegis:rescue_request:updated', h); };
+  }, [refresh]);
+
+  const openAction = (req: RescueRequest) => {
+    setSelected(req); setUpdateStatus(req.status);
+    setUpdateTeam(req.assigned_team ? String(req.assigned_team.id) : 'none');
   };
 
-  const handleOpenAction = (req: RescueRequest) => {
-    setSelectedRequest(req);
-    setUpdateStatus(req.status);
-    setUpdateTeam(req.assigned_team ? req.assigned_team.id.toString() : 'none');
-  };
-
-  const handleUpdateSubmit = async () => {
-    if (!selectedRequest) return;
+  const handleUpdate = async () => {
+    if (!selected) return;
     setSubmitting(true);
     try {
-      if (updateStatus !== selectedRequest.status) {
-        await api.put(`/rescue-requests/${selectedRequest.id}/status`, { status: updateStatus });
-      }
-      if (updateTeam !== 'none' && (!selectedRequest.assigned_team || updateTeam !== selectedRequest.assigned_team.id.toString())) {
-        await api.put(`/rescue-requests/${selectedRequest.id}/assign`, { team_id: parseInt(updateTeam) });
-      }
-      toast.success('Đã cập nhật yêu cầu cứu trợ');
-      setSelectedRequest(null);
-      fetchRequests();
-    } catch (error) {
-      console.error(error);
-      toast.error('Cập nhật thất bại, vui lòng thử lại');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRequests();
-    
-    const handleRefresh = () => {
-      fetchRequests();
-    };
-    
-    window.addEventListener('aegis:rescue_request:created', handleRefresh);
-    window.addEventListener('aegis:rescue_request:updated', handleRefresh);
-    
-    return () => {
-      window.removeEventListener('aegis:rescue_request:created', handleRefresh);
-      window.removeEventListener('aegis:rescue_request:updated', handleRefresh);
-    };
-  }, []);
-
-  const getUrgencyBadge = (urgency: string) => {
-    switch (urgency) {
-      case 'critical': return <Badge variant="destructive" className="animate-pulse">Khẩn cấp</Badge>;
-      case 'high': return <Badge className="bg-orange-500 hover:bg-orange-600">Cao</Badge>;
-      case 'medium': return <Badge className="bg-yellow-500 hover:bg-yellow-600">Trung bình</Badge>;
-      case 'low': return <Badge className="bg-blue-500 hover:bg-blue-600">Thấp</Badge>;
-      default: return <Badge variant="outline">{urgency}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending': return <Badge variant="outline" className="text-orange-500 border-orange-200">Đang chờ</Badge>;
-      case 'assigned': return <Badge className="bg-indigo-500 text-white">Đã phân công</Badge>;
-      case 'in_progress': return <Badge variant="secondary" className="text-blue-500 border-blue-200">Đang cứu hộ</Badge>;
-      case 'resolved': return <Badge className="bg-emerald-500">Hoàn thành</Badge>;
-      case 'cancelled': return <Badge variant="outline" className="text-gray-500 line-through">Đã hủy</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
-    }
+      if (updateStatus !== selected.status)
+        await api.put(`/rescue-requests/${selected.id}/status`, { status: updateStatus });
+      if (updateTeam !== 'none' && (!selected.assigned_team || updateTeam !== String(selected.assigned_team.id)))
+        await api.put(`/rescue-requests/${selected.id}/assign`, { team_id: parseInt(updateTeam) });
+      setSelected(null); refresh();
+    } catch (e) { console.error(e); }
+    finally { setSubmitting(false); }
   };
 
   return (
@@ -135,49 +81,54 @@ export default function RescueRequestsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Yêu cầu cứu trợ</h1>
-          <p className="text-muted-foreground mt-1">Quản lý và điều phối các yêu cầu cứu trợ khẩn cấp từ người dân</p>
+          <p className="text-muted-foreground mt-1">Quản lý và điều phối các yêu cầu cứu trợ khẩn cấp</p>
         </div>
-        <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" onClick={fetchRequests} disabled={loading}>
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </Button>
-        </div>
+        <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-             <div className="relative w-full sm:w-72">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Số điện thoại hoặc địa chỉ..."
-                  className="pl-9 h-9 w-full bg-muted/50"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-             </div>
-             <div className="flex items-center gap-2">
-               <Button variant="outline" size="sm" className="h-9 gap-2">
-                 <Filter className="w-4 h-4" /> Lọc
-               </Button>
-               <Button variant="default" size="sm" className="h-9 gap-2">
-                 <HeartPulse className="w-4 h-4" /> Báo cáo mới
-               </Button>
-             </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Tìm địa chỉ, tên..." className="pl-9 h-9 bg-muted/50"
+                onChange={e => setFilter('search', e.target.value)} />
+            </div>
+            <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
+              <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="pending">Đang chờ</SelectItem>
+                <SelectItem value="assigned">Đã phân công</SelectItem>
+                <SelectItem value="in_progress">Đang cứu hộ</SelectItem>
+                <SelectItem value="completed">Hoàn thành</SelectItem>
+                <SelectItem value="cancelled">Đã hủy</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={v => setFilter('urgency', v === 'all' ? '' : v)}>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Mức độ" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="critical">Khẩn cấp</SelectItem>
+                <SelectItem value="high">Cao</SelectItem>
+                <SelectItem value="medium">Trung bình</SelectItem>
+                <SelectItem value="low">Thấp</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-border">
+        <CardContent className="p-0">
+          <div className="rounded-b-md overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
+                  <TableHead className="w-[90px]">ID</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Mức độ</TableHead>
                   <TableHead>Liên hệ</TableHead>
                   <TableHead>Số người</TableHead>
-                  <TableHead>Nhóm yếu thế</TableHead>
                   <TableHead>Địa điểm</TableHead>
                   <TableHead>Điểm AI</TableHead>
                   <TableHead className="text-right">Thời gian</TableHead>
@@ -185,142 +136,98 @@ export default function RescueRequestsPage() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <RefreshCw className="w-6 h-6 animate-spin mb-2 text-primary" />
-                        Đang lấy danh sách yêu cầu...
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={8} className="h-32 text-center">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" />
+                  </TableCell></TableRow>
                 ) : requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                      Không có yêu cầu cứu trợ nào.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  requests
-                    .filter(req =>
-                      !search ||
-                      req.caller_phone?.includes(search) ||
-                      req.address?.toLowerCase().includes(search.toLowerCase()) ||
-                      req.caller_name?.toLowerCase().includes(search.toLowerCase())
-                    )
-                    .map((req) => (
-                    <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => handleOpenAction(req)}>
-                      <TableCell className="font-medium text-muted-foreground">
-                        <div className="flex flex-col">
-                          <span>#{(req.id).toString().padStart(4, '0')}</span>
-                          {req.request_number && <span className="text-[10px] text-muted-foreground font-mono">{req.request_number}</span>}
-                        </div>
+                  <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
+                ) : requests.map(req => {
+                  const sc = STATUS_BADGE[req.status];
+                  return (
+                    <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => openAction(req)}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        #{String(req.id).padStart(4, '0')}
+                        {req.request_number && <div className="text-[10px]">{req.request_number}</div>}
                       </TableCell>
-                      <TableCell>{getStatusBadge(req.status)}</TableCell>
-                      <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
+                      <TableCell><Badge variant="outline" className={sc?.cls}>{sc?.label ?? req.status}</Badge></TableCell>
+                      <TableCell><Badge className={`${URGENCY_BADGE[req.urgency]} text-white`}>{req.urgency_label ?? req.urgency}</Badge></TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-sm">{req.caller_name || 'Không rõ'}</span>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Phone className="w-3 h-3" /> {req.caller_phone || 'N/A'}
-                          </div>
-                        </div>
+                        <div className="text-sm font-medium">{req.caller_name ?? '—'}</div>
+                        {req.caller_phone && <div className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={10} />{req.caller_phone}</div>}
                       </TableCell>
                       <TableCell>{req.people_count}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {req.vulnerable_groups?.length > 0
-                            ? req.vulnerable_groups.map((group, i) => (
-                               <Badge key={i} variant="secondary" className="text-xs font-normal px-1 py-0">{group}</Badge>
-                              ))
-                            : <span className="text-muted-foreground text-xs">—</span>
-                          }
+                        <div className="flex items-center text-xs text-muted-foreground gap-1">
+                          <MapPin size={11} />
+                          <span className="truncate max-w-[140px]">{req.address ?? `${req.location?.lat?.toFixed(4)}, ${req.location?.lng?.toFixed(4)}`}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin className="w-3 h-3 mr-1 inline" />
-                          <span className="truncate max-w-[150px]">{req.address || `${req.location?.lat?.toFixed(4)}, ${req.location?.lng?.toFixed(4)}`}</span>
-                        </div>
+                        {req.priority_score != null
+                          ? <span className={`font-mono font-bold text-sm ${Number(req.priority_score) >= 80 ? 'text-red-500' : Number(req.priority_score) >= 60 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                              {Number(req.priority_score).toFixed(0)}
+                            </span>
+                          : '—'}
                       </TableCell>
-                      <TableCell>
-                        {req.priority_score != null ? (
-                          <div className={`font-mono font-bold text-sm ${req.priority_score >= 80 ? 'text-red-500' : req.priority_score >= 60 ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                            {req.priority_score.toFixed(0)}
-                          </div>
-                        ) : <span className="text-muted-foreground text-xs">—</span>}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground text-sm whitespace-nowrap">
-                        <Clock className="w-3 h-3 mr-1 inline" />
-                        {new Date(req.created_at).toLocaleString('vi-VN', {
-                          hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
-                        })}
+                      <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                        <Clock size={11} className="inline mr-1" />
+                        {new Date(req.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  );
+                })}
               </TableBody>
             </Table>
+            <DataPagination meta={meta} onPageChange={setPage} />
           </div>
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* Action dialog */}
+      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Xử lý yêu cầu cứu trợ #{selectedRequest?.id}</DialogTitle>
-            <DialogDescription>
-              Cập nhật trạng thái hoặc điều phối lực lượng để giải quyết yêu cầu.
-            </DialogDescription>
+            <DialogTitle>Xử lý yêu cầu #{selected?.id}</DialogTitle>
+            <DialogDescription>Cập nhật trạng thái hoặc phân công đội cứu hộ</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-               <div className="text-sm border p-3 rounded-md bg-muted/30 text-muted-foreground space-y-1">
-                 <p><strong>Người gọi:</strong> {selectedRequest?.caller_name || 'Không rõ'}</p>
-                 <p><strong>Nội dung:</strong> {selectedRequest?.description || 'Không có ghi chú'}</p>
-                 <p><strong>Địa chỉ:</strong> {selectedRequest?.address || 'Không xác định'}</p>
-                 <p><strong>Liên hệ:</strong> {selectedRequest?.caller_phone || 'N/A'}</p>
-                 {selectedRequest?.priority_score != null && (
-                   <p><strong>Điểm ưu tiên AI:</strong> <span className="font-mono font-bold text-primary">{selectedRequest.priority_score.toFixed(1)}/100</span></p>
-                 )}
-               </div>
+          <div className="space-y-4 py-3">
+            <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+              <p><span className="font-semibold">Người gọi:</span> {selected?.caller_name} — {selected?.caller_phone}</p>
+              <p><span className="font-semibold">Địa chỉ:</span> {selected?.address ?? '—'}</p>
+              {selected?.priority_score != null && <p><span className="font-semibold">Điểm AI:</span> <span className="font-mono text-primary">{Number(selected.priority_score).toFixed(1)}/100</span></p>}
             </div>
-            <div className="space-y-2">
-              <Label>Trạng thái giải quyết</Label>
-              <Select value={updateStatus} onValueChange={(v: string | null) => setUpdateStatus(v ?? '')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
+            <div className="space-y-1.5">
+              <Label>Trạng thái</Label>
+              <Select value={updateStatus} onValueChange={v => setUpdateStatus(v ?? '')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Đang chờ (Pending)</SelectItem>
+                  <SelectItem value="pending">Đang chờ</SelectItem>
                   <SelectItem value="assigned">Đã phân công</SelectItem>
-                  <SelectItem value="in_progress">Đang tiến hành ứng cứu</SelectItem>
-                  <SelectItem value="completed">Hoàn tất (Completed)</SelectItem>
-                  <SelectItem value="cancelled">Hủy yêu cầu</SelectItem>
+                  <SelectItem value="in_progress">Đang cứu hộ</SelectItem>
+                  <SelectItem value="completed">Hoàn thành</SelectItem>
+                  <SelectItem value="cancelled">Hủy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            {(updateStatus === 'assigned' || updateStatus === 'in_progress') && (
-               <div className="space-y-2">
-                 <Label>Điều động đội ứng phó</Label>
-                 <Select value={updateTeam} onValueChange={(v: string | null) => setUpdateTeam(v ?? '')}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Chọn đội cứu hộ..." />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="none">-- Không phân công / Giữ nguyên --</SelectItem>
-                     {teams.filter(t => t.status === 'available').map(t => (
-                       <SelectItem key={t.id} value={t.id.toString()}>{t.name} (Chuyên môn: {t.team_type})</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
+            {['assigned', 'in_progress'].includes(updateStatus) && (
+              <div className="space-y-1.5">
+                <Label>Phân công đội</Label>
+                <Select value={updateTeam} onValueChange={v => setUpdateTeam(v ?? 'none')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Giữ nguyên —</SelectItem>
+                    {teams.filter(t => t.status === 'available').map(t => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedRequest(null)}>Đóng</Button>
-            <Button onClick={handleUpdateSubmit} disabled={submitting}>
-              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />} Cập nhật
+            <Button variant="outline" onClick={() => setSelected(null)}>Đóng</Button>
+            <Button onClick={handleUpdate} disabled={submitting}>
+              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}Cập nhật
             </Button>
           </DialogFooter>
         </DialogContent>

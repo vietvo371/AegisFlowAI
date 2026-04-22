@@ -6,38 +6,43 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Github, Chrome, Loader2, User, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Eye, EyeOff, Loader2, User, Mail, Lock, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 
 export default function SignUpPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
   const { register } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [agreed, setAgreed] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!agreed) {
+      toast.error('Vui lòng đồng ý với điều khoản sử dụng');
+      return;
+    }
     setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      name: `${formData.get('firstName')} ${formData.get('lastName')}`,
-      email: formData.get('email'),
-      password: formData.get('password'),
-      password_confirmation: formData.get('password'), // Giả định confirmation trùng khớp để đơn giản hóa UI hiện tại
-    };
+    const fd = new FormData(e.currentTarget);
+    const firstName = fd.get('firstName') as string;
+    const lastName  = fd.get('lastName') as string;
 
     try {
-      await register(data);
-      toast.success('Đăng ký thành công! Đang chuyển hướng...');
-      router.push('/dashboard');
+      await register({
+        name:                  `${firstName} ${lastName}`.trim(),
+        email:                 fd.get('email'),
+        phone:                 fd.get('phone') || undefined,
+        password:              fd.get('password'),
+        password_confirmation: fd.get('password'),
+      });
+      toast.success('Đăng ký thành công!');
+      await new Promise(r => setTimeout(r, 100));
+      window.location.replace('/citizen');
     } catch (error: any) {
-      console.error('Registration error:', error);
       toast.error(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
@@ -45,145 +50,155 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-black tracking-tight">{t('createAccount')}</h2>
-        <p className="text-sm font-medium text-muted-foreground">
-          {t('signUpDesc')}
-        </p>
+    <div className="space-y-6">
+      {/* Heading */}
+      <div className="space-y-1.5">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{t('createAccount')}</h2>
+        <p className="text-sm text-muted-foreground">{t('signUpDesc')}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" className="h-12 border-border font-bold rounded-xl gap-2 hover:bg-muted/50">
-          <Chrome size={18} />
-          Google
-        </Button>
-        <Button variant="outline" className="h-12 border-border font-bold rounded-xl gap-2 hover:bg-muted/50">
-          <Github size={18} />
-          Github
-        </Button>
-      </div>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-          <span className="bg-background px-4 text-muted-foreground">{t('orSignInWith')}</span>
-        </div>
-      </div>
-
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+        {/* Name row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {t('firstName')}
             </Label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input 
-                id="firstName" 
-                name="firstName"
-                placeholder={t('firstNamePlaceholder')} 
-                className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pl-10"
+              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                id="firstName" name="firstName"
+                placeholder={t('firstNamePlaceholder')}
+                className="h-11 rounded-xl bg-muted/30 pl-9"
+                autoComplete="given-name"
                 required
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {t('lastName')}
             </Label>
-            <Input 
-              id="lastName" 
-              name="lastName"
-              placeholder={t('lastNamePlaceholder')} 
-              className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors"
+            <Input
+              id="lastName" name="lastName"
+              placeholder={t('lastNamePlaceholder')}
+              className="h-11 rounded-xl bg-muted/30"
+              autoComplete="family-name"
               required
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+        {/* Email */}
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('email')}
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input 
-              id="email" 
-              name="email"
-              type="email" 
-              placeholder={t('emailPlaceholder')} 
-              className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pl-10"
+            <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="email" name="email" type="email"
+              placeholder={t('emailPlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9"
+              autoComplete="email"
               required
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+        {/* Phone */}
+        <div className="space-y-1.5">
+          <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Số điện thoại <span className="normal-case font-normal text-muted-foreground/60">(tùy chọn)</span>
+          </Label>
+          <div className="relative">
+            <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="phone" name="phone" type="tel"
+              placeholder="0901 234 567"
+              className="h-11 rounded-xl bg-muted/30 pl-9"
+              autoComplete="tel"
+            />
+          </div>
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('createPassword')}
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input 
-              id="password" 
-              name="password"
-              type={showPassword ? "text" : "password"} 
-              placeholder={t('passwordPlaceholder')} 
-              className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors px-10"
+            <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="password" name="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('passwordPlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9 pr-10"
+              autoComplete="new-password"
+              minLength={8}
               required
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          <p className="text-[11px] text-muted-foreground ml-1">Tối thiểu 8 ký tự</p>
         </div>
 
-        <div className="flex items-start space-x-2 ml-1 pt-2">
-          <Checkbox id="terms" className="rounded-md mt-1" required />
-          <Label htmlFor="terms" className="text-xs font-medium text-muted-foreground leading-relaxed cursor-pointer">
-            {t('agreeTerms')}{' '}
-            <Link href="/terms" className="text-primary font-bold hover:underline">{t('terms')}</Link>{' '}
-            {t('and')}{' '}
-            <Link href="/privacy" className="text-primary font-bold hover:underline">{t('privacy')}</Link>.
+        {/* Terms */}
+        <div className="flex items-start gap-2.5 pt-1">
+          <Checkbox
+            id="terms"
+            checked={agreed}
+            onCheckedChange={v => setAgreed(!!v)}
+            className="mt-0.5"
+          />
+          <Label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+            Tôi đồng ý với{' '}
+            <Link href="/privacy" className="text-primary font-bold hover:underline underline-offset-4">
+              Điều khoản sử dụng
+            </Link>{' '}
+            và{' '}
+            <Link href="/privacy" className="text-primary font-bold hover:underline underline-offset-4">
+              Chính sách bảo mật
+            </Link>
           </Label>
         </div>
 
-        <Button 
-          type="submit" 
-          disabled={isLoading}
-          className="w-full h-12 bg-primary hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary/20 mt-4"
+        <Button
+          type="submit"
+          disabled={isLoading || !agreed}
+          className="w-full h-11 font-bold rounded-xl shadow-lg shadow-primary/20"
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="animate-spin" size={18} />
-              {t('signingUp')}
-            </div>
-          ) : (
-            t('signUp')
-          )}
+          {isLoading
+            ? <><Loader2 size={16} className="animate-spin mr-2" />{t('signingUp')}</>
+            : t('signUp')
+          }
         </Button>
       </form>
 
-      <p className="text-center text-sm font-medium text-muted-foreground mt-8">
-        {t('hasAccount')}{' '}
-        <Link href="/signin" className="text-primary font-black hover:underline underline-offset-4">
-          {t('signInLink')}
-        </Link>
-      </p>
-
-      <div className="pt-4 flex items-center justify-center gap-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="text-emerald-500" size={12} />
-          {t('security')}
-        </span>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-3 text-[11px] font-medium text-muted-foreground">
+            Đã có tài khoản?
+          </span>
+        </div>
       </div>
+
+      <Link href="/signin" className="w-full">
+        <Button variant="outline" className="w-full h-11 rounded-xl font-bold">
+          {t('signInLink')}
+        </Button>
+      </Link>
     </div>
   );
 }

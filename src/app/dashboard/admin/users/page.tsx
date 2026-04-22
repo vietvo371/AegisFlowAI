@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
       case 'rescue_operator': return <Badge variant="secondary" className="border-secondary-foreground/20 text-blue-500">Điều phối cứu hộ</Badge>;
       case 'sensor_manager': return <Badge variant="secondary" className="border-secondary-foreground/20 text-orange-500">Kỹ thuật IoT</Badge>;
       case 'citizen': return <Badge variant="outline" className="text-muted-foreground">Người dân</Badge>;
-      default: return <Badge variant="outline" className="capitalize">{role.replace('_', ' ')}</Badge>;
+      default: return <Badge variant="outline" className="capitalize">{(role ?? '').replace('_', ' ')}</Badge>;
     }
   };
 

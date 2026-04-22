@@ -66,19 +66,19 @@ export default function DashboardLayout({
 
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scroll">
           {[
-            { href: '/dashboard', icon: LayoutDashboard, label: t('common.dashboard') || 'Tổng quan' },
-            { href: '/dashboard/analytics', icon: BarChart3, label: 'Thống kê' },
-            { href: '/dashboard/incidents', icon: AlertTriangle, label: 'Sự cố' },
-            { href: '/dashboard/flood-zones', icon: Waves, label: 'Vùng ngập' },
-            { href: '/dashboard/rescue-requests', icon: HeartPulse, label: 'Cứu trợ' },
-            { href: '/dashboard/rescue-teams', icon: ShieldAlert, label: 'Đội cứu hộ' },
-            { href: '/dashboard/shelters', icon: Home, label: 'Tị nạn' },
-            { href: '/dashboard/sensors', icon: Activity, label: 'Cảm biến' },
-            { href: '/dashboard/alerts', icon: Megaphone, label: 'Cảnh báo' },
-            { href: '/dashboard/predictions', icon: BrainCircuit, label: 'AI Dự báo' },
-            { href: '/dashboard/recommendations', icon: CheckCircle2, label: 'Đề xuất AI' },
-            { href: '/dashboard/admin/users', icon: Users, label: 'Nhân sự' },
-          ].map((item) => {
+            { href: '/dashboard',                    icon: LayoutDashboard, label: t('common.dashboard') || 'Tổng quan', roles: null },
+            { href: '/dashboard/analytics',          icon: BarChart3,       label: 'Thống kê',    roles: null },
+            { href: '/dashboard/incidents',          icon: AlertTriangle,   label: 'Sự cố',       roles: null },
+            { href: '/dashboard/flood-zones',        icon: Waves,           label: 'Vùng ngập',   roles: null },
+            { href: '/dashboard/rescue-requests',    icon: HeartPulse,      label: 'Cứu trợ',     roles: null },
+            { href: '/dashboard/rescue-teams',       icon: ShieldAlert,     label: 'Đội cứu hộ',  roles: null },
+            { href: '/dashboard/shelters',           icon: Home,            label: 'Tị nạn',      roles: null },
+            { href: '/dashboard/sensors',            icon: Activity,        label: 'Cảm biến',    roles: null },
+            { href: '/dashboard/alerts',             icon: Megaphone,       label: 'Cảnh báo',    roles: null },
+            { href: '/dashboard/predictions',        icon: BrainCircuit,    label: 'AI Dự báo',   roles: null },
+            { href: '/dashboard/recommendations',    icon: CheckCircle2,    label: 'Đề xuất AI',  roles: null },
+            { href: '/dashboard/admin/users',        icon: Users,           label: 'Nhân sự',     roles: ['city_admin'] },
+          ].filter(item => !item.roles || item.roles.includes(user?.role ?? '')).map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link 

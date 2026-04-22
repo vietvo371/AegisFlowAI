@@ -71,6 +71,10 @@ api.interceptors.response.use(
   },
   (error: AxiosError<ApiResponse>) => {
     if (!error.response) {
+      // Bỏ qua lỗi do AbortController cancel request
+      if (error.code === 'ERR_CANCELED' || error.name === 'CanceledError' || error.name === 'AbortError') {
+        return Promise.reject(error);
+      }
       toast.error('Lỗi kết nối mạng. Vui lòng kiểm tra lại đường truyền.');
       return Promise.reject(error);
     }

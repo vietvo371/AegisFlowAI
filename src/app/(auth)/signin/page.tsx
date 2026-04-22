@@ -6,15 +6,20 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Github, Chrome, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth-context';
+
+const ROLE_ROUTES: Record<string, string> = {
+  city_admin:      '/dashboard',
+  rescue_operator: '/dashboard',
+  ai_operator:     '/dashboard',
+  rescue_team:     '/team',
+  citizen:         '/citizen',
+};
 
 export default function SignInPage() {
   const t = useTranslations('auth');
-  const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -23,40 +28,25 @@ export default function SignInPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
+    const email    = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     try {
-      const res = await (await import('@/lib/api')).default.post('/auth/login', { email, password });
+      const api = (await import('@/lib/api')).default;
+      const res = await api.post('/auth/login', { email, password });
 
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
-
-        // Set token — localStorage + cookie
         localStorage.setItem('aegisflow_token', token);
         document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
 
-        // Lấy role trực tiếp từ login response
         const role: string = userData?.role ?? 'citizen';
-
         toast.success('Đăng nhập thành công!');
 
-        const roleRoutes: Record<string, string> = {
-          city_admin:      '/dashboard',
-          rescue_operator: '/dashboard',
-          ai_operator:     '/dashboard',
-          rescue_team:     '/team',
-          citizen:         '/citizen',
-        };
-
-        const dest = roleRoutes[role] ?? '/dashboard';
-
-        // Đợi cookie được ghi vào browser trước khi redirect
         await new Promise(r => setTimeout(r, 100));
-        window.location.replace(dest);
+        window.location.replace(ROLE_ROUTES[role] ?? '/dashboard');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
     } finally {
       setIsLoading(false);
@@ -64,114 +54,98 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-black tracking-tight">{t('welcomeBack')}</h2>
-        <p className="text-sm font-medium text-muted-foreground">
-          {t('signInDesc')}
-        </p>
+    <div className="space-y-6">
+      {/* Heading */}
+      <div className="space-y-1.5">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{t('welcomeBack')}</h2>
+        <p className="text-sm text-muted-foreground">{t('signInDesc')}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" className="h-12 border-border font-bold rounded-xl gap-2 hover:bg-muted/50">
-          <Chrome size={18} />
-          Google
-        </Button>
-        <Button variant="outline" className="h-12 border-border font-bold rounded-xl gap-2 hover:bg-muted/50">
-          <Github size={18} />
-          Github
-        </Button>
-      </div>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-          <span className="bg-background px-4 text-muted-foreground">{t('orSignInWith')}</span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('email')}
           </Label>
-          <Input 
-            id="email" 
-            name="email"
-            type="email" 
-            placeholder={t('emailPlaceholder')} 
-            className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors"
-            required
-          />
+          <div className="relative">
+            <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="email" name="email" type="email"
+              placeholder={t('emailPlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9"
+              autoComplete="email"
+              required
+            />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between ml-1">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {t('password')}
             </Label>
-            <Link href="/reset-password" title={t('forgotPassword')} className="text-xs font-bold text-primary hover:text-primary-700">
+            <Link href="/reset-password" className="text-xs font-bold text-primary hover:underline underline-offset-4">
               {t('forgotPassword')}
             </Link>
           </div>
           <div className="relative">
-            <Input 
-              id="password" 
-              name="password"
-              type={showPassword ? "text" : "password"} 
-              placeholder={t('passwordPlaceholder')} 
-              className="h-12 rounded-xl bg-muted/30 border-border focus:bg-background transition-colors pr-10"
+            <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="password" name="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('passwordPlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9 pr-10"
+              autoComplete="current-password"
               required
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 ml-1">
-          <Checkbox id="remember" className="rounded-md" />
-          <Label htmlFor="remember" className="text-sm font-medium leading-none cursor-pointer">
-            {t('rememberMe')}
-          </Label>
-        </div>
-
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isLoading}
-          className="w-full h-12 bg-primary hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary/20"
+          className="w-full h-11 font-bold rounded-xl shadow-lg shadow-primary/20"
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="animate-spin" size={18} />
-              {t('signingIn')}
-            </div>
-          ) : (
-            t('signIn')
-          )}
+          {isLoading
+            ? <><Loader2 size={16} className="animate-spin mr-2" />{t('signingIn')}</>
+            : t('signIn')
+          }
         </Button>
       </form>
 
-      <p className="text-center text-sm font-medium text-muted-foreground mt-8">
-        {t('noAccount')}{' '}
-        <Link href="/signup" className="text-primary font-black hover:underline underline-offset-4">
-          {t('signUpFree')}
-        </Link>
-      </p>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-3 text-[11px] font-medium text-muted-foreground">
+            Chưa có tài khoản?
+          </span>
+        </div>
+      </div>
 
-      <div className="pt-4 flex items-center justify-center gap-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-        <span className="flex items-center gap-1.5">
-          <span className="w-1 h-1 rounded-full bg-emerald-500" />
-          AES-256 SSL
-        </span>
-        <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-        <span>ISO 27001</span>
+      <Link href="/signup" className="w-full">
+        <Button variant="outline" className="w-full h-11 rounded-xl font-bold">
+          {t('signUpFree')}
+        </Button>
+      </Link>
+
+      {/* Trust */}
+      <div className="flex items-center justify-center gap-3 pt-2">
+        {['AES-256 SSL', 'ISO 27001', 'GDPR'].map((badge, i) => (
+          <React.Fragment key={badge}>
+            {i > 0 && <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />}
+            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{badge}</span>
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

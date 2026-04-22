@@ -1,305 +1,237 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from '@/lib/api';
+import { useTable } from '@/lib/use-table';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, Megaphone, MapPin, AlertCircle, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { RefreshCw, Search, Megaphone, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Alert {
-  id: number;
-  alert_number: string;
-  title: string;
-  description: string;
-  alert_type: 'flood' | 'storm' | 'landslide' | 'evacuation' | 'system';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'active' | 'updated' | 'resolved' | 'expired';
-  effective_from: string;
-  effective_until?: string;
-  source: string;
-  affected_districts?: number[];
+  id: number; alert_number?: string; title: string; description?: string;
+  alert_type: string; severity: string; status: string;
+  effective_from: string; effective_until?: string; source?: string;
 }
 
+const SEV: Record<string, string> = { critical: 'bg-red-500 animate-pulse', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500' };
+const STA: Record<string, { cls: string; label: string }> = {
+  active:   { cls: 'bg-red-500 text-white', label: 'Hiệu lực' },
+  updated:  { cls: 'bg-orange-500 text-white', label: 'Đã cập nhật' },
+  resolved: { cls: 'bg-emerald-500 text-white', label: 'Đã giải quyết' },
+  expired:  { cls: 'text-gray-400', label: 'Hết hạn' },
+  draft:    { cls: 'text-muted-foreground', label: 'Nháp' },
+};
+const TYPE_LABEL: Record<string, string> = {
+  flood: 'Lũ lụt', storm: 'Bão', landslide: 'Sạt lở',
+  evacuation: 'Sơ tán', system: 'Hệ thống',
+  weather: 'Thời tiết', flood_risk: 'Nguy cơ ngập',
+  power_outage: 'Mất điện', traffic: 'Giao thông',
+};
+
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: alerts, meta, loading, setFilter, setPage, refresh } = useTable<Alert>({
+    endpoint: '/alerts', perPage: 20,
+  });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    alert_type: 'flood',
-    severity: 'medium',
-    effective_from: '',
-    effective_until: '',
-    source: 'system'
+  const [form, setForm] = useState({
+    title: '', description: '', alert_type: 'flood',
+    severity: 'medium', effective_from: '', effective_until: '',
   });
 
-  const fetchAlerts = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/alerts');
-      if (res.data?.success) {
-        setAlerts(res.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch alerts', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  React.useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener('aegis:alert:created', h);
+    return () => window.removeEventListener('aegis:alert:created', h);
+  }, [refresh]);
 
-  const handleCreateSubmit = async () => {
-    if (!formData.title || !formData.description) {
-      toast.error('Vui lòng nhập tiêu đề và nội dung cảnh báo');
-      return;
-    }
+  const handleCreate = async () => {
+    if (!form.title || !form.description) { toast.error('Vui lòng nhập tiêu đề và nội dung'); return; }
     setSubmitting(true);
     try {
-      const payload: any = {
-        title: formData.title,
-        description: formData.description,
-        alert_type: formData.alert_type,
-        severity: formData.severity,
-        status: 'active',
-        source: formData.source
-      };
-      
-      // If the user picked a date, format it properly or just pass it to the backend
-      // Provide current date fallback if effective_from is empty
-      payload.effective_from = formData.effective_from ? formData.effective_from : new Date().toISOString().slice(0,16);
-      if (formData.effective_until) {
-         payload.effective_until = formData.effective_until;
-      }
-
-      const res = await api.post('/alerts', payload);
-      if (res.data?.success) {
-        setIsCreateOpen(false);
-        setFormData({ title: '', description: '', alert_type: 'flood', severity: 'medium', effective_from: '', effective_until: '', source: 'system' });
-        fetchAlerts();
-        toast.success("Ban hành cảnh báo thành công!");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error('Có lỗi xảy ra khi tạo cảnh báo');
-    } finally {
-      setSubmitting(false);
-    }
+      await api.post('/alerts', {
+        ...form,
+        effective_from: form.effective_from || new Date().toISOString().slice(0, 16),
+        effective_until: form.effective_until || undefined,
+      });
+      setIsCreateOpen(false);
+      setForm({ title: '', description: '', alert_type: 'flood', severity: 'medium', effective_from: '', effective_until: '' });
+      refresh();
+    } catch (e) { console.error(e); }
+    finally { setSubmitting(false); }
   };
 
-  useEffect(() => {
-    fetchAlerts();
-    
-    const handleNewAlert = () => {
-      fetchAlerts();
-    };
-    
-    window.addEventListener('aegis:alert:created', handleNewAlert);
-    return () => window.removeEventListener('aegis:alert:created', handleNewAlert);
-  }, []);
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'critical': return <Badge variant="destructive" className="animate-pulse">Đặc biệt nghiêm trọng</Badge>;
-      case 'high': return <Badge className="bg-orange-500 hover:bg-orange-600">Nghiêm trọng</Badge>;
-      case 'medium': return <Badge className="bg-yellow-500 hover:bg-yellow-600 shadow-sm">Cảnh báo</Badge>;
-      case 'low': return <Badge className="bg-blue-500 hover:bg-blue-600">Lưu ý</Badge>;
-      default: return <Badge variant="outline">{severity}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active': return <Badge className="bg-red-500">Đang hiệu lực</Badge>;
-      case 'updated': return <Badge className="bg-orange-500">Đã cập nhật</Badge>;
-      case 'resolved': return <Badge className="bg-emerald-500">Đã giải quyết</Badge>;
-      case 'expired': return <Badge variant="outline" className="text-gray-400">Hết hạn</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getIcon = (type: string) => {
-    switch(type) {
-       case 'evacuation': return <Megaphone className="w-5 h-5 text-red-500" />;
-       default: return <AlertCircle className="w-5 h-5 text-orange-500" />;
-    }
-  }
+  const activeCount = alerts.filter(a => a.status === 'active').length;
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cảnh Báo Cộng Đồng</h1>
-          <p className="text-muted-foreground mt-1">Quản lý và ban hành các cảnh báo thiên tai, dời dân</p>
+          <h1 className="text-3xl font-bold tracking-tight">Cảnh báo cộng đồng</h1>
+          <p className="text-muted-foreground mt-1">Quản lý và ban hành cảnh báo thiên tai</p>
         </div>
-        <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" onClick={fetchAlerts} disabled={loading}>
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </Button>
-           <Button className="gap-2 focus:ring-2" onClick={() => setIsCreateOpen(true)}>
-             <Megaphone className="w-4 h-4" /> Ban hành cảnh báo
-           </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+            <Megaphone size={16} /> Ban hành cảnh báo
+          </Button>
         </div>
       </div>
 
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-             <div className="relative w-full sm:w-72">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Mã cảnh báo hoặc tiêu đề..." className="pl-9 h-9 w-full bg-muted/50" />
-             </div>
-             <div className="flex items-center gap-2">
-               <span className="text-sm font-medium text-red-500">{alerts.filter(s => s.status === 'active').length} Lệnh Đang Có Hiệu Lực</span>
-             </div>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Tìm tiêu đề cảnh báo..." className="pl-9 h-9 bg-muted/50"
+                onChange={e => setFilter('search', e.target.value)} />
+            </div>
+            <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
+              <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="active">Đang hiệu lực</SelectItem>
+                <SelectItem value="resolved">Đã giải quyết</SelectItem>
+                <SelectItem value="expired">Hết hạn</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={v => setFilter('severity', v === 'all' ? '' : v)}>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Mức độ" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="critical">Đặc biệt nguy hiểm</SelectItem>
+                <SelectItem value="high">Nghiêm trọng</SelectItem>
+                <SelectItem value="medium">Cảnh báo</SelectItem>
+                <SelectItem value="low">Lưu ý</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={v => setFilter('alert_type', v === 'all' ? '' : v)}>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Loại" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="flood">Lũ lụt</SelectItem>
+                <SelectItem value="storm">Bão</SelectItem>
+                <SelectItem value="landslide">Sạt lở</SelectItem>
+                <SelectItem value="evacuation">Sơ tán</SelectItem>
+              </SelectContent>
+            </Select>
+            {activeCount > 0 && <span className="text-sm font-medium text-red-500 whitespace-nowrap">{activeCount} đang hiệu lực</span>}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[100px]">Mã CB</TableHead>
-                  <TableHead className="w-[300px]">Nội dung & Hình thức</TableHead>
-                  <TableHead>Mức độ</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Nguồn</TableHead>
-                  <TableHead className="text-right">Hiệu lệnh</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <RefreshCw className="w-6 h-6 animate-spin mb-2 text-primary" />
-                        Đang đọc dữ liệu thông cáo...
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="w-[110px]">Mã CB</TableHead>
+                <TableHead>Nội dung</TableHead>
+                <TableHead>Loại</TableHead>
+                <TableHead>Mức độ</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Hiệu lực</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={6} className="h-32 text-center"><RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+              ) : alerts.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground">Không có cảnh báo nào</TableCell></TableRow>
+              ) : alerts.map(a => {
+                const sc = STA[a.status];
+                return (
+                  <TableRow key={a.id} className="hover:bg-muted/30">
+                    <TableCell><Badge variant="outline" className="font-mono text-xs">{a.alert_number ?? `#${a.id}`}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex items-start gap-2">
+                        <AlertCircle size={15} className={`mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-red-500' : 'text-orange-500'}`} />
+                        <div>
+                          <p className="font-semibold text-sm leading-snug">{a.title}</p>
+                          {a.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{a.description}</p>}
+                        </div>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ) : alerts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                      Hiện tại bình yên. Không có cảnh báo nào tồn tại.
+                    <TableCell><span className="text-xs text-muted-foreground">{TYPE_LABEL[a.alert_type] ?? a.alert_type}</span></TableCell>
+                    <TableCell><Badge className={`${SEV[a.severity]} text-white`}>{a.severity}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={sc?.cls}>{sc?.label ?? a.status}</Badge></TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      <div className="flex items-center justify-end gap-1">
+                        <Calendar size={11} />
+                        {new Date(a.effective_from).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      </div>
+                      {!a.effective_until && <div className="text-[10px] text-red-400">Vô thời hạn</div>}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  alerts.map((a) => (
-                    <TableRow key={a.id} className="hover:bg-muted/30 cursor-pointer">
-                      <TableCell>
-                         <Badge variant="outline" className="font-mono bg-transparent border-dashed">{a.alert_number}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-3 items-start">
-                           <div className="mt-1">{getIcon(a.alert_type)}</div>
-                           <div>
-                             <div className="font-semibold text-foreground line-clamp-1">{a.title}</div>
-                             <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5" title={a.description}>{a.description}</div>
-                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getSeverityBadge(a.severity)}</TableCell>
-                      <TableCell>{getStatusBadge(a.status)}</TableCell>
-                      <TableCell>
-                         <span className="text-sm font-medium text-muted-foreground">{a.source?.toUpperCase()}</span>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground text-sm">
-                        <div className="flex flex-col items-end gap-1">
-                           <div className="flex items-center text-xs">
-                             <Calendar className="w-3 h-3 mr-1 inline" /> Từ: {new Date(a.effective_from).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}
-                           </div>
-                           {a.effective_until ? (
-                             <div className="text-[10px] text-gray-400">Tới: {new Date(a.effective_until).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}</div>
-                           ) : (
-                             <div className="text-[10px] text-red-400">Vô thời hạn</div>
-                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <DataPagination meta={meta} onPageChange={setPage} />
         </CardContent>
       </Card>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Ban hành cảnh báo cộng đồng</DialogTitle>
-            <DialogDescription>
-              Tạo và thông báo lệnh cảnh báo lập tức (Push Notifications / Web Socket) tới toàn bộ App của người dân và các đơn vị tiếp nhận.
-            </DialogDescription>
+            <DialogDescription>Thông báo tức thì đến toàn bộ người dùng và đơn vị tiếp nhận</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Tiêu đề cảnh báo</Label>
-              <Input id="title" placeholder="VD: Sơ tán khẩn cấp vùng ngập lụt Thảo Điền" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+          <div className="grid gap-3 py-3">
+            <div className="space-y-1.5"><Label>Tiêu đề *</Label>
+              <Input placeholder="VD: Sơ tán khẩn cấp vùng ngập lụt" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phân loại (Type)</Label>
-                <Select value={formData.alert_type} onValueChange={v => setFormData({ ...formData, alert_type: v ?? '' })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Phân loại" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weather">Thời tiết & Mưa lớn</SelectItem>
-                  <SelectItem value="flood_risk">Nguy cơ ngập lụt</SelectItem>
-                  <SelectItem value="evacuation">Lệnh sơ tán</SelectItem>
-                  <SelectItem value="power_outage">Mất điện diện rộng</SelectItem>
-                  <SelectItem value="traffic">Giao thông & Cầu đường</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Mức độ</Label>
-              <Select value={formData.severity} onValueChange={v => setFormData({ ...formData, severity: v ?? '' })}>
-                   <SelectTrigger>
-                      <SelectValue placeholder="Chọn mức độ" />
-                   </SelectTrigger>
-                   <SelectContent>
-                      <SelectItem value="low">Lưu ý (Low)</SelectItem>
-                      <SelectItem value="medium">Cảnh báo (Medium)</SelectItem>
-                      <SelectItem value="high">Nghiêm trọng (High)</SelectItem>
-                      <SelectItem value="critical">Đặc biệt nghiêm trọng</SelectItem>
-                   </SelectContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>Loại *</Label>
+                <Select value={form.alert_type} onValueChange={v => setForm(f => ({ ...f, alert_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flood">Lũ lụt</SelectItem>
+                    <SelectItem value="storm">Bão</SelectItem>
+                    <SelectItem value="landslide">Sạt lở</SelectItem>
+                    <SelectItem value="evacuation">Sơ tán</SelectItem>
+                    <SelectItem value="system">Hệ thống</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>Mức độ *</Label>
+                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Lưu ý</SelectItem>
+                    <SelectItem value="medium">Cảnh báo</SelectItem>
+                    <SelectItem value="high">Nghiêm trọng</SelectItem>
+                    <SelectItem value="critical">Đặc biệt nguy hiểm</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="effective_from">Thời điểm hiệu lực</Label>
-                <Input id="effective_from" type="datetime-local" value={formData.effective_from} onChange={e => setFormData({ ...formData, effective_from: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>Thời điểm hiệu lực</Label>
+                <Input type="datetime-local" value={form.effective_from} onChange={e => setForm(f => ({ ...f, effective_from: e.target.value }))} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="effective_until">Thời điểm hết hạn (Tùy chọn)</Label>
-                <Input id="effective_until" type="datetime-local" value={formData.effective_until} onChange={e => setFormData({ ...formData, effective_until: e.target.value })} />
+              <div className="space-y-1.5"><Label>Hết hạn (tùy chọn)</Label>
+                <Input type="datetime-local" value={form.effective_until} onChange={e => setForm(f => ({ ...f, effective_until: e.target.value }))} />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="desc">Thông điệp cốt lõi (Message)</Label>
-              <Textarea id="desc" className="h-24" placeholder="Viết các hướng dẫn an toàn, chú ý cho người dân trong vùng ảnh hưởng..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+            <div className="space-y-1.5"><Label>Nội dung *</Label>
+              <Textarea placeholder="Hướng dẫn an toàn cho người dân..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px] resize-none" />
             </div>
-            
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Hủy</Button>
-            <Button variant="destructive" onClick={handleCreateSubmit} disabled={submitting}>
-               {submitting ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Megaphone className="w-4 h-4 mr-2" />} Phát lệnh
+            <Button variant="destructive" onClick={handleCreate} disabled={submitting}>
+              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              <Megaphone size={14} className="mr-2" /> Phát lệnh
             </Button>
           </DialogFooter>
         </DialogContent>
