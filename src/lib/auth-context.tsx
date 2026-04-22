@@ -69,7 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const res = await api.get('/auth/me');
           if (res.data?.success) {
-            setUser(normalizeUser(res.data.data.user));
+            // /auth/me trả về data trực tiếp là UserResource, không phải data.user
+            const userData = res.data.data?.user ?? res.data.data;
+            setUser(normalizeUser(userData));
           } else {
             throw new Error('Không thể tải thông tin người dùng');
           }
@@ -146,7 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success) {
-        setUser(normalizeUser(res.data.data.user));
+        const userData = res.data.data?.user ?? res.data.data;
+        setUser(normalizeUser(userData));
       }
     } catch (error) {
       console.error('Refresh user error:', error);

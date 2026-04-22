@@ -11,11 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Github, Chrome, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 
 export default function SignInPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -29,9 +27,34 @@ export default function SignInPage() {
     const password = formData.get('password') as string;
 
     try {
-      await login(email, password);
-      toast.success('Đăng nhập thành công! Đang chuyển hướng...');
-      router.push('/dashboard');
+      const res = await (await import('@/lib/api')).default.post('/auth/login', { email, password });
+
+      if (res.data?.success) {
+        const { token, user: userData } = res.data.data;
+
+        // Set token — localStorage + cookie
+        localStorage.setItem('aegisflow_token', token);
+        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+
+        // Lấy role trực tiếp từ login response
+        const role: string = userData?.role ?? 'citizen';
+
+        toast.success('Đăng nhập thành công!');
+
+        const roleRoutes: Record<string, string> = {
+          city_admin:      '/dashboard',
+          rescue_operator: '/dashboard',
+          ai_operator:     '/dashboard',
+          rescue_team:     '/team',
+          citizen:         '/citizen',
+        };
+
+        const dest = roleRoutes[role] ?? '/dashboard';
+
+        // Đợi cookie được ghi vào browser trước khi redirect
+        await new Promise(r => setTimeout(r, 100));
+        window.location.replace(dest);
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
