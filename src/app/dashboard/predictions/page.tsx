@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { RefreshCw, Search, BrainCircuit, Play, BarChart3, Clock, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface Prediction {
   id: number;
@@ -31,6 +32,7 @@ interface Prediction {
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [triggering, setTriggering] = useState(false);
 
   const fetchPredictions = async () => {
     setLoading(true);
@@ -43,6 +45,19 @@ export default function PredictionsPage() {
       console.error('Failed to fetch predictions', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTrigger = async () => {
+    setTriggering(true);
+    try {
+      await api.post('/predictions/trigger', { horizon_minutes: 60 });
+      toast.success('Đã kích hoạt AI Model — kết quả sẽ xuất hiện trong vài giây');
+      setTimeout(fetchPredictions, 3000);
+    } catch (error) {
+      console.error('Failed to trigger prediction', error);
+    } finally {
+      setTriggering(false);
     }
   };
 
@@ -91,8 +106,12 @@ export default function PredictionsPage() {
            <Button variant="outline" size="icon" onClick={fetchPredictions} disabled={loading}>
              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </Button>
-           <Button className="gap-2 focus:ring-2">
-             <Play className="w-4 h-4" /> Kích hoạt Model
+           <Button className="gap-2 focus:ring-2" onClick={handleTrigger} disabled={triggering}>
+             {triggering
+               ? <RefreshCw className="w-4 h-4 animate-spin" />
+               : <Play className="w-4 h-4" />
+             }
+             {triggering ? 'Đang xử lý...' : 'Kích hoạt Model'}
            </Button>
         </div>
       </div>

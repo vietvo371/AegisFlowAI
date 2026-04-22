@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu,
   BarChart3, AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, 
-  Megaphone, BrainCircuit, Users 
+  Megaphone, BrainCircuit, Users, CheckCircle2, Waves
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -29,6 +29,26 @@ export default function DashboardLayout({
   const t = useTranslations();
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await (await import('@/lib/api')).default.get('/alerts', { params: { status: 'active', per_page: 1 } });
+        setUnreadCount(res.data?.meta?.total ?? 0);
+      } catch { /* silent */ }
+    };
+    fetchUnread();
+    const handler = () => fetchUnread();
+    window.addEventListener('aegis:alert:created', handler);
+    window.addEventListener('aegis:incident:created', handler);
+    window.addEventListener('aegis:rescue_request:created', handler);
+    return () => {
+      window.removeEventListener('aegis:alert:created', handler);
+      window.removeEventListener('aegis:incident:created', handler);
+      window.removeEventListener('aegis:rescue_request:created', handler);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
@@ -49,12 +69,14 @@ export default function DashboardLayout({
             { href: '/dashboard', icon: LayoutDashboard, label: t('common.dashboard') || 'Tổng quan' },
             { href: '/dashboard/analytics', icon: BarChart3, label: 'Thống kê' },
             { href: '/dashboard/incidents', icon: AlertTriangle, label: 'Sự cố' },
+            { href: '/dashboard/flood-zones', icon: Waves, label: 'Vùng ngập' },
             { href: '/dashboard/rescue-requests', icon: HeartPulse, label: 'Cứu trợ' },
             { href: '/dashboard/rescue-teams', icon: ShieldAlert, label: 'Đội cứu hộ' },
             { href: '/dashboard/shelters', icon: Home, label: 'Tị nạn' },
             { href: '/dashboard/sensors', icon: Activity, label: 'Cảm biến' },
             { href: '/dashboard/alerts', icon: Megaphone, label: 'Cảnh báo' },
             { href: '/dashboard/predictions', icon: BrainCircuit, label: 'AI Dự báo' },
+            { href: '/dashboard/recommendations', icon: CheckCircle2, label: 'Đề xuất AI' },
             { href: '/dashboard/admin/users', icon: Users, label: 'Nhân sự' },
           ].map((item) => {
             const isActive = pathname === item.href;
@@ -156,6 +178,17 @@ export default function DashboardLayout({
             </div>
             
             <div className="h-4 w-px bg-border mx-1" />
+
+            <Link href="/dashboard/notifications" className="relative">
+              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+                <Bell size={20} className="text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
             <Avatar className="h-9 w-9 border border-border mt-1">
               {user?.avatar_url ? <AvatarImage src={user.avatar_url} /> : null}

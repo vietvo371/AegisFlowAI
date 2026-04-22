@@ -16,14 +16,23 @@ import { toast } from 'sonner';
 
 interface RescueRequest {
   id: number;
+  request_number?: string;
   urgency: 'low' | 'medium' | 'high' | 'critical';
-  status: 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled';
+  urgency_label?: string;
+  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  status_label?: string;
   people_count: number;
   vulnerable_groups: string[];
-  notes: string;
-  contact_phone: string;
+  description?: string;
+  caller_name?: string;
+  caller_phone?: string;
+  priority_score?: number;
+  water_level_m?: number;
   location: { lat: number; lng: number };
   address?: string;
+  district?: { id: number; name: string };
+  assigned_team?: { id: number; name: string; phone: string; status: string } | null;
+  eta_minutes?: number;
   created_at: string;
 }
 
@@ -35,6 +44,7 @@ export default function RescueRequestsPage() {
   const [updateStatus, setUpdateStatus] = useState('');
   const [updateTeam, setUpdateTeam] = useState('none');
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -59,7 +69,7 @@ export default function RescueRequestsPage() {
   const handleOpenAction = (req: RescueRequest) => {
     setSelectedRequest(req);
     setUpdateStatus(req.status);
-    setUpdateTeam('none'); // Ở đây ta có thể parse team_id từ backend nếu backend có trả về (hiện tại thì chưa có field đó trong type RescueRequest nên hiển thị "none")
+    setUpdateTeam(req.assigned_team ? req.assigned_team.id.toString() : 'none');
   };
 
   const handleUpdateSubmit = async () => {
@@ -69,14 +79,15 @@ export default function RescueRequestsPage() {
       if (updateStatus !== selectedRequest.status) {
         await api.put(`/rescue-requests/${selectedRequest.id}/status`, { status: updateStatus });
       }
-      if (updateTeam !== 'none') {
-        await api.put(`/rescue-requests/${selectedRequest.id}/assign`, { rescue_team_id: parseInt(updateTeam) });
+      if (updateTeam !== 'none' && (!selectedRequest.assigned_team || updateTeam !== selectedRequest.assigned_team.id.toString())) {
+        await api.put(`/rescue-requests/${selectedRequest.id}/assign`, { team_id: parseInt(updateTeam) });
       }
-      toast.success('Đã cập nhật trạng thái yêu cầu cứu trợ');
+      toast.success('Đã cập nhật yêu cầu cứu trợ');
       setSelectedRequest(null);
       fetchRequests();
     } catch (error) {
       console.error(error);
+      toast.error('Cập nhật thất bại, vui lòng thử lại');
     } finally {
       setSubmitting(false);
     }
@@ -138,7 +149,13 @@ export default function RescueRequestsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Số điện thoại hoặc nội dung..." className="pl-9 h-9 w-full bg-muted/50" />
+                <Input
+                  type="search"
+                  placeholder="Số điện thoại hoặc địa chỉ..."
+                  className="pl-9 h-9 w-full bg-muted/50"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
              </div>
              <div className="flex items-center gap-2">
                <Button variant="outline" size="sm" className="h-9 gap-2">
@@ -160,15 +177,16 @@ export default function RescueRequestsPage() {
                   <TableHead>Mức độ</TableHead>
                   <TableHead>Liên hệ</TableHead>
                   <TableHead>Số người</TableHead>
-                  <TableHead>Loại yếu thế</TableHead>
+                  <TableHead>Nhóm yếu thế</TableHead>
                   <TableHead>Địa điểm</TableHead>
-                  <TableHead className="text-right">Thời gian tạo</TableHead>
+                  <TableHead>Điểm AI</TableHead>
+                  <TableHead className="text-right">Thời gian</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <RefreshCw className="w-6 h-6 animate-spin mb-2 text-primary" />
                         Đang lấy danh sách yêu cầu...
@@ -177,27 +195,45 @@ export default function RescueRequestsPage() {
                   </TableRow>
                 ) : requests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                       Không có yêu cầu cứu trợ nào.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  requests.map((req) => (
+                  requests
+                    .filter(req =>
+                      !search ||
+                      req.caller_phone?.includes(search) ||
+                      req.address?.toLowerCase().includes(search.toLowerCase()) ||
+                      req.caller_name?.toLowerCase().includes(search.toLowerCase())
+                    )
+                    .map((req) => (
                     <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => handleOpenAction(req)}>
-                      <TableCell className="font-medium text-muted-foreground">#{(req.id).toString().padStart(4, '0')}</TableCell>
+                      <TableCell className="font-medium text-muted-foreground">
+                        <div className="flex flex-col">
+                          <span>#{(req.id).toString().padStart(4, '0')}</span>
+                          {req.request_number && <span className="text-[10px] text-muted-foreground font-mono">{req.request_number}</span>}
+                        </div>
+                      </TableCell>
                       <TableCell>{getStatusBadge(req.status)}</TableCell>
                       <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 font-medium">
-                          <Phone className="w-3 h-3 text-muted-foreground" /> {req.contact_phone || 'Không rõ'}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-sm">{req.caller_name || 'Không rõ'}</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Phone className="w-3 h-3" /> {req.caller_phone || 'N/A'}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{req.people_count}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {req.vulnerable_groups?.map((group, i) => (
-                             <Badge key={i} variant="secondary" className="text-xs font-normal px-1 py-0">{group}</Badge>
-                          )) || '-'}
+                          {req.vulnerable_groups?.length > 0
+                            ? req.vulnerable_groups.map((group, i) => (
+                               <Badge key={i} variant="secondary" className="text-xs font-normal px-1 py-0">{group}</Badge>
+                              ))
+                            : <span className="text-muted-foreground text-xs">—</span>
+                          }
                         </div>
                       </TableCell>
                       <TableCell>
@@ -206,10 +242,17 @@ export default function RescueRequestsPage() {
                           <span className="truncate max-w-[150px]">{req.address || `${req.location?.lat?.toFixed(4)}, ${req.location?.lng?.toFixed(4)}`}</span>
                         </div>
                       </TableCell>
+                      <TableCell>
+                        {req.priority_score != null ? (
+                          <div className={`font-mono font-bold text-sm ${req.priority_score >= 80 ? 'text-red-500' : req.priority_score >= 60 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                            {req.priority_score.toFixed(0)}
+                          </div>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </TableCell>
                       <TableCell className="text-right text-muted-foreground text-sm whitespace-nowrap">
                         <Clock className="w-3 h-3 mr-1 inline" />
-                        {new Date(req.created_at).toLocaleTimeString('vi-VN', {
-                          hour: '2-digit', minute: '2-digit'
+                        {new Date(req.created_at).toLocaleString('vi-VN', {
+                          hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
                         })}
                       </TableCell>
                     </TableRow>
@@ -232,9 +275,13 @@ export default function RescueRequestsPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
                <div className="text-sm border p-3 rounded-md bg-muted/30 text-muted-foreground space-y-1">
-                 <p><strong>Nội dung:</strong> {selectedRequest?.notes || 'Không có ghi chú'}</p>
+                 <p><strong>Người gọi:</strong> {selectedRequest?.caller_name || 'Không rõ'}</p>
+                 <p><strong>Nội dung:</strong> {selectedRequest?.description || 'Không có ghi chú'}</p>
                  <p><strong>Địa chỉ:</strong> {selectedRequest?.address || 'Không xác định'}</p>
-                 <p><strong>Liên hệ:</strong> {selectedRequest?.contact_phone || 'N/A'}</p>
+                 <p><strong>Liên hệ:</strong> {selectedRequest?.caller_phone || 'N/A'}</p>
+                 {selectedRequest?.priority_score != null && (
+                   <p><strong>Điểm ưu tiên AI:</strong> <span className="font-mono font-bold text-primary">{selectedRequest.priority_score.toFixed(1)}/100</span></p>
+                 )}
                </div>
             </div>
             <div className="space-y-2">
@@ -247,7 +294,7 @@ export default function RescueRequestsPage() {
                   <SelectItem value="pending">Đang chờ (Pending)</SelectItem>
                   <SelectItem value="assigned">Đã phân công</SelectItem>
                   <SelectItem value="in_progress">Đang tiến hành ứng cứu</SelectItem>
-                  <SelectItem value="resolved">Hoàn tất (Resolved)</SelectItem>
+                  <SelectItem value="completed">Hoàn tất (Completed)</SelectItem>
                   <SelectItem value="cancelled">Hủy yêu cầu</SelectItem>
                 </SelectContent>
               </Select>

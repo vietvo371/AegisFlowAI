@@ -1,34 +1,153 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CloudRain, 
-  Wind, 
-  Droplets, 
-  Thermometer, 
-  TrendingUp, 
-  AlertCircle,
-  Clock,
-  Waves
+import {
+  CloudRain, Wind, Droplets, Thermometer,
+  TrendingUp, AlertCircle, Clock, Waves, RefreshCw
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import api from '@/lib/api';
+
+interface WeatherData {
+  district_id: number;
+  temperature_c?: number;
+  humidity_pct?: number;
+  wind_speed_kmh?: number;
+  wind_direction?: string;
+  rainfall_mm?: number;
+  recorded_at: string;
+  district?: { id: number; name: string };
+}
+
+interface SensorData {
+  id: number;
+  name: string;
+  type: string;
+  last_value?: number;
+  unit: string;
+  alert_threshold?: number;
+  danger_threshold?: number;
+  status: string;
+}
+
+interface FloodRisk {
+  risk_score: number;
+  risk_level: string;
+  confidence: number;
+  probability: number;
+  contributing_factors: Record<string, number>;
+}
 
 export function ForecastPanel() {
   const t = useTranslations('dashboard');
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [waterSensor, setWaterSensor] = useState<SensorData | null>(null);
+  const [floodRisk, setFloodRisk] = useState<FloodRisk | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [weatherRes, sensorsRes] = await Promise.all([
+        api.get('/weather/current'),
+        api.get('/sensors', { params: { type: 'water_level', per_page: 5 } }),
+      ]);
+
+      // Lấy bản ghi thời tiết mới nhất
+      const weatherList: WeatherData[] = weatherRes.data?.data ?? [];
+      if (weatherList.length > 0) setWeather(weatherList[0]);
+
+      // Lấy cảm biến mực nước có giá trị cao nhất
+      const sensors: SensorData[] = sensorsRes.data?.data ?? [];
+      const topSensor = sensors
+        .filter(s => s.status === 'online' && s.last_value != null)
+        .sort((a, b) => (b.last_value ?? 0) - (a.last_value ?? 0))[0] ?? null;
+      setWaterSensor(topSensor);
+
+      // Gọi AI predict-risk nếu có đủ dữ liệu
+      if (topSensor?.last_value != null) {
+        const riskRes = await api.post(
+          `${process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:5005'}/api/predict-risk`,
+          {
+            water_level_m: topSensor.last_value,
+            rainfall_mm: weatherList[0]?.rainfall_mm ?? 0,
+            hours_rain: 6,
+            tide_level: 0,
+            historical_score: 30,
+          }
+        );
+        setFloodRisk(riskRes.data);
+      }
+    } catch (e) {
+      console.error('ForecastPanel fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000); // refresh 5 phút
+    return () => clearInterval(interval);
+  }, []);
+
+  const riskColor = (level: string) => {
+    switch (level) {
+      case 'critical': return 'text-red-500';
+      case 'high': return 'text-orange-500';
+      case 'medium': return 'text-yellow-500';
+      default: return 'text-emerald-500';
+    }
+  };
+
+  const riskLabel = (level: string) => {
+    switch (level) {
+      case 'critical': return 'Nguy cấp';
+      case 'high': return 'Cao';
+      case 'medium': return 'Trung bình';
+      default: return 'An toàn';
+    }
+  };
 
   const mainStats = [
-    { icon: Droplets, label: 'Lượng mưa', value: '42mm', sub: '+12% vs t.qua', color: 'text-blue-500' },
-    { icon: Waves, label: 'Mực nước', value: '3.8m', sub: 'Báo động II', color: 'text-orange-500' },
-    { icon: Wind, label: 'Tốc độ gió', value: '24km/h', sub: 'Bắc - Đông Bắc', color: 'text-slate-500' },
-    { icon: Thermometer, label: 'Nhiệt độ', value: '24°C', sub: 'Cảm giác 26°C', color: 'text-rose-500' },
+    {
+      icon: Droplets,
+      label: 'Lượng mưa',
+      value: weather?.rainfall_mm != null ? `${weather.rainfall_mm}mm` : '—',
+      sub: weather?.district?.name ?? 'Đà Nẵng',
+      color: 'text-blue-500',
+    },
+    {
+      icon: Waves,
+      label: 'Mực nước',
+      value: waterSensor?.last_value != null ? `${waterSensor.last_value}m` : '—',
+      sub: waterSensor?.name ?? 'Chưa có dữ liệu',
+      color: waterSensor?.danger_threshold && (waterSensor.last_value ?? 0) >= waterSensor.danger_threshold
+        ? 'text-red-500' : 'text-orange-500',
+    },
+    {
+      icon: Wind,
+      label: 'Tốc độ gió',
+      value: weather?.wind_speed_kmh != null ? `${weather.wind_speed_kmh}km/h` : '—',
+      sub: weather?.wind_direction ?? '—',
+      color: 'text-slate-500',
+    },
+    {
+      icon: Thermometer,
+      label: 'Nhiệt độ',
+      value: weather?.temperature_c != null ? `${weather.temperature_c}°C` : '—',
+      sub: weather?.humidity_pct != null ? `Độ ẩm ${weather.humidity_pct}%` : '—',
+      color: 'text-rose-500',
+    },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header with AI Insight */}
+      {/* AI Risk Insight */}
       <Card className="border-primary/20 bg-primary/5 shadow-none overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <TrendingUp size={80} className="rotate-12" />
@@ -38,11 +157,32 @@ export function ForecastPanel() {
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider">
               {t('aiInsight')}
             </Badge>
-            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            {loading
+              ? <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+              : <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            }
           </div>
-          <p className="text-sm font-medium leading-relaxed max-w-md">
-            Mực nước sông Cẩm Lệ dự báo sẽ đạt đỉnh <span className="text-primary font-bold">4.2m</span> vào lúc 22:00 hôm nay. Khuyến cáo khu vực phường Hòa Thọ Tây chuẩn bị phương án sơ tán tại chỗ.
-          </p>
+          {floodRisk ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-relaxed">
+                Nguy cơ ngập lụt:{' '}
+                <span className={`font-bold ${riskColor(floodRisk.risk_level)}`}>
+                  {riskLabel(floodRisk.risk_level)} ({floodRisk.risk_score.toFixed(0)}/100)
+                </span>
+                {' '}— Độ tin cậy{' '}
+                <span className="text-primary font-bold">{Math.round(floodRisk.confidence * 100)}%</span>
+              </p>
+              {floodRisk.risk_level !== 'low' && (
+                <p className="text-xs text-muted-foreground">
+                  Xác suất ngập: {Math.round(floodRisk.probability * 100)}% · Mực nước đóng góp {floodRisk.contributing_factors.water_level?.toFixed(0)} điểm
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-muted-foreground">
+              {loading ? 'Đang phân tích dữ liệu cảm biến...' : 'Chưa đủ dữ liệu để dự báo. Kiểm tra kết nối cảm biến.'}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -58,47 +198,60 @@ export function ForecastPanel() {
                 <div className="text-[10px] font-bold text-muted-foreground uppercase">{stat.label}</div>
               </div>
               <div className="text-2xl font-black">{stat.value}</div>
-              <div className="text-[10px] font-medium text-muted-foreground mt-1">{stat.sub}</div>
+              <div className="text-[10px] font-medium text-muted-foreground mt-1 truncate">{stat.sub}</div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Forecast Radar / Detailed Metrics */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="p-5 pb-0">
-          <CardTitle className="text-sm font-bold flex items-center justify-between">
-            {t('forecastRadar')}
-            <Badge variant="secondary" className="text-[10px] font-medium">Hòa Thọ Tây</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-5 space-y-5">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-semibold">
-              <span className="text-muted-foreground text-[10px] uppercase">Nguy cơ ngập lụt</span>
-              <span className="text-orange-500">85%</span>
-            </div>
-            <Progress value={85} className="h-1.5 bg-muted" />
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 pt-2">
-            {['14:00', '16:00', '18:00', '20:00'].map((time) => (
-              <div key={time} className="text-center space-y-2 p-2 rounded-xl border border-border/50 bg-muted/30">
-                <div className="text-[9px] font-bold text-muted-foreground">{time}</div>
-                <CloudRain className="mx-auto text-blue-500" size={16} />
-                <div className="text-xs font-bold">85%</div>
+      {/* Flood Risk Detail */}
+      {floodRisk && (
+        <Card className="border-border shadow-sm">
+          <CardHeader className="p-5 pb-0">
+            <CardTitle className="text-sm font-bold flex items-center justify-between">
+              {t('forecastRadar')}
+              <Badge variant="secondary" className="text-[10px] font-medium">
+                {waterSensor?.name ?? 'Cảm biến'}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-5">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-muted-foreground text-[10px] uppercase">Nguy cơ ngập lụt</span>
+                <span className={riskColor(floodRisk.risk_level)}>{floodRisk.risk_score.toFixed(0)}%</span>
               </div>
-            ))}
-          </div>
-
-          <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
-            <AlertCircle className="text-orange-500 shrink-0 mt-0.5" size={16} />
-            <div className="text-[11px] font-medium text-orange-700 leading-relaxed">
-              Mưa lớn kéo dài 6 giờ qua đã làm bão hòa đất. Khả năng cao sẽ có ngập cục bộ tại các điểm trũng.
+              <Progress value={floodRisk.risk_score} className="h-1.5 bg-muted" />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Contributing factors */}
+            <div className="space-y-2">
+              {Object.entries(floodRisk.contributing_factors).map(([key, val]) => (
+                <div key={key} className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground capitalize">{key.replace('_', ' ')}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${(val / 40) * 100}%` }} />
+                    </div>
+                    <span className="font-mono font-bold w-6 text-right">{val.toFixed(0)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {floodRisk.risk_level !== 'low' && (
+              <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
+                <AlertCircle className="text-orange-500 shrink-0 mt-0.5" size={16} />
+                <div className="text-[11px] font-medium text-orange-700 leading-relaxed">
+                  {floodRisk.risk_level === 'critical'
+                    ? 'Nguy cơ ngập nghiêm trọng. Khuyến cáo kích hoạt phương án sơ tán ngay.'
+                    : 'Theo dõi sát mực nước. Chuẩn bị phương án ứng phó.'}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
