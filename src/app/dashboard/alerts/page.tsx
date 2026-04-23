@@ -192,7 +192,7 @@ export default function AlertsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Loại *</Label>
-                <Select value={form.alert_type} onValueChange={v => setForm(f => ({ ...f, alert_type: v }))}>
+                <Select value={form.alert_type} onValueChange={v => setForm(f => ({ ...f, alert_type: v ?? "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="flood">Lũ lụt</SelectItem>
@@ -204,7 +204,7 @@ export default function AlertsPage() {
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>Mức độ *</Label>
-                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v }))}>
+                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v ?? "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Lưu ý</SelectItem>

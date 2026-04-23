@@ -188,7 +188,7 @@ export default function CitizenRequestPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-muted-foreground">Mức độ khẩn *</Label>
-                  <Select value={form.urgency} onValueChange={v => setForm(f => ({ ...f, urgency: v }))}>
+                  <Select value={form.urgency} onValueChange={v => setForm(f => ({ ...f, urgency: v ?? "" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">Thấp</SelectItem>
@@ -200,7 +200,7 @@ export default function CitizenRequestPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-muted-foreground">Loại hỗ trợ *</Label>
-                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v ?? "" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="rescue">Cứu hộ</SelectItem>

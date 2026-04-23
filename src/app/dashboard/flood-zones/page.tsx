@@ -327,7 +327,7 @@ export default function FloodZonesPage() {
                             {/* Quick status update */}
                             <Select
                               value={zone.status}
-                              onValueChange={val => handleUpdateStatus(zone.id, val)}
+                              onValueChange={val => val && handleUpdateStatus(zone.id, val)}
                             >
                               <SelectTrigger className="h-7 w-[90px] text-[10px] font-bold border-border">
                                 <SelectValue />
@@ -395,7 +395,7 @@ export default function FloodZonesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Mức rủi ro *</Label>
-                <Select value={form.risk_level} onValueChange={v => setForm(f => ({ ...f, risk_level: v }))}>
+                <Select value={form.risk_level} onValueChange={v => setForm(f => ({ ...f, risk_level: v ?? "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Thấp</SelectItem>

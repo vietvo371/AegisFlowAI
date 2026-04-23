@@ -183,7 +183,7 @@ export default function IncidentsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Loại *</Label>
-                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v ?? "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="flood">Ngập lụt</SelectItem>
@@ -195,7 +195,7 @@ export default function IncidentsPage() {
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>Mức độ *</Label>
-                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v }))}>
+                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v ?? "" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Thấp</SelectItem>

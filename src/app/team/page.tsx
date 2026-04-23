@@ -166,7 +166,7 @@ export default function TeamMissionsPage() {
 
           {/* Status update */}
           {!isDone && (
-            <Select onValueChange={val => handleUpdateStatus(req.id, val)} value={req.status}>
+            <Select onValueChange={val => val && handleUpdateStatus(req.id, val)} value={req.status}>
               <SelectTrigger className="h-9 text-xs font-bold">
                 {isUpdating
                   ? <span className="flex items-center gap-2"><RefreshCw size={12} className="animate-spin" /> Đang cập nhật...</span>
