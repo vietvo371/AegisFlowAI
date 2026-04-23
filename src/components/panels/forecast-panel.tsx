@@ -44,6 +44,7 @@ interface FloodRisk {
 
 export function ForecastPanel() {
   const t = useTranslations('dashboard');
+  const tF = useTranslations('dashboard.forecast');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [waterSensor, setWaterSensor] = useState<SensorData | null>(null);
   const [floodRisk, setFloodRisk] = useState<FloodRisk | null>(null);
@@ -57,18 +58,15 @@ export function ForecastPanel() {
         api.get('/sensors', { params: { type: 'water_level', per_page: 5 } }),
       ]);
 
-      // Lấy bản ghi thời tiết mới nhất
       const weatherList: WeatherData[] = weatherRes.data?.data ?? [];
       if (weatherList.length > 0) setWeather(weatherList[0]);
 
-      // Lấy cảm biến mực nước có giá trị cao nhất
       const sensors: SensorData[] = sensorsRes.data?.data ?? [];
       const topSensor = sensors
         .filter(s => s.status === 'online' && s.last_value != null)
         .sort((a, b) => (b.last_value ?? 0) - (a.last_value ?? 0))[0] ?? null;
       setWaterSensor(topSensor);
 
-      // Gọi AI predict-risk nếu có đủ dữ liệu
       if (topSensor?.last_value != null) {
         const riskRes = await api.post(
           `${process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:5005'}/api/predict-risk`,
@@ -91,7 +89,7 @@ export function ForecastPanel() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000); // refresh 5 phút
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -106,41 +104,41 @@ export function ForecastPanel() {
 
   const riskLabel = (level: string) => {
     switch (level) {
-      case 'critical': return 'Nguy cấp';
-      case 'high': return 'Cao';
-      case 'medium': return 'Trung bình';
-      default: return 'An toàn';
+      case 'critical': return tF('riskCritical');
+      case 'high': return tF('riskHigh');
+      case 'medium': return tF('riskMedium');
+      default: return tF('riskLow');
     }
   };
 
   const mainStats = [
     {
       icon: Droplets,
-      label: 'Lượng mưa',
+      label: tF('rainfall'),
       value: weather?.rainfall_mm != null ? `${weather.rainfall_mm}mm` : '—',
       sub: weather?.district?.name ?? 'Đà Nẵng',
       color: 'text-blue-500',
     },
     {
       icon: Waves,
-      label: 'Mực nước',
+      label: tF('waterLevel'),
       value: waterSensor?.last_value != null ? `${waterSensor.last_value}m` : '—',
-      sub: waterSensor?.name ?? 'Chưa có dữ liệu',
+      sub: waterSensor?.name ?? tF('noSensorData'),
       color: waterSensor?.danger_threshold && (waterSensor.last_value ?? 0) >= waterSensor.danger_threshold
         ? 'text-red-500' : 'text-orange-500',
     },
     {
       icon: Wind,
-      label: 'Tốc độ gió',
+      label: tF('windSpeed'),
       value: weather?.wind_speed_kmh != null ? `${weather.wind_speed_kmh}km/h` : '—',
       sub: weather?.wind_direction ?? '—',
       color: 'text-slate-500',
     },
     {
       icon: Thermometer,
-      label: 'Nhiệt độ',
+      label: tF('temperature'),
       value: weather?.temperature_c != null ? `${weather.temperature_c}°C` : '—',
-      sub: weather?.humidity_pct != null ? `Độ ẩm ${weather.humidity_pct}%` : '—',
+      sub: weather?.humidity_pct != null ? `${tF('humidity')} ${weather.humidity_pct}%` : '—',
       color: 'text-rose-500',
     },
   ];
@@ -165,22 +163,22 @@ export function ForecastPanel() {
           {floodRisk ? (
             <div className="space-y-2">
               <p className="text-sm font-medium leading-relaxed">
-                Nguy cơ ngập lụt:{' '}
+                {tF('riskLabel')}:{' '}
                 <span className={`font-bold ${riskColor(floodRisk.risk_level)}`}>
                   {riskLabel(floodRisk.risk_level)} ({floodRisk.risk_score.toFixed(0)}/100)
                 </span>
-                {' '}— Độ tin cậy{' '}
+                {' '}— {tF('confidence')}{' '}
                 <span className="text-primary font-bold">{Math.round(floodRisk.confidence * 100)}%</span>
               </p>
               {floodRisk.risk_level !== 'low' && (
                 <p className="text-xs text-muted-foreground">
-                  Xác suất ngập: {Math.round(floodRisk.probability * 100)}% · Mực nước đóng góp {floodRisk.contributing_factors.water_level?.toFixed(0)} điểm
+                  {tF('floodProbability')}: {Math.round(floodRisk.probability * 100)}% · {tF('waterContrib')} {floodRisk.contributing_factors.water_level?.toFixed(0)}
                 </p>
               )}
             </div>
           ) : (
             <p className="text-sm font-medium text-muted-foreground">
-              {loading ? 'Đang phân tích dữ liệu cảm biến...' : 'Chưa đủ dữ liệu để dự báo. Kiểm tra kết nối cảm biến.'}
+              {loading ? tF('analyzing') : tF('noData')}
             </p>
           )}
         </CardContent>
@@ -211,14 +209,14 @@ export function ForecastPanel() {
             <CardTitle className="text-sm font-bold flex items-center justify-between">
               {t('forecastRadar')}
               <Badge variant="secondary" className="text-[10px] font-medium">
-                {waterSensor?.name ?? 'Cảm biến'}
+                {waterSensor?.name ?? tF('sensor')}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 space-y-5">
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-muted-foreground text-[10px] uppercase">Nguy cơ ngập lụt</span>
+                <span className="text-muted-foreground text-[10px] uppercase">{tF('floodRiskTitle')}</span>
                 <span className={riskColor(floodRisk.risk_level)}>{floodRisk.risk_score.toFixed(0)}%</span>
               </div>
               <Progress value={floodRisk.risk_score} className="h-1.5 bg-muted" />
@@ -243,9 +241,7 @@ export function ForecastPanel() {
               <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
                 <AlertCircle className="text-orange-500 shrink-0 mt-0.5" size={16} />
                 <div className="text-[11px] font-medium text-orange-700 leading-relaxed">
-                  {floodRisk.risk_level === 'critical'
-                    ? 'Nguy cơ ngập nghiêm trọng. Khuyến cáo kích hoạt phương án sơ tán ngay.'
-                    : 'Theo dõi sát mực nước. Chuẩn bị phương án ứng phó.'}
+                  {floodRisk.risk_level === 'critical' ? tF('alertCritical') : tF('alertHigh')}
                 </div>
               </div>
             )}

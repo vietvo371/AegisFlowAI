@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Navigation, MapPin, ChevronRight, Truck,
-  ShieldAlert, Search, Clock, RefreshCw, Shield, AlertTriangle
+  ShieldAlert, Clock, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { EvacuationRoute } from '@/lib/openmap';
@@ -47,6 +47,7 @@ interface ReliefPanelProps {
 
 export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
   const t = useTranslations('dashboard');
+  const tR = useTranslations('dashboard.relief');
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [teams, setTeams] = useState<TeamItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,6 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
         api.get('/rescue-teams', { params: { per_page: 10 } }),
       ]);
 
-      // evacuation-routes trả về data.data.data (paginated wrapped)
       const routeData = routesRes.data?.data?.data ?? routesRes.data?.data ?? [];
       setRoutes(routeData);
 
@@ -97,8 +97,11 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
 
   const teamTypeLabel = (type: string) => {
     const map: Record<string, string> = {
-      medical: 'Y Tế', fire: 'PCCC', military: 'Quân Đội',
-      volunteer: 'Tình Nguyện', special: 'Đặc Nhiệm',
+      medical: tR('teamTypeMedical'),
+      fire: tR('teamTypeFire'),
+      military: tR('teamTypeMilitary'),
+      volunteer: tR('teamTypeVolunteer'),
+      special: tR('teamTypeSpecial'),
     };
     return map[type] ?? type;
   };
@@ -114,11 +117,11 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
       <div className="grid grid-cols-2 gap-3">
         <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 text-center space-y-1">
           <div className="text-lg font-black text-primary">{availableTeams.length}</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase">Đội sẵn sàng</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase">{tR('teamsReady')}</div>
         </div>
         <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center space-y-1">
           <div className="text-lg font-black text-emerald-600">{dispatchedTeams.length}</div>
-          <div className="text-[10px] font-bold text-muted-foreground uppercase">Đang làm nhiệm vụ</div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase">{tR('teamsOnMission')}</div>
         </div>
       </div>
 
@@ -126,7 +129,7 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
       <Card className="border-border shadow-sm">
         <CardHeader className="p-5 pb-0">
           <CardTitle className="text-sm font-bold flex items-center justify-between">
-            Tuyến sơ tán (AI)
+            {tR('evacuationTitle')}
             <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={fetchData} disabled={loading}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </Button>
@@ -135,11 +138,11 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
         <CardContent className="p-5 pt-4 space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-6 text-muted-foreground">
-              <RefreshCw size={16} className="animate-spin mr-2" /> Đang tải tuyến đường...
+              <RefreshCw size={16} className="animate-spin mr-2" /> {tR('loadingRoutes')}
             </div>
           ) : routes.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground">
-              Chưa có tuyến sơ tán nào được cấu hình.
+              {tR('noRoutes')}
             </div>
           ) : (
             routes.map((route) => (
@@ -157,7 +160,7 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold truncate">{route.name}</span>
                     {route.is_primary && (
-                      <Badge className="text-[9px] px-1 py-0 bg-primary/10 text-primary border-0">Chính</Badge>
+                      <Badge className="text-[9px] px-1 py-0 bg-primary/10 text-primary border-0">{tR('primaryBadge')}</Badge>
                     )}
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
@@ -167,7 +170,7 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
                     <span>{(route.distance_m / 1000).toFixed(1)}km</span>
                     <span>·</span>
                     <span className={`font-bold ${safetyColor(route.safety_rating)}`}>
-                      An toàn {Math.round(route.safety_rating * 100)}%
+                      {tR('safetyPct', { pct: Math.round(route.safety_rating * 100) })}
                     </span>
                   </div>
                   {route.start_node && route.end_node && (
@@ -187,18 +190,18 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
       {/* Rescue Teams */}
       <Card className="border-border shadow-sm">
         <CardHeader className="p-5 pb-0">
-          <CardTitle className="text-sm font-bold">{t('live')} Lực lượng</CardTitle>
+          <CardTitle className="text-sm font-bold">{tR('liveForces')}</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-4">
           <ScrollArea className="h-[260px] -mx-1 px-1">
             <div className="space-y-3 pb-4">
               {loading ? (
                 <div className="flex items-center justify-center py-6 text-muted-foreground">
-                  <RefreshCw size={16} className="animate-spin mr-2" /> Đang tải...
+                  <RefreshCw size={16} className="animate-spin mr-2" /> {tR('loadingTeams')}
                 </div>
               ) : teams.length === 0 ? (
                 <div className="text-center py-6 text-xs text-muted-foreground">
-                  Chưa có đội cứu hộ nào.
+                  {tR('noTeams')}
                 </div>
               ) : (
                 teams.slice(0, 6).map((team) => (

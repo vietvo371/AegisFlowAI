@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { useTable } from '@/lib/use-table';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -13,8 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { RefreshCw, Search, HeartPulse, Clock, Phone, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
+import { RefreshCw, Search, Clock, Phone, MapPin } from 'lucide-react';
 
 interface RescueRequest {
   id: number; request_number?: string;
@@ -29,18 +29,21 @@ interface RescueRequest {
   eta_minutes?: number; created_at: string;
 }
 
-const URGENCY_BADGE: Record<string, string> = {
+const URGENCY_COLOR: Record<string, string> = {
   critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500',
 };
-const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
-  pending:     { cls: 'border-orange-200 text-orange-500', label: 'Đang chờ' },
-  assigned:    { cls: 'bg-indigo-500 text-white', label: 'Đã phân công' },
-  in_progress: { cls: 'bg-blue-500 text-white', label: 'Đang cứu hộ' },
-  completed:   { cls: 'bg-emerald-500 text-white', label: 'Hoàn thành' },
-  cancelled:   { cls: 'text-gray-400', label: 'Đã hủy' },
+const STATUS_CLS: Record<string, string> = {
+  pending:     'border-orange-200 text-orange-500',
+  assigned:    'bg-indigo-500 text-white',
+  in_progress: 'bg-blue-500 text-white',
+  completed:   'bg-emerald-500 text-white',
+  cancelled:   'text-gray-400',
 };
 
 export default function RescueRequestsPage() {
+  const t = useTranslations('dashboard');
+  const tEnum = useTranslations('enums');
+
   const { data: requests, meta, loading, setFilter, setPage, refresh } = useTable<RescueRequest>({
     endpoint: '/rescue-requests', perPage: 20,
   });
@@ -55,7 +58,10 @@ export default function RescueRequestsPage() {
     const h = () => refresh();
     window.addEventListener('aegis:rescue_request:created', h);
     window.addEventListener('aegis:rescue_request:updated', h);
-    return () => { window.removeEventListener('aegis:rescue_request:created', h); window.removeEventListener('aegis:rescue_request:updated', h); };
+    return () => {
+      window.removeEventListener('aegis:rescue_request:created', h);
+      window.removeEventListener('aegis:rescue_request:updated', h);
+    };
   }, [refresh]);
 
   const openAction = (req: RescueRequest) => {
@@ -76,12 +82,15 @@ export default function RescueRequestsPage() {
     finally { setSubmitting(false); }
   };
 
+  const getStatusLabel = (status: string) => tEnum(`rescueStatus.${status}` as any, { defaultValue: status });
+  const getUrgencyLabel = (urgency: string) => tEnum(`urgency.${urgency}` as any, { defaultValue: urgency });
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Yêu cầu cứu trợ</h1>
-          <p className="text-muted-foreground mt-1">Quản lý và điều phối các yêu cầu cứu trợ khẩn cấp</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('pages.rescueRequests')}</h1>
+          <p className="text-muted-foreground mt-1">{t('rescueRequests.subtitle')}</p>
         </div>
         <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -93,28 +102,28 @@ export default function RescueRequestsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Tìm địa chỉ, tên..." className="pl-9 h-9 bg-muted/50"
+              <Input placeholder={t('rescueRequests.searchPlaceholder')} className="pl-9 h-9 bg-muted/50"
                 onChange={e => setFilter('search', e.target.value)} />
             </div>
             <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-40"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-40"><SelectValue placeholder={t('rescueRequests.statusPlaceholder')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="pending">Đang chờ</SelectItem>
-                <SelectItem value="assigned">Đã phân công</SelectItem>
-                <SelectItem value="in_progress">Đang cứu hộ</SelectItem>
-                <SelectItem value="completed">Hoàn thành</SelectItem>
-                <SelectItem value="cancelled">Đã hủy</SelectItem>
+                <SelectItem value="all">{t('table.all')}</SelectItem>
+                <SelectItem value="pending">{tEnum('rescueStatus.pending')}</SelectItem>
+                <SelectItem value="assigned">{tEnum('rescueStatus.assigned')}</SelectItem>
+                <SelectItem value="in_progress">{tEnum('rescueStatus.in_progress')}</SelectItem>
+                <SelectItem value="completed">{tEnum('rescueStatus.completed')}</SelectItem>
+                <SelectItem value="cancelled">{tEnum('rescueStatus.cancelled')}</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={v => setFilter('urgency', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Mức độ" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder={t('rescueRequests.urgencyPlaceholder')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="critical">Khẩn cấp</SelectItem>
-                <SelectItem value="high">Cao</SelectItem>
-                <SelectItem value="medium">Trung bình</SelectItem>
-                <SelectItem value="low">Thấp</SelectItem>
+                <SelectItem value="all">{t('table.all')}</SelectItem>
+                <SelectItem value="critical">{tEnum('urgency.critical')}</SelectItem>
+                <SelectItem value="high">{tEnum('urgency.high')}</SelectItem>
+                <SelectItem value="medium">{tEnum('urgency.medium')}</SelectItem>
+                <SelectItem value="low">{tEnum('urgency.low')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -124,14 +133,14 @@ export default function RescueRequestsPage() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[90px]">ID</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Mức độ</TableHead>
-                  <TableHead>Liên hệ</TableHead>
-                  <TableHead>Số người</TableHead>
-                  <TableHead>Địa điểm</TableHead>
-                  <TableHead>Điểm AI</TableHead>
-                  <TableHead className="text-right">Thời gian</TableHead>
+                  <TableHead className="w-[90px]">{t('rescueRequests.colId')}</TableHead>
+                  <TableHead>{t('rescueRequests.colStatus')}</TableHead>
+                  <TableHead>{t('rescueRequests.colUrgency')}</TableHead>
+                  <TableHead>{t('rescueRequests.colContact')}</TableHead>
+                  <TableHead>{t('rescueRequests.colPeople')}</TableHead>
+                  <TableHead>{t('rescueRequests.colLocation')}</TableHead>
+                  <TableHead>{t('rescueRequests.colAiScore')}</TableHead>
+                  <TableHead className="text-right">{t('rescueRequests.colTime')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,17 +149,25 @@ export default function RescueRequestsPage() {
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" />
                   </TableCell></TableRow>
                 ) : requests.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{t('table.noData')}</TableCell></TableRow>
                 ) : requests.map(req => {
-                  const sc = STATUS_BADGE[req.status];
+                  const staCls = STATUS_CLS[req.status];
                   return (
                     <TableRow key={req.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => openAction(req)}>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         #{String(req.id).padStart(4, '0')}
                         {req.request_number && <div className="text-[10px]">{req.request_number}</div>}
                       </TableCell>
-                      <TableCell><Badge variant="outline" className={sc?.cls}>{sc?.label ?? req.status}</Badge></TableCell>
-                      <TableCell><Badge className={`${URGENCY_BADGE[req.urgency]} text-white`}>{req.urgency_label ?? req.urgency}</Badge></TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={staCls}>
+                          {req.status_label ?? getStatusLabel(req.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${URGENCY_COLOR[req.urgency]} text-white`}>
+                          {req.urgency_label ?? getUrgencyLabel(req.urgency)}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm font-medium">{req.caller_name ?? '—'}</div>
                         {req.caller_phone && <div className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={10} />{req.caller_phone}</div>}
@@ -183,41 +200,42 @@ export default function RescueRequestsPage() {
         </CardContent>
       </Card>
 
-      {/* Action dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Xử lý yêu cầu #{selected?.id}</DialogTitle>
-            <DialogDescription>Cập nhật trạng thái hoặc phân công đội cứu hộ</DialogDescription>
+            <DialogTitle>{t('rescueRequests.actionTitle', { id: selected?.id })}</DialogTitle>
+            <DialogDescription>{t('rescueRequests.actionDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-3">
             <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
-              <p><span className="font-semibold">Người gọi:</span> {selected?.caller_name} — {selected?.caller_phone}</p>
-              <p><span className="font-semibold">Địa chỉ:</span> {selected?.address ?? '—'}</p>
-              {selected?.priority_score != null && <p><span className="font-semibold">Điểm AI:</span> <span className="font-mono text-primary">{Number(selected.priority_score).toFixed(1)}/100</span></p>}
+              <p><span className="font-semibold">{t('rescueRequests.caller')}:</span> {selected?.caller_name} — {selected?.caller_phone}</p>
+              <p><span className="font-semibold">{t('rescueRequests.address')}:</span> {selected?.address ?? '—'}</p>
+              {selected?.priority_score != null && (
+                <p><span className="font-semibold">{t('rescueRequests.aiScore')}:</span> <span className="font-mono text-primary">{Number(selected.priority_score).toFixed(1)}/100</span></p>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label>Trạng thái</Label>
+              <Label>{t('rescueRequests.fieldStatus')}</Label>
               <Select value={updateStatus} onValueChange={v => setUpdateStatus(v ?? '')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Đang chờ</SelectItem>
-                  <SelectItem value="assigned">Đã phân công</SelectItem>
-                  <SelectItem value="in_progress">Đang cứu hộ</SelectItem>
-                  <SelectItem value="completed">Hoàn thành</SelectItem>
-                  <SelectItem value="cancelled">Hủy</SelectItem>
+                  <SelectItem value="pending">{tEnum('rescueStatus.pending')}</SelectItem>
+                  <SelectItem value="assigned">{tEnum('rescueStatus.assigned')}</SelectItem>
+                  <SelectItem value="in_progress">{tEnum('rescueStatus.in_progress')}</SelectItem>
+                  <SelectItem value="completed">{tEnum('rescueStatus.completed')}</SelectItem>
+                  <SelectItem value="cancelled">{tEnum('rescueStatus.cancelled')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {['assigned', 'in_progress'].includes(updateStatus) && (
               <div className="space-y-1.5">
-                <Label>Phân công đội</Label>
+                <Label>{t('rescueRequests.fieldTeam')}</Label>
                 <Select value={updateTeam} onValueChange={v => setUpdateTeam(v ?? 'none')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— Giữ nguyên —</SelectItem>
-                    {teams.filter(t => t.status === 'available').map(t => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                    <SelectItem value="none">{t('rescueRequests.keepTeam')}</SelectItem>
+                    {teams.filter(t => t.status === 'available').map(team => (
+                      <SelectItem key={team.id} value={String(team.id)}>{team.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -225,9 +243,9 @@ export default function RescueRequestsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelected(null)}>Đóng</Button>
+            <Button variant="outline" onClick={() => setSelected(null)}>{t('actions.close')}</Button>
             <Button onClick={handleUpdate} disabled={submitting}>
-              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}Cập nhật
+              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}{t('actions.update')}
             </Button>
           </DialogFooter>
         </DialogContent>

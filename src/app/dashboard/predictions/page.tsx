@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { useTable } from '@/lib/use-table';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -28,19 +29,20 @@ interface Prediction {
   processing_time_ms?: number;
 }
 
-const SEV: Record<string, string> = { critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500' };
-const STA: Record<string, { cls: string; label: string }> = {
-  pending:    { cls: 'text-orange-500 border-orange-200', label: 'Chờ duyệt' },
-  verified:   { cls: 'bg-emerald-500 text-white', label: 'Đã xác thực' },
-  alerted:    { cls: 'bg-red-500 text-white', label: 'Đã cảnh báo' },
-  expired:    { cls: 'text-gray-400', label: 'Hết hạn' },
+const SEV_COLOR: Record<string, string> = {
+  critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500',
 };
-const TYPE_LABEL: Record<string, string> = {
-  water_level: 'Dự báo mực nước', flood_risk: 'Dự báo nguy cơ ngập',
-  evacuation_time: 'Thời gian sơ tán', resource_need: 'Nhu cầu vật tư',
+const STA_CLS: Record<string, string> = {
+  pending:  'text-orange-500 border-orange-200',
+  verified: 'bg-emerald-500 text-white',
+  alerted:  'bg-red-500 text-white',
+  expired:  'text-gray-400',
 };
 
 export default function PredictionsPage() {
+  const t = useTranslations('dashboard');
+  const tEnum = useTranslations('enums');
+
   const { data: predictions, meta, loading, setFilter, setPage, refresh } = useTable<Prediction>({
     endpoint: '/predictions', perPage: 20,
   });
@@ -50,10 +52,20 @@ export default function PredictionsPage() {
     setTriggering(true);
     try {
       await api.post('/predictions/trigger', { horizon_minutes: 60 });
-      toast.success('Đã kích hoạt AI Model — kết quả sẽ xuất hiện trong vài giây');
+      toast.success(t('predictions.triggerSuccess'));
       setTimeout(refresh, 3000);
     } catch (e) { console.error(e); }
     finally { setTriggering(false); }
+  };
+
+  const getTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      water_level: t('predictions.typeWaterLevel'),
+      flood_risk: t('predictions.typeFloodRisk'),
+      evacuation_time: t('predictions.typeEvacuationTime'),
+      resource_need: t('predictions.typeResourceNeed'),
+    };
+    return map[type] ?? type;
   };
 
   return (
@@ -61,9 +73,9 @@ export default function PredictionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <BrainCircuit size={26} className="text-primary" /> AI Dự báo
+            <BrainCircuit size={26} className="text-primary" /> {t('pages.predictions')}
           </h1>
-          <p className="text-muted-foreground mt-1">Lịch sử tính toán và dự báo của AI Backend</p>
+          <p className="text-muted-foreground mt-1">{t('predictions.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
@@ -71,7 +83,7 @@ export default function PredictionsPage() {
           </Button>
           <Button className="gap-2" onClick={handleTrigger} disabled={triggering}>
             {triggering ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {triggering ? 'Đang xử lý...' : 'Kích hoạt Model'}
+            {triggering ? t('predictions.triggering') : t('predictions.triggerBtn')}
           </Button>
         </div>
       </div>
@@ -81,27 +93,27 @@ export default function PredictionsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Tìm loại dự báo..." className="pl-9 h-9 bg-muted/50"
+              <Input placeholder={t('predictions.searchPlaceholder')} className="pl-9 h-9 bg-muted/50"
                 onChange={e => setFilter('search', e.target.value)} />
             </div>
             <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder={t('predictions.statusPlaceholder')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="pending">Chờ duyệt</SelectItem>
-                <SelectItem value="verified">Đã xác thực</SelectItem>
-                <SelectItem value="alerted">Đã cảnh báo</SelectItem>
-                <SelectItem value="expired">Hết hạn</SelectItem>
+                <SelectItem value="all">{t('table.all')}</SelectItem>
+                <SelectItem value="pending">{tEnum('predictionStatus.pending')}</SelectItem>
+                <SelectItem value="verified">{tEnum('predictionStatus.verified')}</SelectItem>
+                <SelectItem value="alerted">{tEnum('predictionStatus.alerted')}</SelectItem>
+                <SelectItem value="expired">{tEnum('predictionStatus.expired')}</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={v => setFilter('prediction_type', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-44"><SelectValue placeholder="Loại dự báo" /></SelectTrigger>
+              <SelectTrigger className="h-9 w-44"><SelectValue placeholder={t('predictions.typePlaceholder')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="water_level">Mực nước</SelectItem>
-                <SelectItem value="flood_risk">Nguy cơ ngập</SelectItem>
-                <SelectItem value="evacuation_time">Thời gian sơ tán</SelectItem>
-                <SelectItem value="resource_need">Nhu cầu vật tư</SelectItem>
+                <SelectItem value="all">{t('table.all')}</SelectItem>
+                <SelectItem value="water_level">{t('predictions.typeWaterLevel')}</SelectItem>
+                <SelectItem value="flood_risk">{t('predictions.typeFloodRisk')}</SelectItem>
+                <SelectItem value="evacuation_time">{t('predictions.typeEvacuationTime')}</SelectItem>
+                <SelectItem value="resource_need">{t('predictions.typeResourceNeed')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -110,28 +122,29 @@ export default function PredictionsPage() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[80px]">ID</TableHead>
-                <TableHead>Loại dự báo</TableHead>
-                <TableHead>Chỉ số</TableHead>
-                <TableHead>Độ tin cậy</TableHead>
-                <TableHead>Xác suất</TableHead>
-                <TableHead>Mức cảnh báo</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-right">Thời gian</TableHead>
+                <TableHead className="w-[80px]">{t('predictions.colId')}</TableHead>
+                <TableHead>{t('predictions.colType')}</TableHead>
+                <TableHead>{t('predictions.colValue')}</TableHead>
+                <TableHead>{t('predictions.colConfidence')}</TableHead>
+                <TableHead>{t('predictions.colProbability')}</TableHead>
+                <TableHead>{t('predictions.colSeverity')}</TableHead>
+                <TableHead>{t('predictions.colStatus')}</TableHead>
+                <TableHead className="text-right">{t('predictions.colTime')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={8} className="h-32 text-center"><RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" /></TableCell></TableRow>
               ) : predictions.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">Model chưa đưa ra kết quả nào</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{t('predictions.noResults')}</TableCell></TableRow>
               ) : predictions.map(p => {
-                const sc = STA[p.status];
+                const staCls = STA_CLS[p.status];
+                const staLabel = p.status_label ?? tEnum(`predictionStatus.${p.status}` as any, { defaultValue: p.status });
                 return (
                   <TableRow key={p.id} className="hover:bg-muted/30">
                     <TableCell><Badge variant="outline" className="font-mono text-xs">P-{String(p.id).padStart(4, '0')}</Badge></TableCell>
                     <TableCell>
-                      <p className="font-semibold text-sm">{TYPE_LABEL[p.prediction_type] ?? p.prediction_type}</p>
+                      <p className="font-semibold text-sm">{getTypeLabel(p.prediction_type)}</p>
                       {p.model_version && <p className="text-[10px] font-mono text-muted-foreground">{p.model_version}</p>}
                     </TableCell>
                     <TableCell>
@@ -141,7 +154,7 @@ export default function PredictionsPage() {
                       {p.confidence != null ? (
                         <div className="w-20 space-y-1">
                           <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">
-                            <span>Conf</span><span>{Math.round(p.confidence * 100)}%</span>
+                            <span>{t('predictions.confLabel')}</span><span>{Math.round(p.confidence * 100)}%</span>
                           </div>
                           <Progress value={p.confidence * 100} className="h-1.5" />
                         </div>
@@ -154,11 +167,13 @@ export default function PredictionsPage() {
                     </TableCell>
                     <TableCell>
                       {p.severity
-                        ? <Badge className={`${SEV[p.severity]} text-white`}>{p.severity_label ?? p.severity}</Badge>
+                        ? <Badge className={`${SEV_COLOR[p.severity]} text-white`}>
+                            {p.severity_label ?? tEnum(`severity.${p.severity}` as any, { defaultValue: p.severity })}
+                          </Badge>
                         : '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={sc?.cls}>{sc?.label ?? p.status}</Badge>
+                      <Badge variant="outline" className={staCls}>{staLabel}</Badge>
                       {p.verified_by && (
                         <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <CheckCircle2 size={10} className="text-emerald-500" /> {p.verified_by.name}

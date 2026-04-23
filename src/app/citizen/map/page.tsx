@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import {
   fetchEvacuationRoute, fetchNearbyEvacuationPoints,
@@ -37,6 +38,7 @@ interface Shelter {
 type SheetTab = 'shelters' | 'route' | 'nearby';
 
 export default function CitizenMapPage() {
+  const t = useTranslations('citizen.map');
   const [shelters, setShelters] = useState<Shelter[]>([]);
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(true);
@@ -68,22 +70,22 @@ export default function CitizenMapPage() {
 
   // Get user GPS
   const handleGetLocation = useCallback(() => {
-    if (!navigator.geolocation) { toast.error('Trình duyệt không hỗ trợ GPS'); return; }
+    if (!navigator.geolocation) { toast.error(t('toastNoGps')); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        toast.success('Đã lấy vị trí của bạn');
+        toast.success(t('toastGotLocation'));
         setLocating(false);
       },
-      () => { toast.error('Không lấy được GPS'); setLocating(false); }
+      () => { toast.error(t('toastGpsError')); setLocating(false); }
     );
-  }, []);
+  }, [t]);
 
   // Find route to shelter
   const handleFindRoute = async (shelter: Shelter) => {
-    if (!userLocation) { toast.error('Vui lòng lấy vị trí GPS trước'); return; }
-    if (!shelter.location) { toast.error('Shelter chưa có tọa độ'); return; }
+    if (!userLocation) { toast.error(t('toastNeedGps')); return; }
+    if (!shelter.location) { toast.error(t('toastNoCoords')); return; }
 
     setSelectedShelter(shelter);
     setRouteLoading(true);
@@ -105,12 +107,12 @@ export default function CitizenMapPage() {
         });
         setRouteInfo({ distance: result.distance.text, duration: result.duration.text });
         setActiveTab('route');
-        toast.success(`Tìm được tuyến đường đến ${shelter.name}`);
+        toast.success(t('toastRouteFound', { name: shelter.name }));
       } else {
-        toast.error('Không tìm được tuyến đường');
+        toast.error(t('toastRouteError'));
       }
     } catch (e) {
-      toast.error('Lỗi khi tìm đường');
+      toast.error(t('toastRouteFail'));
     } finally {
       setRouteLoading(false);
     }
@@ -118,14 +120,14 @@ export default function CitizenMapPage() {
 
   // Find nearby evacuation points
   const handleFindNearby = async () => {
-    if (!userLocation) { toast.error('Vui lòng lấy vị trí GPS trước'); return; }
+    if (!userLocation) { toast.error(t('toastNeedGps')); return; }
     setNearbyLoading(true);
     try {
       const places = await fetchNearbyEvacuationPoints(userLocation, 3000, nearbyType);
       setNearbyPlaces(places);
-      if (places.length === 0) toast.info('Không tìm thấy địa điểm gần đây');
+      if (places.length === 0) toast.info(t('toastNoNearby'));
     } catch (e) {
-      toast.error('Lỗi khi tìm địa điểm');
+      toast.error(t('toastNearbyFail'));
     } finally {
       setNearbyLoading(false);
     }
@@ -146,9 +148,9 @@ export default function CitizenMapPage() {
   };
 
   const TABS: { id: SheetTab; label: string; icon: React.ElementType }[] = [
-    { id: 'shelters', label: 'Tị nạn',   icon: Home },
-    { id: 'route',    label: 'Tìm đường', icon: Route },
-    { id: 'nearby',   label: 'Gần đây',  icon: MapPin },
+    { id: 'shelters', label: t('tabShelters'), icon: Home },
+    { id: 'route',    label: t('tabRoute'),    icon: Route },
+    { id: 'nearby',   label: t('tabNearby'),   icon: MapPin },
   ];
 
   return (
@@ -161,7 +163,7 @@ export default function CitizenMapPage() {
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
           <div className="px-3 py-1.5 rounded-xl bg-background/90 backdrop-blur border border-border shadow text-xs font-bold flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            Bản đồ ngập lụt · Đà Nẵng
+            {t('mapTitle')}
           </div>
           {routeInfo && (
             <div className="px-3 py-2 rounded-xl bg-primary/90 backdrop-blur text-primary-foreground text-xs font-bold flex items-center gap-3">
@@ -188,7 +190,7 @@ export default function CitizenMapPage() {
 
         {userLocation && (
           <div className="absolute top-16 right-3 z-10 px-2 py-1 rounded-lg bg-emerald-500/90 text-white text-[10px] font-bold">
-            GPS ✓
+            {t('gpsConfirmed')}
           </div>
         )}
       </div>
@@ -229,7 +231,7 @@ export default function CitizenMapPage() {
                 {loading ? (
                   <div className="flex justify-center py-4"><RefreshCw size={16} className="animate-spin text-muted-foreground" /></div>
                 ) : shelters.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Chưa có dữ liệu điểm tị nạn.</p>
+                  <p className="text-xs text-muted-foreground text-center py-4">{t('noShelters')}</p>
                 ) : (
                   shelters.map(s => {
                     const isFull = s.status === 'full' || (s.capacity > 0 && s.current_occupancy >= s.capacity);
@@ -245,9 +247,9 @@ export default function CitizenMapPage() {
                           <p className="text-[10px] text-muted-foreground truncate">{s.address}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge className={`text-[9px] ${isFull ? 'bg-red-500' : 'bg-emerald-500'} text-white`}>
-                              {isFull ? 'Đầy' : `${s.available_beds} chỗ trống`}
+                              {isFull ? t('full') : t('availableBeds', { count: s.available_beds })}
                             </Badge>
-                            {s.is_flood_safe && <span className="text-[9px] text-blue-500 font-bold">Cao ráo ✓</span>}
+                            {s.is_flood_safe && <span className="text-[9px] text-blue-500 font-bold">{t('floodSafe')}</span>}
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 shrink-0">
@@ -257,7 +259,7 @@ export default function CitizenMapPage() {
                             className="h-7 w-7 p-0 text-primary border-primary/30"
                             onClick={() => handleFindRoute(s)}
                             disabled={routeLoading}
-                            title="Tìm đường"
+                            title={t('findRoute')}
                           >
                             {routeLoading && selectedShelter?.id === s.id
                               ? <RefreshCw size={11} className="animate-spin" />
@@ -266,7 +268,7 @@ export default function CitizenMapPage() {
                           </Button>
                           {s.contact_phone && (
                             <a href={`tel:${s.contact_phone}`}>
-                              <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-muted-foreground" title="Gọi điện">
+                              <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-muted-foreground">
                                 <Phone size={11} />
                               </Button>
                             </a>
@@ -284,22 +286,22 @@ export default function CitizenMapPage() {
               <div className="space-y-3 pt-1">
                 {!userLocation ? (
                   <div className="text-center py-4 space-y-3">
-                    <p className="text-xs text-muted-foreground">Cần vị trí GPS để tìm đường</p>
+                    <p className="text-xs text-muted-foreground">{t('needGpsForRoute')}</p>
                     <Button size="sm" onClick={handleGetLocation} disabled={locating} className="gap-2">
                       <LocateFixed size={14} className={locating ? 'animate-spin' : ''} />
-                      Lấy vị trí GPS
+                      {t('getGps')}
                     </Button>
                   </div>
                 ) : !evacuationRoute ? (
                   <div className="text-center py-4 space-y-2">
                     <Route size={28} className="mx-auto text-muted-foreground opacity-40" />
-                    <p className="text-xs text-muted-foreground">Chọn điểm tị nạn ở tab "Tị nạn" để tìm đường</p>
+                    <p className="text-xs text-muted-foreground">{t('selectShelter')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
                       <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                        <Route size={14} /> Tuyến đường sơ tán
+                        <Route size={14} /> {t('evacuationRoute')}
                       </div>
                       {selectedShelter && (
                         <p className="text-xs font-semibold">{selectedShelter.name}</p>
@@ -318,11 +320,11 @@ export default function CitizenMapPage() {
                           className="flex-1 gap-2 h-9 text-xs"
                           onClick={() => openGoogleMaps(selectedShelter.location!)}
                         >
-                          <Navigation size={12} /> Mở Google Maps
+                          <Navigation size={12} /> {t('openMaps')}
                         </Button>
                       )}
                       <Button size="sm" variant="outline" className="h-9 text-xs gap-1" onClick={clearRoute}>
-                        <X size={12} /> Xóa
+                        <X size={12} /> {t('clearRoute')}
                       </Button>
                     </div>
                   </div>
@@ -335,15 +337,15 @@ export default function CitizenMapPage() {
               <div className="space-y-3 pt-1">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1 p-1 bg-muted rounded-lg flex-1">
-                    {(['school', 'hospital'] as const).map(t => (
+                    {(['school', 'hospital'] as const).map(type => (
                       <button
-                        key={t}
-                        onClick={() => setNearbyType(t)}
+                        key={type}
+                        onClick={() => setNearbyType(type)}
                         className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${
-                          nearbyType === t ? 'bg-background shadow text-foreground' : 'text-muted-foreground'
+                          nearbyType === type ? 'bg-background shadow text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        {t === 'school' ? '🏫 Trường học' : '🏥 Bệnh viện'}
+                        {type === 'school' ? t('school') : t('hospital')}
                       </button>
                     ))}
                   </div>
@@ -357,15 +359,15 @@ export default function CitizenMapPage() {
                       ? <RefreshCw size={12} className="animate-spin" />
                       : <MapPin size={12} />
                     }
-                    Tìm
+                    {t('findNearby')}
                   </Button>
                 </div>
 
                 {!userLocation && (
                   <div className="text-center py-3">
-                    <p className="text-xs text-muted-foreground mb-2">Cần GPS để tìm địa điểm gần đây</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t('needGpsForNearby')}</p>
                     <Button size="sm" variant="outline" onClick={handleGetLocation} disabled={locating} className="gap-2">
-                      <LocateFixed size={12} className={locating ? 'animate-spin' : ''} /> Lấy GPS
+                      <LocateFixed size={12} className={locating ? 'animate-spin' : ''} /> {t('getGpsShort')}
                     </Button>
                   </div>
                 )}
@@ -386,7 +388,7 @@ export default function CitizenMapPage() {
                           variant="outline"
                           className="h-7 w-7 p-0 shrink-0 text-primary border-primary/30"
                           onClick={() => place.location && openGoogleMaps(place.location)}
-                          title="Chỉ đường"
+                          title={t('findRoute')}
                         >
                           <Navigation size={11} />
                         </Button>
@@ -397,7 +399,7 @@ export default function CitizenMapPage() {
 
                 {nearbyPlaces.length === 0 && !nearbyLoading && userLocation && (
                   <p className="text-xs text-muted-foreground text-center py-3">
-                    Nhấn "Tìm" để tìm {nearbyType === 'school' ? 'trường học' : 'bệnh viện'} gần bạn
+                    {t('findPrompt', { type: nearbyType === 'school' ? t('findPromptSchool') : t('findPromptHospital') })}
                   </p>
                 )}
               </div>

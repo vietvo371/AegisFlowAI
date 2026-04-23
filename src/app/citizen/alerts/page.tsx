@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,20 +21,22 @@ interface Alert {
   source: string;
 }
 
-const SEVERITY_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  critical: { color: 'text-red-600',    label: 'Đặc biệt nguy hiểm', bg: 'bg-red-500/10 border-red-500/30' },
-  high:     { color: 'text-orange-600', label: 'Nghiêm trọng',        bg: 'bg-orange-500/10 border-orange-500/30' },
-  medium:   { color: 'text-yellow-600', label: 'Cảnh báo',            bg: 'bg-yellow-500/10 border-yellow-500/30' },
-  low:      { color: 'text-blue-600',   label: 'Lưu ý',               bg: 'bg-blue-500/10 border-blue-500/30' },
+const SEVERITY_BG: Record<string, string> = {
+  critical: 'bg-red-500/10 border-red-500/30',
+  high:     'bg-orange-500/10 border-orange-500/30',
+  medium:   'bg-yellow-500/10 border-yellow-500/30',
+  low:      'bg-blue-500/10 border-blue-500/30',
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  flood_risk: 'Nguy cơ ngập', weather: 'Thời tiết',
-  evacuation: 'Sơ tán', traffic: 'Giao thông',
-  power_outage: 'Mất điện', flood: 'Lũ lụt',
+const SEVERITY_TEXT: Record<string, string> = {
+  critical: 'text-red-600',
+  high:     'text-orange-600',
+  medium:   'text-yellow-600',
+  low:      'text-blue-600',
 };
 
 export default function CitizenAlertsPage() {
+  const t = useTranslations('citizen.alerts');
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'all'>('active');
@@ -64,10 +67,10 @@ export default function CitizenAlertsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <Bell size={22} className="text-primary" /> Cảnh báo
+            <Bell size={22} className="text-primary" /> {t('title')}
             {activeCount > 0 && <Badge variant="destructive" className="text-xs">{activeCount}</Badge>}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Thông báo từ trung tâm điều hành</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={fetchAlerts} disabled={loading}>
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -84,7 +87,7 @@ export default function CitizenAlertsPage() {
               filter === f ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
             }`}
           >
-            {f === 'active' ? 'Đang hiệu lực' : 'Tất cả'}
+            {f === 'active' ? t('active') : t('all')}
           </button>
         ))}
       </div>
@@ -94,18 +97,21 @@ export default function CitizenAlertsPage() {
       ) : alerts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <CheckCircle2 size={48} className="text-emerald-500 mb-3 opacity-60" />
-          <p className="font-bold text-lg">Không có cảnh báo</p>
-          <p className="text-sm text-muted-foreground mt-1">Khu vực hiện tại an toàn.</p>
+          <p className="font-bold text-lg">{t('noAlerts')}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('safeArea')}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {alerts.map(alert => {
-            const cfg = SEVERITY_CONFIG[alert.severity] ?? SEVERITY_CONFIG.low;
+            const bgClass = SEVERITY_BG[alert.severity] ?? SEVERITY_BG.low;
+            const textClass = SEVERITY_TEXT[alert.severity] ?? SEVERITY_TEXT.low;
+            const severityLabel = t(`severity.${alert.severity}` as any);
+            const typeLabel = t(`type.${alert.alert_type}` as any, undefined) ?? alert.alert_type;
             return (
-              <Card key={alert.id} className={`border ${cfg.bg} overflow-hidden`}>
+              <Card key={alert.id} className={`border ${bgClass} overflow-hidden`}>
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 shrink-0 ${cfg.color}`}>
+                    <div className={`mt-0.5 shrink-0 ${textClass}`}>
                       {alert.severity === 'critical' || alert.severity === 'high'
                         ? <AlertTriangle size={18} />
                         : <Megaphone size={18} />
@@ -113,11 +119,11 @@ export default function CitizenAlertsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`font-black text-sm leading-snug ${cfg.color}`}>{alert.title}</p>
+                        <p className={`font-black text-sm leading-snug ${textClass}`}>{alert.title}</p>
                         <Badge className={`text-[9px] shrink-0 ${
                           alert.status === 'active' ? 'bg-red-500' : 'bg-gray-400'
                         } text-white`}>
-                          {alert.status === 'active' ? 'Hiệu lực' : 'Hết hạn'}
+                          {alert.status === 'active' ? t('inEffect') : t('expired')}
                         </Badge>
                       </div>
                       {alert.description && (
@@ -131,8 +137,8 @@ export default function CitizenAlertsPage() {
                       <Clock size={10} />
                       {new Date(alert.effective_from).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                     </span>
-                    <span className="font-bold uppercase">{TYPE_LABEL[alert.alert_type] ?? alert.alert_type}</span>
-                    <span className={`font-bold uppercase ${cfg.color}`}>{cfg.label}</span>
+                    <span className="font-bold uppercase">{typeLabel}</span>
+                    <span className={`font-bold uppercase ${textClass}`}>{severityLabel}</span>
                   </div>
                 </CardContent>
               </Card>

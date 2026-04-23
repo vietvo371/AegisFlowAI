@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,8 +20,8 @@ import {
   DialogFooter, DialogDescription
 } from '@/components/ui/dialog';
 import {
-  RefreshCw, Search, Waves, MapPin, Plus, Eye,
-  AlertTriangle, TrendingUp, Droplets, Edit2
+  RefreshCw, Search, Waves, MapPin, Plus,
+  AlertTriangle, TrendingUp, Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,19 +43,12 @@ interface FloodZone {
   is_active: boolean;
 }
 
-const RISK_CONFIG: Record<string, { label: string; badge: string }> = {
-  low:      { label: 'Thấp',       badge: 'bg-blue-500' },
-  medium:   { label: 'Trung bình', badge: 'bg-yellow-500' },
-  high:     { label: 'Cao',        badge: 'bg-orange-500' },
-  critical: { label: 'Nguy cấp',   badge: 'bg-red-500' },
+const RISK_BADGE: Record<string, string> = {
+  low: 'bg-blue-500', medium: 'bg-yellow-500', high: 'bg-orange-500', critical: 'bg-red-500',
 };
-
-const STATUS_CONFIG: Record<string, { label: string; variant: string }> = {
-  monitoring: { label: 'Theo dõi',    variant: 'bg-emerald-500' },
-  alert:      { label: 'Cảnh báo',    variant: 'bg-yellow-500' },
-  danger:     { label: 'Nguy hiểm',   variant: 'bg-orange-500' },
-  flooded:    { label: 'Đang ngập',   variant: 'bg-red-500' },
-  recovering: { label: 'Phục hồi',    variant: 'bg-blue-500' },
+const STATUS_BADGE: Record<string, string> = {
+  monitoring: 'bg-emerald-500', alert: 'bg-yellow-500', danger: 'bg-orange-500',
+  flooded: 'bg-red-500', recovering: 'bg-blue-500',
 };
 
 const EMPTY_FORM = {
@@ -65,6 +59,9 @@ const EMPTY_FORM = {
 };
 
 export default function FloodZonesPage() {
+  const t = useTranslations('dashboard');
+  const tEnum = useTranslations('enums');
+
   const [zones, setZones] = useState<FloodZone[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -115,7 +112,7 @@ export default function FloodZonesPage() {
 
   const handleSubmit = async () => {
     if (!form.name || !form.slug || !form.risk_level) {
-      toast.error('Vui lòng điền đầy đủ tên, slug và mức rủi ro');
+      toast.error(t('floodZones.validationError'));
       return;
     }
     setSubmitting(true);
@@ -161,36 +158,33 @@ export default function FloodZonesPage() {
     z.district?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Summary stats
   const stats = [
-    { label: 'Đang ngập',   value: zones.filter(z => z.status === 'flooded').length,    color: 'text-red-500',    bg: 'bg-red-500/10' },
-    { label: 'Cảnh báo',    value: zones.filter(z => z.status === 'alert').length,       color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { label: 'Theo dõi',    value: zones.filter(z => z.status === 'monitoring').length,  color: 'text-emerald-500',bg: 'bg-emerald-500/10' },
-    { label: 'Tổng vùng',   value: zones.length,                                          color: 'text-primary',    bg: 'bg-primary/10' },
+    { label: t('floodZones.statFlooded'),   value: zones.filter(z => z.status === 'flooded').length,    color: 'text-red-500',    bg: 'bg-red-500/10' },
+    { label: t('floodZones.statAlert'),     value: zones.filter(z => z.status === 'alert').length,       color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { label: t('floodZones.statMonitoring'),value: zones.filter(z => z.status === 'monitoring').length,  color: 'text-emerald-500',bg: 'bg-emerald-500/10' },
+    { label: t('floodZones.statTotal'),     value: zones.length,                                          color: 'text-primary',    bg: 'bg-primary/10' },
   ];
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Waves className="text-blue-500" size={28} />
-            Vùng Ngập Lụt
+            {t('pages.floodZones')}
           </h1>
-          <p className="text-muted-foreground mt-1">Quản lý và giám sát các vùng ngập lụt trên địa bàn Đà Nẵng</p>
+          <p className="text-muted-foreground mt-1">{t('floodZones.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={fetchZones} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           <Button className="gap-2" onClick={openCreate}>
-            <Plus className="w-4 h-4" /> Thêm vùng mới
+            <Plus className="w-4 h-4" /> {t('floodZones.addBtn')}
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <Card key={i} className="border-border shadow-sm">
@@ -207,7 +201,6 @@ export default function FloodZonesPage() {
         ))}
       </div>
 
-      {/* Table */}
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -215,13 +208,13 @@ export default function FloodZonesPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Tên vùng hoặc quận..."
+                placeholder={t('floodZones.searchPlaceholder')}
                 className="pl-9 h-9 bg-muted/50"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <span className="text-sm text-muted-foreground">{filtered.length} vùng</span>
+            <span className="text-sm text-muted-foreground">{t('floodZones.zonesCount', { count: filtered.length })}</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -229,13 +222,13 @@ export default function FloodZonesPage() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Tên vùng</TableHead>
-                  <TableHead>Mức rủi ro</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="w-[200px]">Mực nước hiện tại</TableHead>
-                  <TableHead>Ngưỡng</TableHead>
-                  <TableHead>Khu vực</TableHead>
-                  <TableHead className="text-right w-[120px]">Thao tác</TableHead>
+                  <TableHead>{t('floodZones.colName')}</TableHead>
+                  <TableHead>{t('floodZones.colRisk')}</TableHead>
+                  <TableHead>{t('floodZones.colStatus')}</TableHead>
+                  <TableHead className="w-[200px]">{t('floodZones.colWaterLevel')}</TableHead>
+                  <TableHead>{t('floodZones.colThreshold')}</TableHead>
+                  <TableHead>{t('floodZones.colArea')}</TableHead>
+                  <TableHead className="text-right w-[120px]">{t('floodZones.colAction')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,19 +236,21 @@ export default function FloodZonesPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                       <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                      Đang tải dữ liệu vùng ngập...
+                      {t('floodZones.loadingZones')}
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                      Không có vùng ngập nào.
+                      {t('floodZones.noZones')}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filtered.map(zone => {
-                    const riskCfg = RISK_CONFIG[zone.risk_level] ?? RISK_CONFIG.low;
-                    const statusCfg = STATUS_CONFIG[zone.status] ?? STATUS_CONFIG.monitoring;
+                    const riskBadge = RISK_BADGE[zone.risk_level] ?? RISK_BADGE.low;
+                    const riskLabel = zone.risk_level_label ?? tEnum(`severity.${zone.risk_level}` as any, { defaultValue: zone.risk_level });
+                    const statusBadge = STATUS_BADGE[zone.status] ?? STATUS_BADGE.monitoring;
+                    const statusLabel = zone.status_label ?? tEnum(`floodZoneStatus.${zone.status}` as any, { defaultValue: zone.status });
                     const waterLevel = zone.current_water_level_m != null ? Number(zone.current_water_level_m) : null;
                     const alertThreshold = zone.alert_threshold_m != null ? Number(zone.alert_threshold_m) : null;
                     const dangerThreshold = zone.danger_threshold_m != null ? Number(zone.danger_threshold_m) : null;
@@ -269,10 +264,7 @@ export default function FloodZonesPage() {
                       <TableRow key={zone.id} className="hover:bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full shrink-0"
-                              style={{ background: zone.color ?? '#f79009' }}
-                            />
+                            <div className="w-3 h-3 rounded-full shrink-0" style={{ background: zone.color ?? '#f79009' }} />
                             <div>
                               <div className="font-semibold text-foreground">{zone.name}</div>
                               <div className="text-[10px] text-muted-foreground font-mono">{zone.slug}</div>
@@ -280,10 +272,10 @@ export default function FloodZonesPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${riskCfg.badge} text-white`}>{riskCfg.label}</Badge>
+                          <Badge className={`${riskBadge} text-white`}>{riskLabel}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${statusCfg.variant} text-white`}>{statusCfg.label}</Badge>
+                          <Badge className={`${statusBadge} text-white`}>{statusLabel}</Badge>
                         </TableCell>
                         <TableCell>
                           {waterLevel != null ? (
@@ -301,18 +293,18 @@ export default function FloodZonesPage() {
                               />
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-xs italic">Chưa có dữ liệu</span>
+                            <span className="text-muted-foreground text-xs italic">{t('floodZones.noWaterData')}</span>
                           )}
                         </TableCell>
                         <TableCell>
                           <div className="text-xs space-y-0.5 text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3 text-yellow-500" />
-                              Cảnh báo: {alertThreshold ?? '—'}m
+                              {t('floodZones.alertThreshold')}: {alertThreshold ?? '—'}m
                             </div>
                             <div className="flex items-center gap-1">
                               <TrendingUp className="w-3 h-3 text-red-500" />
-                              Nguy hiểm: {dangerThreshold ?? '—'}m
+                              {t('floodZones.dangerThreshold')}: {dangerThreshold ?? '—'}m
                             </div>
                           </div>
                         </TableCell>
@@ -324,7 +316,6 @@ export default function FloodZonesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
-                            {/* Quick status update */}
                             <Select
                               value={zone.status}
                               onValueChange={val => val && handleUpdateStatus(zone.id, val)}
@@ -333,11 +324,11 @@ export default function FloodZonesPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="monitoring">Theo dõi</SelectItem>
-                                <SelectItem value="alert">Cảnh báo</SelectItem>
-                                <SelectItem value="danger">Nguy hiểm</SelectItem>
-                                <SelectItem value="flooded">Đang ngập</SelectItem>
-                                <SelectItem value="recovering">Phục hồi</SelectItem>
+                                <SelectItem value="monitoring">{tEnum('floodZoneStatus.monitoring')}</SelectItem>
+                                <SelectItem value="alert">{tEnum('floodZoneStatus.alert')}</SelectItem>
+                                <SelectItem value="danger">{tEnum('floodZoneStatus.danger')}</SelectItem>
+                                <SelectItem value="flooded">{tEnum('floodZoneStatus.flooded')}</SelectItem>
+                                <SelectItem value="recovering">{tEnum('floodZoneStatus.recovering')}</SelectItem>
                               </SelectContent>
                             </Select>
                             <Button
@@ -359,21 +350,22 @@ export default function FloodZonesPage() {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={v => { if (!v) setIsCreateOpen(false); }}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>{editTarget ? `Chỉnh sửa: ${editTarget.name}` : 'Thêm vùng ngập mới'}</DialogTitle>
+            <DialogTitle>
+              {editTarget ? t('floodZones.editTitle', { name: editTarget.name }) : t('floodZones.createTitle')}
+            </DialogTitle>
             <DialogDescription>
-              {editTarget ? 'Cập nhật thông tin vùng ngập lụt.' : 'Định nghĩa vùng ngập mới để hệ thống theo dõi và cảnh báo.'}
+              {editTarget ? t('floodZones.editDesc') : t('floodZones.createDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tên vùng *</Label>
+                <Label>{t('floodZones.fieldName')}</Label>
                 <Input
-                  placeholder="VD: Hòa Thọ Tây"
+                  placeholder={t('floodZones.fieldNamePlaceholder')}
                   value={form.name}
                   onChange={e => {
                     const name = e.target.value;
@@ -383,9 +375,9 @@ export default function FloodZonesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Slug *</Label>
+                <Label>{t('floodZones.fieldSlug')}</Label>
                 <Input
-                  placeholder="hoa-tho-tay"
+                  placeholder={t('floodZones.fieldSlugPlaceholder')}
                   value={form.slug}
                   onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
                 />
@@ -394,19 +386,19 @@ export default function FloodZonesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Mức rủi ro *</Label>
-                <Select value={form.risk_level} onValueChange={v => setForm(f => ({ ...f, risk_level: v ?? "" }))}>
+                <Label>{t('floodZones.fieldRisk')}</Label>
+                <Select value={form.risk_level} onValueChange={v => setForm(f => ({ ...f, risk_level: v ?? '' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Thấp</SelectItem>
-                    <SelectItem value="medium">Trung bình</SelectItem>
-                    <SelectItem value="high">Cao</SelectItem>
-                    <SelectItem value="critical">Nguy cấp</SelectItem>
+                    <SelectItem value="low">{t('floodZones.riskLow')}</SelectItem>
+                    <SelectItem value="medium">{t('floodZones.riskMedium')}</SelectItem>
+                    <SelectItem value="high">{t('floodZones.riskHigh')}</SelectItem>
+                    <SelectItem value="critical">{t('floodZones.riskCritical')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Màu hiển thị</Label>
+                <Label>{t('floodZones.fieldColor')}</Label>
                 <div className="flex gap-2">
                   <Input
                     type="color"
@@ -426,7 +418,7 @@ export default function FloodZonesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Ngưỡng cảnh báo (m)</Label>
+                <Label>{t('floodZones.fieldAlertThreshold')}</Label>
                 <div className="relative">
                   <AlertTriangle className="absolute left-3 top-2.5 w-4 h-4 text-yellow-500" />
                   <Input
@@ -438,7 +430,7 @@ export default function FloodZonesPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Ngưỡng nguy hiểm (m)</Label>
+                <Label>{t('floodZones.fieldDangerThreshold')}</Label>
                 <div className="relative">
                   <TrendingUp className="absolute left-3 top-2.5 w-4 h-4 text-red-500" />
                   <Input
@@ -452,9 +444,9 @@ export default function FloodZonesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Mô tả</Label>
+              <Label>{t('floodZones.fieldDesc')}</Label>
               <Textarea
-                placeholder="Mô tả đặc điểm địa lý, lịch sử ngập lụt..."
+                placeholder={t('floodZones.fieldDescPlaceholder')}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 className="min-h-[70px] resize-none"
@@ -462,10 +454,10 @@ export default function FloodZonesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Hủy</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>{t('actions.cancel')}</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              {editTarget ? 'Cập nhật' : 'Tạo vùng ngập'}
+              {editTarget ? t('actions.update') : t('floodZones.createZoneBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>

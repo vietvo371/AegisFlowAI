@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,11 +27,11 @@ interface Notification {
 }
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string }> = {
-  AlertNotification:  { icon: Megaphone,    color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
-  IncidentCreated:    { icon: AlertTriangle, color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-  PredictionReceived: { icon: BrainCircuit,  color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-  RescueRequestCreated: { icon: HeartPulse, color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-  FloodZoneUpdated:   { icon: ShieldAlert,   color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  AlertNotification:    { icon: Megaphone,    color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+  IncidentCreated:      { icon: AlertTriangle, color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+  PredictionReceived:   { icon: BrainCircuit,  color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  RescueRequestCreated: { icon: HeartPulse,    color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  FloodZoneUpdated:     { icon: ShieldAlert,   color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
 };
 
 const DEFAULT_CONFIG = { icon: Info, color: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
@@ -44,6 +45,8 @@ function timeAgo(iso: string): string {
 }
 
 export default function NotificationsPage() {
+  const t = useTranslations('dashboard');
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
@@ -53,10 +56,8 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      // Notifications dùng custom table schema, fallback về unread alerts
       const res = await api.get('/alerts', { params: { per_page: 20, status: 'active' } });
       const alerts = res.data?.data ?? [];
-      // Map alerts → notification format
       const mapped: Notification[] = alerts.map((a: any) => ({
         id: String(a.id),
         type: 'AlertNotification',
@@ -75,7 +76,6 @@ export default function NotificationsPage() {
   }, []);
 
   const markAsRead = async (id: string) => {
-    // Optimistic update only — custom notifications table doesn't support per-user read tracking
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)
     );
@@ -89,7 +89,6 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
-    // Listen for realtime events
     const handler = () => fetchNotifications();
     window.addEventListener('aegis:alert:created', handler);
     window.addEventListener('aegis:incident:created', handler);
@@ -117,13 +116,13 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <Bell className="text-primary" size={28} />
-            Thông báo
+            {t('pages.notifications')}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="text-sm px-2">{unreadCount}</Badge>
             )}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm font-medium">
-            Cảnh báo và cập nhật hệ thống theo thời gian thực.
+            {t('notifications.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -137,7 +136,7 @@ export default function NotificationsPage() {
               ? <RefreshCw size={16} className="mr-2 animate-spin" />
               : <CheckCheck size={16} className="mr-2" />
             }
-            Đánh dấu tất cả đã đọc
+            {t('notifications.markAllRead')}
           </Button>
           <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10" onClick={fetchNotifications} disabled={loading}>
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -151,7 +150,7 @@ export default function NotificationsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
-              placeholder="Tìm thông báo..."
+              placeholder={t('notifications.searchPlaceholder')}
               className="pl-10 h-10 bg-card border-border rounded-xl"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -169,7 +168,7 @@ export default function NotificationsPage() {
                 onClick={() => setFilter(f)}
               >
                 {f === 'all' ? <Bell size={18} className="mr-3" /> : <div className="w-2 h-2 rounded-full bg-primary mr-3.5 ml-1" />}
-                {f === 'all' ? 'Tất cả' : 'Chưa đọc'}
+                {f === 'all' ? t('notifications.filterAll') : t('notifications.filterUnread')}
                 <Badge variant="secondary" className="ml-auto bg-background/50 border-none px-2 shadow-none">
                   {f === 'all' ? notifications.length : unreadCount}
                 </Badge>
@@ -185,16 +184,16 @@ export default function NotificationsPage() {
               {loading ? (
                 <div className="flex flex-col items-center justify-center p-20 gap-4">
                   <Loader2 className="animate-spin text-primary" size={32} />
-                  <p className="text-sm font-bold text-muted-foreground">Đang tải thông báo...</p>
+                  <p className="text-sm font-bold text-muted-foreground">{t('notifications.loadingText')}</p>
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-20 text-center">
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                     <Bell className="text-muted-foreground opacity-20" size={32} />
                   </div>
-                  <h3 className="text-lg font-bold">Không có thông báo</h3>
+                  <h3 className="text-lg font-bold">{t('notifications.noNotifications')}</h3>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-2">
-                    {filter === 'unread' ? 'Bạn đã đọc tất cả thông báo.' : 'Chưa có thông báo nào.'}
+                    {filter === 'unread' ? t('notifications.allReadMsg') : t('notifications.noNotificationsMsg')}
                   </p>
                 </div>
               ) : (
@@ -236,7 +235,7 @@ export default function NotificationsPage() {
                                 className="h-7 rounded-lg text-[10px] font-bold uppercase tracking-wider text-primary px-2"
                                 onClick={e => { e.stopPropagation(); markAsRead(item.id); }}
                               >
-                                Đánh dấu đã đọc
+                                {t('notifications.markRead')}
                               </Button>
                             </div>
                           )}

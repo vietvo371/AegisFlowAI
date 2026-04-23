@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -41,6 +42,9 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function RecommendationsPage() {
+  const t = useTranslations('dashboard');
+  const tEnum = useTranslations('enums');
+
   const [items, setItems] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectTarget, setRejectTarget] = useState<Recommendation | null>(null);
@@ -71,7 +75,7 @@ export default function RecommendationsPage() {
 
   const handleRejectSubmit = async () => {
     if (!rejectTarget || !rejectReason.trim()) {
-      toast.error('Vui lòng nhập lý do từ chối');
+      toast.error(t('recommendations.rejectValidation'));
       return;
     }
     setSubmitting(true);
@@ -90,12 +94,13 @@ export default function RecommendationsPage() {
   useEffect(() => { fetchItems(); }, []);
 
   const getStatusBadge = (status: string) => {
+    const label = tEnum(`recommendationStatus.${status}` as any, { defaultValue: status });
     switch (status) {
-      case 'pending': return <Badge variant="outline" className="text-orange-500 border-orange-200 animate-pulse">Chờ duyệt</Badge>;
-      case 'approved': return <Badge className="bg-emerald-500">Đã duyệt</Badge>;
-      case 'rejected': return <Badge variant="destructive">Từ chối</Badge>;
-      case 'executed': return <Badge className="bg-blue-500">Đã thực thi</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case 'pending': return <Badge variant="outline" className="text-orange-500 border-orange-200 animate-pulse">{label}</Badge>;
+      case 'approved': return <Badge className="bg-emerald-500">{label}</Badge>;
+      case 'rejected': return <Badge variant="destructive">{label}</Badge>;
+      case 'executed': return <Badge className="bg-blue-500">{label}</Badge>;
+      default: return <Badge variant="outline">{label}</Badge>;
     }
   };
 
@@ -110,16 +115,14 @@ export default function RecommendationsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <BrainCircuit className="text-primary" size={28} />
-            Đề xuất AI
+            {t('pages.recommendations')}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Human-in-the-loop — AI đề xuất, operator phê duyệt trước khi thực thi
-          </p>
+          <p className="text-muted-foreground mt-1">{t('recommendations.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {pendingCount > 0 && (
             <Badge variant="destructive" className="animate-pulse text-sm px-3 py-1">
-              {pendingCount} chờ duyệt
+              {t('recommendations.pendingBadge', { count: pendingCount })}
             </Badge>
           )}
           <Button variant="outline" size="icon" onClick={fetchItems} disabled={loading}>
@@ -131,10 +134,10 @@ export default function RecommendationsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Chờ duyệt', value: items.filter(i => i.status === 'pending').length, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-          { label: 'Đã duyệt', value: items.filter(i => i.status === 'approved').length, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Đã thực thi', value: items.filter(i => i.status === 'executed').length, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Từ chối', value: items.filter(i => i.status === 'rejected').length, color: 'text-red-500', bg: 'bg-red-500/10' },
+          { label: t('recommendations.statPending'), value: items.filter(i => i.status === 'pending').length, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+          { label: t('recommendations.statApproved'), value: items.filter(i => i.status === 'approved').length, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: t('recommendations.statExecuted'), value: items.filter(i => i.status === 'executed').length, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: t('recommendations.statRejected'), value: items.filter(i => i.status === 'rejected').length, color: 'text-red-500', bg: 'bg-red-500/10' },
         ].map((s, i) => (
           <Card key={i} className="border-border shadow-sm">
             <CardContent className="p-4 flex items-center justify-between">
@@ -156,7 +159,7 @@ export default function RecommendationsPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Tìm kiếm đề xuất..."
+              placeholder={t('recommendations.searchPlaceholder')}
               className="pl-9 h-9 bg-muted/50"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -168,13 +171,13 @@ export default function RecommendationsPage() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[60px]">ID</TableHead>
-                  <TableHead className="w-[140px]">Loại</TableHead>
-                  <TableHead>Nội dung đề xuất</TableHead>
-                  <TableHead>Liên kết</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Thời gian</TableHead>
-                  <TableHead className="w-[160px] text-center">Hành động</TableHead>
+                  <TableHead className="w-[60px]">{t('recommendations.colId')}</TableHead>
+                  <TableHead className="w-[140px]">{t('recommendations.colType')}</TableHead>
+                  <TableHead>{t('recommendations.colContent')}</TableHead>
+                  <TableHead>{t('recommendations.colLink')}</TableHead>
+                  <TableHead>{t('recommendations.colStatus')}</TableHead>
+                  <TableHead className="text-right">{t('recommendations.colTime')}</TableHead>
+                  <TableHead className="w-[160px] text-center">{t('recommendations.colAction')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -182,13 +185,13 @@ export default function RecommendationsPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                       <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                      Đang tải đề xuất từ AI...
+                      {t('recommendations.loadingText')}
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                      Chưa có đề xuất nào từ AI.
+                      {t('recommendations.noRecommendations')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -236,7 +239,7 @@ export default function RecommendationsPage() {
                               className="h-8 gap-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                               onClick={() => handleApprove(item.id)}
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Duyệt
+                              <CheckCircle2 className="w-3.5 h-3.5" /> {t('recommendations.approveBtn')}
                             </Button>
                             <Button
                               size="sm"
@@ -244,7 +247,7 @@ export default function RecommendationsPage() {
                               className="h-8 gap-1 text-red-500 border-red-200 hover:bg-red-50"
                               onClick={() => setRejectTarget(item)}
                             >
-                              <XCircle className="w-3.5 h-3.5" /> Từ chối
+                              <XCircle className="w-3.5 h-3.5" /> {t('recommendations.rejectBtn')}
                             </Button>
                           </div>
                         ) : (
@@ -262,23 +265,20 @@ export default function RecommendationsPage() {
         </CardContent>
       </Card>
 
-      {/* Reject Dialog */}
       <Dialog open={!!rejectTarget} onOpenChange={() => { setRejectTarget(null); setRejectReason(''); }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Từ chối đề xuất #{rejectTarget?.id}</DialogTitle>
-            <DialogDescription>
-              Nhập lý do để AI học và cải thiện đề xuất trong tương lai.
-            </DialogDescription>
+            <DialogTitle>{t('recommendations.rejectTitle', { id: rejectTarget?.id })}</DialogTitle>
+            <DialogDescription>{t('recommendations.rejectDesc')}</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
               {rejectTarget?.description}
             </div>
             <div className="space-y-2">
-              <Label>Lý do từ chối *</Label>
+              <Label>{t('recommendations.rejectReasonLabel')}</Label>
               <Textarea
-                placeholder="VD: Tuyến đường này đang bị phong tỏa do sự cố khác..."
+                placeholder={t('recommendations.rejectReasonPlaceholder')}
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 className="min-h-[80px]"
@@ -286,10 +286,10 @@ export default function RecommendationsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>Hủy</Button>
+            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>{t('actions.cancel')}</Button>
             <Button variant="destructive" onClick={handleRejectSubmit} disabled={submitting}>
               {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              Xác nhận từ chối
+              {t('recommendations.rejectConfirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

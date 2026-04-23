@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,21 +35,16 @@ interface RescueRequest {
   created_at: string;
 }
 
-const URGENCY_CONFIG: Record<string, { color: string; label: string }> = {
-  critical: { color: 'bg-red-500',    label: 'Khẩn cấp' },
-  high:     { color: 'bg-orange-500', label: 'Cao' },
-  medium:   { color: 'bg-yellow-500', label: 'Trung bình' },
-  low:      { color: 'bg-blue-500',   label: 'Thấp' },
+const URGENCY_COLOR: Record<string, string> = {
+  critical: 'bg-red-500',
+  high:     'bg-orange-500',
+  medium:   'bg-yellow-500',
+  low:      'bg-blue-500',
 };
-
-const STATUS_OPTIONS = [
-  { value: 'assigned',    label: 'Đã nhận nhiệm vụ' },
-  { value: 'in_progress', label: 'Đang cứu hộ' },
-  { value: 'completed',   label: 'Hoàn thành' },
-];
 
 export default function TeamMissionsPage() {
   const { user } = useAuth();
+  const t = useTranslations('team.missions');
   const [requests, setRequests] = useState<RescueRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -56,7 +52,6 @@ export default function TeamMissionsPage() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // Rescue team thấy tất cả pending + assigned requests
       const res = await api.get('/rescue-requests', {
         params: { per_page: 30 }
       });
@@ -90,19 +85,20 @@ export default function TeamMissionsPage() {
   const done    = requests.filter(r => ['completed', 'cancelled'].includes(r.status));
 
   const renderRequest = (req: RescueRequest) => {
-    const urgCfg = URGENCY_CONFIG[req.urgency] ?? URGENCY_CONFIG.low;
+    const urgColor = URGENCY_COLOR[req.urgency] ?? URGENCY_COLOR.low;
+    const urgLabel = req.urgency_label ?? req.urgency;
     const isUpdating = updatingId === req.id;
     const isDone = ['completed', 'cancelled'].includes(req.status);
 
     return (
       <Card key={req.id} className="border-border overflow-hidden">
-        <div className={`h-1 ${urgCfg.color}`} />
+        <div className={`h-1 ${urgColor}`} />
         <CardContent className="p-4 space-y-3">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge className={`${urgCfg.color} text-white text-[9px]`}>{urgCfg.label}</Badge>
+                <Badge className={`${urgColor} text-white text-[9px]`}>{urgLabel}</Badge>
                 {req.priority_score != null && (
                   <span className="text-[10px] font-mono font-bold text-primary">
                     AI: {Number(req.priority_score).toFixed(0)}/100
@@ -110,7 +106,7 @@ export default function TeamMissionsPage() {
                 )}
               </div>
               <p className="font-bold text-sm mt-1 leading-snug">
-                {req.caller_name ?? 'Không rõ tên'}
+                {req.caller_name ?? t('unknownName')}
               </p>
             </div>
             {req.caller_phone && (
@@ -131,7 +127,7 @@ export default function TeamMissionsPage() {
               </div>
             )}
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1"><Users size={11} /> {req.people_count} người</span>
+              <span className="flex items-center gap-1"><Users size={11} /> {req.people_count}</span>
               {req.water_level_m != null && (
                 <span className="flex items-center gap-1"><Waves size={11} /> {Number(req.water_level_m).toFixed(1)}m</span>
               )}
@@ -159,7 +155,7 @@ export default function TeamMissionsPage() {
               rel="noopener noreferrer"
             >
               <Button variant="outline" size="sm" className="w-full gap-2 h-8 text-xs">
-                <Navigation size={12} /> Chỉ đường Google Maps
+                <Navigation size={12} /> {t('navigate')}
               </Button>
             </a>
           )}
@@ -169,21 +165,21 @@ export default function TeamMissionsPage() {
             <Select onValueChange={val => val && handleUpdateStatus(req.id, val)} value={req.status}>
               <SelectTrigger className="h-9 text-xs font-bold">
                 {isUpdating
-                  ? <span className="flex items-center gap-2"><RefreshCw size={12} className="animate-spin" /> Đang cập nhật...</span>
-                  : <SelectValue placeholder="Cập nhật trạng thái..." />
+                  ? <span className="flex items-center gap-2"><RefreshCw size={12} className="animate-spin" /> {t('updateStatus')}</span>
+                  : <SelectValue placeholder={t('updateStatus')} />
                 }
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
-                ))}
+                <SelectItem value="assigned" className="text-xs">{t('statusOptions.assigned')}</SelectItem>
+                <SelectItem value="in_progress" className="text-xs">{t('statusOptions.in_progress')}</SelectItem>
+                <SelectItem value="completed" className="text-xs">{t('statusOptions.completed')}</SelectItem>
               </SelectContent>
             </Select>
           )}
 
           {isDone && (
             <div className="flex items-center gap-2 text-xs text-emerald-600 font-bold">
-              <CheckCircle2 size={14} /> Đã hoàn thành
+              <CheckCircle2 size={14} /> {t('completed')}
             </div>
           )}
         </CardContent>
@@ -197,10 +193,10 @@ export default function TeamMissionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <ShieldAlert size={22} className="text-orange-500" /> Nhiệm vụ
+            <ShieldAlert size={22} className="text-orange-500" /> {t('title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {active.length} đang xử lý · {pending.length} chờ phân công
+            {t('activeSummary', { active: active.length, pending: pending.length })}
           </p>
         </div>
         <Button variant="ghost" size="icon" onClick={fetchRequests} disabled={loading}>
@@ -216,7 +212,7 @@ export default function TeamMissionsPage() {
           {active.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-black uppercase tracking-wide text-orange-500 flex items-center gap-1.5">
-                <AlertTriangle size={12} /> Đang xử lý ({active.length})
+                <AlertTriangle size={12} /> {t('active')} ({active.length})
               </h2>
               {active.map(renderRequest)}
             </div>
@@ -226,7 +222,7 @@ export default function TeamMissionsPage() {
           {pending.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-black uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <HeartPulse size={12} /> Chờ phân công ({pending.length})
+                <HeartPulse size={12} /> {t('pending')} ({pending.length})
               </h2>
               {pending.map(renderRequest)}
             </div>
@@ -236,7 +232,7 @@ export default function TeamMissionsPage() {
           {done.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-black uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <CheckCircle2 size={12} /> Đã hoàn thành ({done.length})
+                <CheckCircle2 size={12} /> {t('done')} ({done.length})
               </h2>
               {done.slice(0, 3).map(renderRequest)}
             </div>
@@ -245,8 +241,8 @@ export default function TeamMissionsPage() {
           {requests.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <CheckCircle2 size={48} className="text-emerald-500 mb-3 opacity-60" />
-              <p className="font-bold text-lg">Không có nhiệm vụ nào</p>
-              <p className="text-sm text-muted-foreground mt-1">Chờ điều phối từ trung tâm.</p>
+              <p className="font-bold text-lg">{t('noMissions')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('waitDispatch')}</p>
             </div>
           )}
         </>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,23 +34,19 @@ interface MyRequest {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending:     { label: 'Đang chờ',      color: 'bg-yellow-500' },
-  assigned:    { label: 'Đã phân công',  color: 'bg-blue-500' },
-  in_progress: { label: 'Đang cứu hộ',  color: 'bg-orange-500 animate-pulse' },
-  completed:   { label: 'Hoàn thành',   color: 'bg-emerald-500' },
-  cancelled:   { label: 'Đã hủy',       color: 'bg-gray-400' },
+const STATUS_COLOR: Record<string, string> = {
+  pending:     'bg-yellow-500',
+  assigned:    'bg-blue-500',
+  in_progress: 'bg-orange-500 animate-pulse',
+  completed:   'bg-emerald-500',
+  cancelled:   'bg-gray-400',
 };
 
-const VULNERABLE = [
-  { id: 'children',  label: 'Trẻ em' },
-  { id: 'elderly',   label: 'Người cao tuổi' },
-  { id: 'disabled',  label: 'Người khuyết tật' },
-  { id: 'pregnant',  label: 'Phụ nữ mang thai' },
-];
+const VULNERABLE_IDS = ['children', 'elderly', 'disabled', 'pregnant'] as const;
 
 export default function CitizenRequestPage() {
   const { user } = useAuth();
+  const t = useTranslations('citizen.request');
   const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -82,16 +79,16 @@ export default function CitizenRequestPage() {
   }, []);
 
   const handleGetLocation = () => {
-    if (!navigator.geolocation) { toast.error('Trình duyệt không hỗ trợ GPS'); return; }
+    if (!navigator.geolocation) { toast.error(t('toastNoGps')); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setAddress(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        toast.success('Đã lấy vị trí GPS');
+        toast.success(t('toastGotGps'));
         setLocating(false);
       },
-      () => { toast.error('Không lấy được GPS, nhập địa chỉ thủ công'); setLocating(false); }
+      () => { toast.error(t('toastGpsError')); setLocating(false); }
     );
   };
 
@@ -104,7 +101,7 @@ export default function CitizenRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address && coords.lat === 16.0544) {
-      toast.error('Vui lòng lấy vị trí GPS hoặc nhập địa chỉ');
+      toast.error(t('toastNoGps'));
       return;
     }
     setSubmitting(true);
@@ -122,7 +119,7 @@ export default function CitizenRequestPage() {
         longitude: coords.lng,
         vulnerable_groups: vulnerableGroups,
       });
-      toast.success('Yêu cầu cứu hộ đã được gửi! Đội cứu hộ sẽ liên hệ sớm nhất.');
+      toast.success(t('successMsg'));
       setShowForm(false);
       setVulnerableGroups([]);
       setAddress('');
@@ -139,15 +136,15 @@ export default function CitizenRequestPage() {
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Yêu cầu cứu hộ</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gửi yêu cầu và theo dõi trạng thái</p>
+          <h1 className="text-2xl font-black tracking-tight">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
         </div>
         <Button
           className="gap-2 bg-primary"
           onClick={() => setShowForm(v => !v)}
         >
           <HeartPulse size={16} />
-          {showForm ? 'Đóng' : 'Gửi yêu cầu'}
+          {showForm ? t('close') : t('send')}
         </Button>
       </div>
 
@@ -156,14 +153,14 @@ export default function CitizenRequestPage() {
         <Card className="border-primary/30 shadow-lg">
           <CardHeader className="pb-2 bg-primary/5 rounded-t-xl">
             <div className="flex items-center gap-2 text-primary font-black">
-              <HeartPulse size={18} /> Yêu cầu cứu hộ khẩn cấp
+              <HeartPulse size={18} /> {t('emergencyTitle')}
             </div>
           </CardHeader>
           <CardContent className="pt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Họ tên *</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('fullName')} *</Label>
                   <Input
                     value={form.caller_name}
                     onChange={e => setForm(f => ({ ...f, caller_name: e.target.value }))}
@@ -172,7 +169,7 @@ export default function CitizenRequestPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Số điện thoại</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('phone')}</Label>
                   <div className="relative">
                     <Phone size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
                     <Input
@@ -187,28 +184,28 @@ export default function CitizenRequestPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Mức độ khẩn *</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('urgencyLevel')} *</Label>
                   <Select value={form.urgency} onValueChange={v => setForm(f => ({ ...f, urgency: v ?? "" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Thấp</SelectItem>
-                      <SelectItem value="medium">Trung bình</SelectItem>
-                      <SelectItem value="high">Cao</SelectItem>
-                      <SelectItem value="critical">Khẩn cấp</SelectItem>
+                      <SelectItem value="low">{t('urgency.low')}</SelectItem>
+                      <SelectItem value="medium">{t('urgency.medium')}</SelectItem>
+                      <SelectItem value="high">{t('urgency.high')}</SelectItem>
+                      <SelectItem value="critical">{t('urgency.critical')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Loại hỗ trợ *</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('supportType')} *</Label>
                   <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v ?? "" }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="rescue">Cứu hộ</SelectItem>
-                      <SelectItem value="evacuation">Sơ tán</SelectItem>
-                      <SelectItem value="medical">Y tế</SelectItem>
-                      <SelectItem value="food">Lương thực</SelectItem>
-                      <SelectItem value="water">Nước uống</SelectItem>
-                      <SelectItem value="shelter">Chỗ ở</SelectItem>
+                      <SelectItem value="rescue">{t('category.rescue')}</SelectItem>
+                      <SelectItem value="evacuation">{t('category.evacuation')}</SelectItem>
+                      <SelectItem value="medical">{t('category.medical')}</SelectItem>
+                      <SelectItem value="food">{t('category.food')}</SelectItem>
+                      <SelectItem value="water">{t('category.water')}</SelectItem>
+                      <SelectItem value="shelter">{t('category.shelter')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -216,7 +213,7 @@ export default function CitizenRequestPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Số người</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('peopleCount')}</Label>
                   <div className="relative">
                     <Users size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
                     <Input
@@ -228,7 +225,7 @@ export default function CitizenRequestPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Mực nước (m)</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('waterLevel')}</Label>
                   <div className="relative">
                     <Waves size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
                     <Input
@@ -244,15 +241,15 @@ export default function CitizenRequestPage() {
 
               {/* Vulnerable groups */}
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Nhóm cần ưu tiên</Label>
+                <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('priorityGroups')}</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {VULNERABLE.map(v => (
-                    <label key={v.id} className="flex items-center gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+                  {VULNERABLE_IDS.map(id => (
+                    <label key={id} className="flex items-center gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
                       <Checkbox
-                        checked={vulnerableGroups.includes(v.id)}
-                        onCheckedChange={() => toggleVulnerable(v.id)}
+                        checked={vulnerableGroups.includes(id)}
+                        onCheckedChange={() => toggleVulnerable(id)}
                       />
-                      <span className="text-xs font-medium">{v.label}</span>
+                      <span className="text-xs font-medium">{t(`vulnerable.${id}`)}</span>
                     </label>
                   ))}
                 </div>
@@ -260,13 +257,13 @@ export default function CitizenRequestPage() {
 
               {/* Location */}
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Vị trí *</Label>
+                <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('location')} *</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <MapPin size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
                     <Input
                       className="pl-8"
-                      placeholder="Địa chỉ hoặc nhấn GPS..."
+                      placeholder={t('locationPlaceholder')}
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                     />
@@ -276,14 +273,16 @@ export default function CitizenRequestPage() {
                   </Button>
                 </div>
                 {coords.lat !== 16.0544 && (
-                  <p className="text-[10px] text-emerald-600 font-medium">✓ GPS: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</p>
+                  <p className="text-[10px] text-emerald-600 font-medium">
+                    {t('gpsConfirm', { lat: coords.lat.toFixed(4), lng: coords.lng.toFixed(4) })}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Mô tả tình huống</Label>
+                <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('situationDesc')}</Label>
                 <Textarea
-                  placeholder="Mô tả chi tiết tình huống, số người bị mắc kẹt..."
+                  placeholder={t('situationPlaceholder')}
                   className="min-h-[80px] resize-none"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -292,8 +291,8 @@ export default function CitizenRequestPage() {
 
               <Button type="submit" disabled={submitting} className="w-full h-12 bg-primary font-black text-base">
                 {submitting
-                  ? <><RefreshCw size={16} className="animate-spin mr-2" /> Đang gửi...</>
-                  : <><HeartPulse size={16} className="mr-2" /> GỬI YÊU CẦU CỨU HỘ</>
+                  ? <><RefreshCw size={16} className="animate-spin mr-2" /> {t('sending')}</>
+                  : <><HeartPulse size={16} className="mr-2" /> {t('sendFull')}</>
                 }
               </Button>
             </form>
@@ -304,7 +303,7 @@ export default function CitizenRequestPage() {
       {/* My requests */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-black text-sm uppercase tracking-wide text-muted-foreground">Yêu cầu của tôi</h2>
+          <h2 className="font-black text-sm uppercase tracking-wide text-muted-foreground">{t('myRequests')}</h2>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={fetchMyRequests} disabled={loadingList}>
             <RefreshCw size={14} className={loadingList ? 'animate-spin' : ''} />
           </Button>
@@ -316,27 +315,28 @@ export default function CitizenRequestPage() {
           <Card className="border-border">
             <CardContent className="p-6 text-center text-muted-foreground">
               <HeartPulse size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Chưa có yêu cầu nào.</p>
+              <p className="text-sm">{t('noRequests')}</p>
             </CardContent>
           </Card>
         ) : (
           myRequests.map(req => {
-            const cfg = STATUS_CONFIG[req.status] ?? STATUS_CONFIG.pending;
+            const statusColor = STATUS_COLOR[req.status] ?? STATUS_COLOR.pending;
+            const statusLabel = req.status_label ?? t(`status.${req.status}` as any);
             return (
               <Card key={req.id} className="border-border overflow-hidden">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-bold text-sm">{req.address ?? 'Không có địa chỉ'}</p>
+                      <p className="font-bold text-sm">{req.address ?? t('noAddress')}</p>
                       {req.request_number && (
                         <p className="text-[10px] text-muted-foreground font-mono">{req.request_number}</p>
                       )}
                     </div>
-                    <Badge className={`${cfg.color} text-white text-[9px] shrink-0`}>{cfg.label}</Badge>
+                    <Badge className={`${statusColor} text-white text-[9px] shrink-0`}>{statusLabel}</Badge>
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Users size={11} /> {req.people_count} người</span>
+                    <span className="flex items-center gap-1"><Users size={11} /> {req.people_count} {t('people')}</span>
                     <span className="flex items-center gap-1"><Clock size={11} />
                       {new Date(req.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                     </span>
@@ -353,7 +353,9 @@ export default function CitizenRequestPage() {
                         {req.assigned_team.phone && (
                           <a href={`tel:${req.assigned_team.phone}`} className="ml-2 text-emerald-600 underline">{req.assigned_team.phone}</a>
                         )}
-                        {req.eta_minutes && <span className="ml-2 text-muted-foreground">ETA: {req.eta_minutes} phút</span>}
+                        {req.eta_minutes && (
+                          <span className="ml-2 text-muted-foreground">{t('eta', { minutes: req.eta_minutes })}</span>
+                        )}
                       </div>
                     </div>
                   )}

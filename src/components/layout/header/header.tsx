@@ -19,24 +19,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from '@/components/ui/sheet';
 
-const ROLE_PORTAL: Record<string, { href: string; label: string; icon: React.ElementType }> = {
-  city_admin:      { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-  rescue_operator: { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-  ai_operator:     { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-  rescue_team:     { href: '/team',      label: 'Rescue Portal', icon: ShieldAlert },
-  citizen:         { href: '/citizen',   label: 'Citizen App',   icon: HeartPulse },
-};
-
-const ROLE_BADGE: Record<string, string> = {
-  city_admin:      'Quản trị viên',
-  rescue_operator: 'Điều phối',
-  ai_operator:     'AI Operator',
-  rescue_team:     'Đội cứu hộ',
-  citizen:         'Người dân',
+const ROLE_PORTAL_HREF: Record<string, { href: string; icon: React.ElementType }> = {
+  city_admin:      { href: '/dashboard', icon: LayoutDashboard },
+  rescue_operator: { href: '/dashboard', icon: LayoutDashboard },
+  ai_operator:     { href: '/dashboard', icon: LayoutDashboard },
+  rescue_team:     { href: '/team',      icon: ShieldAlert },
+  citizen:         { href: '/citizen',   icon: HeartPulse },
 };
 
 export default function Header() {
   const t = useTranslations();
+  const tHeader = useTranslations('header');
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -47,13 +40,30 @@ export default function Header() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
+  const ROLE_BADGE_KEY: Record<string, string> = {
+    city_admin:      tHeader('roleAdmin'),
+    rescue_operator: tHeader('roleOperator'),
+    ai_operator:     tHeader('roleAiOperator'),
+    rescue_team:     tHeader('roleRescueTeam'),
+    citizen:         tHeader('roleCitizen'),
+  };
+
+  const ROLE_PORTAL_LABEL: Record<string, string> = {
+    city_admin:      tHeader('portalDashboard'),
+    rescue_operator: tHeader('portalDashboard'),
+    ai_operator:     tHeader('portalDashboard'),
+    rescue_team:     tHeader('portalRescue'),
+    citizen:         tHeader('portalCitizen'),
+  };
+
+  const portalData = user ? (ROLE_PORTAL_HREF[user.role] ?? ROLE_PORTAL_HREF.citizen) : null;
+  const portal = portalData ? { ...portalData, label: ROLE_PORTAL_LABEL[user?.role ?? 'citizen'] ?? 'Portal' } : null;
+  const roleBadge = user ? (ROLE_BADGE_KEY[user.role] ?? user.role) : null;
+
   const navLinks = [
     { href: '/#features', label: t('nav.solutions') },
     { href: '/contact',   label: t('nav.contact') },
   ];
-
-  const portal = user ? (ROLE_PORTAL[user.role] ?? ROLE_PORTAL.citizen) : null;
-  const roleBadge = user ? (ROLE_BADGE[user.role] ?? user.role) : null;
 
   return (
     <header className={cn(
@@ -139,7 +149,7 @@ export default function Header() {
                 )}
                 <DropdownMenuItem onClick={() => router.push(`${portal?.href ?? '/citizen'}/profile`)}>
                   <User size={14} />
-                  Hồ sơ cá nhân
+                  {tHeader('profile')}
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -149,7 +159,7 @@ export default function Header() {
                   className="text-red-500 focus:text-red-500 focus:bg-red-50"
                 >
                   <LogOut size={14} />
-                  Đăng xuất
+                  {tHeader('logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -230,7 +240,7 @@ export default function Header() {
                   <Button variant="outline"
                     className="w-full font-bold rounded-xl text-red-500 border-red-200 hover:bg-red-50"
                     onClick={logout}>
-                    <LogOut size={16} className="mr-2" /> Đăng xuất
+                    <LogOut size={16} className="mr-2" /> {tHeader('logout')}
                   </Button>
                 ) : (
                   <div className="flex flex-col gap-2">

@@ -27,6 +27,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const t = useTranslations();
+  const tDash = useTranslations('dashboard');
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -66,18 +67,18 @@ export default function DashboardLayout({
 
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scroll">
           {[
-            { href: '/dashboard',                    icon: LayoutDashboard, label: t('common.dashboard') || 'Tổng quan', roles: null },
-            { href: '/dashboard/analytics',          icon: BarChart3,       label: 'Thống kê',    roles: null },
-            { href: '/dashboard/incidents',          icon: AlertTriangle,   label: 'Sự cố',       roles: null },
-            { href: '/dashboard/flood-zones',        icon: Waves,           label: 'Vùng ngập',   roles: null },
-            { href: '/dashboard/rescue-requests',    icon: HeartPulse,      label: 'Cứu trợ',     roles: null },
-            { href: '/dashboard/rescue-teams',       icon: ShieldAlert,     label: 'Đội cứu hộ',  roles: null },
-            { href: '/dashboard/shelters',           icon: Home,            label: 'Tị nạn',      roles: null },
-            { href: '/dashboard/sensors',            icon: Activity,        label: 'Cảm biến',    roles: null },
-            { href: '/dashboard/alerts',             icon: Megaphone,       label: 'Cảnh báo',    roles: null },
-            { href: '/dashboard/predictions',        icon: BrainCircuit,    label: 'AI Dự báo',   roles: null },
-            { href: '/dashboard/recommendations',    icon: CheckCircle2,    label: 'Đề xuất AI',  roles: null },
-            { href: '/dashboard/admin/users',        icon: Users,           label: 'Nhân sự',     roles: ['city_admin'] },
+            { href: '/dashboard',                 icon: LayoutDashboard, labelKey: 'pages.overview',         roles: null },
+            { href: '/dashboard/analytics',       icon: BarChart3,       labelKey: 'pages.analytics',        roles: null },
+            { href: '/dashboard/incidents',       icon: AlertTriangle,   labelKey: 'pages.incidents',        roles: null },
+            { href: '/dashboard/flood-zones',     icon: Waves,           labelKey: 'pages.floodZones',       roles: null },
+            { href: '/dashboard/rescue-requests', icon: HeartPulse,      labelKey: 'pages.rescueRequests',   roles: null },
+            { href: '/dashboard/rescue-teams',    icon: ShieldAlert,     labelKey: 'pages.rescueTeams',      roles: null },
+            { href: '/dashboard/shelters',        icon: Home,            labelKey: 'pages.shelters',         roles: null },
+            { href: '/dashboard/sensors',         icon: Activity,        labelKey: 'pages.sensors',          roles: null },
+            { href: '/dashboard/alerts',          icon: Megaphone,       labelKey: 'pages.alerts',           roles: null },
+            { href: '/dashboard/predictions',     icon: BrainCircuit,    labelKey: 'pages.predictions',      roles: null },
+            { href: '/dashboard/recommendations', icon: CheckCircle2,    labelKey: 'pages.recommendations',  roles: null },
+            { href: '/dashboard/admin/users',     icon: Users,           labelKey: 'pages.users',            roles: ['city_admin'] },
           ].filter(item => !item.roles || item.roles.includes(user?.role ?? '')).map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -93,7 +94,7 @@ export default function DashboardLayout({
                 <div className={`transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className="text-sm tracking-tight">{item.label}</span>
+                <span className="text-sm tracking-tight">{tDash(item.labelKey as any)}</span>
                 {isActive && (
                    <motion.div 
                      layoutId="active-nav-indicator" 
@@ -108,11 +109,11 @@ export default function DashboardLayout({
         <div className="p-4 mt-auto border-t border-border bg-muted/20">
           <Link href="/dashboard/settings" className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 group ${pathname === '/dashboard/settings' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
             <Settings size={20} />
-            <span className="text-sm font-medium">{t('common.settings') || 'Cài đặt'}</span>
+            <span className="text-sm font-medium">{t('common.settings')}</span>
           </Link>
           <Button variant="ghost" onClick={() => logout()} className="w-full justify-start text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 gap-3 h-10 px-4 rounded-xl font-medium transition-all">
             <LogOut size={20} />
-            <span className="text-sm">{t('common.logout') || 'Đăng xuất'}</span>
+            <span className="text-sm">{t('common.logout')}</span>
           </Button>
         </div>
       </aside>

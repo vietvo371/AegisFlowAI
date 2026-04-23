@@ -58,23 +58,25 @@ export default function NotFound() {
         transition={{ delay: 0.4 }}
         className="flex flex-col sm:flex-row gap-5"
       >
-        <Button 
-          render={<Link href="/dashboard" />} 
-          size="lg" 
-          className="rounded-2xl h-14 px-10 font-black gap-3 shadow-xl shadow-primary/25 hover:scale-105 transition-transform active:scale-95"
-        >
-          <Home size={22} />
-          {t('backHome')}
-        </Button>
-        <Button 
-          render={<Link href="/dashboard/map" />} 
-          variant="outline" 
-          size="lg" 
-          className="rounded-2xl h-14 px-10 font-black gap-3 border-2 hover:bg-muted/50 transition-all"
-        >
-          <MapIcon size={22} />
-          Xem Bản đồ
-        </Button>
+        <Link href="/dashboard">
+          <Button 
+            size="lg" 
+            className="rounded-2xl h-14 px-10 font-black gap-3 shadow-xl shadow-primary/25 hover:scale-105 transition-transform active:scale-95"
+          >
+            <Home size={22} />
+            {t('backHome')}
+          </Button>
+        </Link>
+        <Link href="/dashboard/map">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="rounded-2xl h-14 px-10 font-black gap-3 border-2 hover:bg-muted/50 transition-all"
+          >
+            <MapIcon size={22} />
+            {t('viewMap')}
+          </Button>
+        </Link>
       </motion.div>
 
       {/* Background Decorative Waves */}
