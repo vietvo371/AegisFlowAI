@@ -199,7 +199,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-auto relative">
+        <main className="flex-1 overflow-hidden relative min-h-0">
           <PageTransition>
             {children}
           </PageTransition>

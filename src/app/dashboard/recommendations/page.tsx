@@ -268,7 +268,7 @@ export default function RecommendationsPage() {
       <Dialog open={!!rejectTarget} onOpenChange={() => { setRejectTarget(null); setRejectReason(''); }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>{t('recommendations.rejectTitle', { id: rejectTarget?.id })}</DialogTitle>
+            <DialogTitle>{t('recommendations.rejectTitle', { id: rejectTarget?.id ?? 0 })}</DialogTitle>
             <DialogDescription>{t('recommendations.rejectDesc')}</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">

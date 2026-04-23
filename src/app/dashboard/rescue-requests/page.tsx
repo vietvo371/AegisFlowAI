@@ -203,7 +203,7 @@ export default function RescueRequestsPage() {
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>{t('rescueRequests.actionTitle', { id: selected?.id })}</DialogTitle>
+            <DialogTitle>{t('rescueRequests.actionTitle', { id: selected?.id ?? 0 })}</DialogTitle>
             <DialogDescription>{t('rescueRequests.actionDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-3">

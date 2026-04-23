@@ -7,7 +7,7 @@ import { ForecastPanel } from '@/components/panels/forecast-panel';
 import { ReliefPanel } from '@/components/panels/relief-panel';
 import type { EvacuationRoute } from '@/lib/openmap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CloudRain, Navigation, Maximize2, Layers } from 'lucide-react';
+import { CloudRain, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
@@ -65,15 +65,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Map Controls Overlay */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-          <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-background/90 backdrop-blur-md border border-border shadow-lg">
-            <Layers size={20} className="text-muted-foreground" />
-          </Button>
-          <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-background/90 backdrop-blur-md border border-border shadow-lg">
-            <Maximize2 size={20} className="text-muted-foreground" />
-          </Button>
-        </div>
+        {/* Map Controls Overlay — removed, MapComponent has its own layer panel */}
 
         {/* The Map */}
         <div className="w-full h-full">

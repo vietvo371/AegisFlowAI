@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{t('users.editTitle', { name: selectedUser?.name })}</DialogTitle>
+            <DialogTitle>{t('users.editTitle', { name: selectedUser?.name ?? '' })}</DialogTitle>
             <DialogDescription>{t('users.editDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
