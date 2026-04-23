@@ -8,6 +8,7 @@ import '@openmapvn/openmapvn-gl/dist/maplibre-gl.css';
 import api from '@/lib/api';
 import { decodePolyline, type EvacuationRoute } from '@/lib/openmap';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 import { Layers, RefreshCw, MapPin, Waves, Droplets, Radio, AlertTriangle, Home, Users, X } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -59,28 +60,8 @@ interface Props {
 const DA_NANG_CENTER: [number, number] = [108.2022, 16.0544];
 const DEFAULT_ZOOM = 12;
 
-const LAYER_GROUPS: LayerGroup[] = [
-  { id: 'flood',    label: 'Báo cáo ngập',    icon: <Droplets size={13} /> },
-  { id: 'station',  label: 'Trạm quan trắc',  icon: <Radio size={13} /> },
-  { id: 'other',    label: 'Khác',             icon: <Layers size={13} /> },
-];
-
-const LAYER_CONFIGS: LayerConfig[] = [
-  // Flood reports
-  { key: 'flood_streets',        label: 'Đường ngập',          count: 296, icon: '🛣️',  color: '#3B82F6', defaultOn: true,  group: 'flood'   },
-  { key: 'flood_points',         label: 'Điểm ngập',           count: 96,  icon: '💧',  color: '#EF4444', defaultOn: true,  group: 'flood'   },
-  // Sensor stations — each type separate
-  { key: 'station_rain',         label: 'Trạm đo mưa',         count: 82,  icon: '☁️', color: '#06B6D4', defaultOn: false, group: 'station' },
-  { key: 'station_flood_1m5',    label: 'Tháp báo ngập',       count: 56,  icon: '📡',  color: '#8B5CF6', defaultOn: false, group: 'station' },
-  { key: 'station_flood_3m',     label: 'Tháp báo lũ',         count: 24,  icon: '⚠️',  color: '#F97316', defaultOn: false, group: 'station' },
-  { key: 'station_water_level',  label: 'Trạm đo mực nước',    count: 8,   icon: '⏱️', color: '#0EA5E9', defaultOn: false, group: 'station' },
-  { key: 'station_reservoir',    label: 'Trạm hồ chứa',        count: 5,   icon: '🌊', color: '#10B981', defaultOn: false, group: 'station' },
-  // Other
-  { key: 'flood_zones',          label: 'Vùng ngập',           count: 3,   icon: '🗺️',  color: '#06B6D4', defaultOn: false, group: 'other'   },
-  { key: 'incidents',            label: 'Sự cố',               count: 3,   icon: '🛑',  color: '#EF4444', defaultOn: true,  group: 'other'   },
-  { key: 'shelters',             label: 'Điểm trú ẩn',         count: 4,   icon: '🏠',  color: '#22C55E', defaultOn: true,  group: 'other'   },
-  { key: 'rescue_teams',         label: 'Đội cứu hộ',          count: 5,   icon: '➕',  color: '#F97316', defaultOn: false, group: 'other'   },
-];
+// Note: LAYER_GROUPS and LAYER_CONFIGS moved to component-level i18n variables
+// layerGroups and layerConfigs are defined inside the component with useTranslations
 
 // Map LayerKey → MapLibre layer IDs
 const LAYER_MAP: Record<LayerKey, string[]> = {
@@ -133,12 +114,38 @@ function formatTime(iso: string | null | undefined): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
+  const t = useTranslations('dashboard');
+  const tMap = useTranslations('dashboard.mapLayers');
+  const tPopup = useTranslations('dashboard.mapPopup');
+  const tLegend = useTranslations('dashboard.legend');
+  
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
 
+  // ── Layer configs with i18n labels ───────────────────────────────────────
+  const layerGroups = [
+    { id: 'flood',    label: tMap('floodReport'),   icon: <Droplets size={13} /> },
+    { id: 'station', label: tMap('sensorStations'), icon: <Radio size={13} /> },
+    { id: 'other',   label: tMap('other'),        icon: <Layers size={13} /> },
+  ];
+
+  const layerConfigs = [
+    { key: 'flood_streets',        label: tMap('floodStreets'),       count: 296, icon: '🛣️', color: '#3B82F6', defaultOn: true,  group: 'flood' },
+    { key: 'flood_points',         label: tMap('floodPoints'),         count: 96,  icon: '💧',  color: '#EF4444', defaultOn: true,  group: 'flood' },
+    { key: 'station_rain',        label: tMap('rainStation'),         count: 82,  icon: '☁️', color: '#06B6D4', defaultOn: false, group: 'station' },
+    { key: 'station_flood_1m5',   label: tMap('floodTower'),           count: 56,  icon: '📡',  color: '#8B5CF6', defaultOn: false, group: 'station' },
+    { key: 'station_flood_3m',    label: tMap('floodAlertTower'),      count: 24,  icon: '⚠️',  color: '#F97316', defaultOn: false, group: 'station' },
+    { key: 'station_water_level',  label: tMap('waterLevelStation'),    count: 8,   icon: '⏱️', color: '#0EA5E9', defaultOn: false, group: 'station' },
+    { key: 'station_reservoir',    label: tMap('reservoirStation'),     count: 5,   icon: '🌊', color: '#10B981', defaultOn: false, group: 'station' },
+    { key: 'flood_zones',         label: tMap('floodZones'),           count: 3,   icon: '🗺️',  color: '#06B6D4', defaultOn: false, group: 'other' },
+    { key: 'incidents',           label: tMap('incidents'),             count: 3,   icon: '🛑',  color: '#EF4444', defaultOn: true,  group: 'other' },
+    { key: 'shelters',            label: tMap('shelters'),              count: 4,   icon: '🏠',  color: '#22C55E', defaultOn: true,  group: 'other' },
+    { key: 'rescue_teams',        label: tMap('rescueTeams'),            count: 5,   icon: '➕',  color: '#F97316', defaultOn: false, group: 'other' },
+  ];
+
   const [activeLayers, setActiveLayers] = useState<Set<LayerKey>>(
-    () => new Set(LAYER_CONFIGS.filter(l => l.defaultOn).map(l => l.key))
+    () => new Set(layerConfigs.filter(l => l.defaultOn).map(l => l.key))
   );
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -574,18 +581,28 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
         const wl = Number(props.water_level_cm ?? 0);
         const color = waterLevelColor(wl);
         const isStreet = layerId === 'layer-flood-streets' || props.flood_type === 'street';
-        const typeLabel = isStreet ? 'ĐƯỜNG NGẬP' : 'ĐIỂM NGẬP';
+        const typeLabel = isStreet ? tPopup('floodStreets') : tPopup('floodPoints');
         const typeIcon = isStreet ? '🛣️' : '💧';
 
         // Title: street_name > address
         const title = String(props.street_name ?? props.address ?? '—');
         const wardDistrict = [props.ward_name, props.district_name].filter(Boolean).join(', ');
+        const freqLabel = tPopup('frequent');
         const freq = props.is_frequent
-          ? `<span style="display:inline-block;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin-left:6px">Thường xuyên</span>`
+          ? `<span style="display:inline-block;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin-left:6px">${freqLabel}</span>`
           : '';
         const startAddr = String(props.address ?? '—');
         const timeStr = formatTime((props.flood_started_at ?? props.reported_at) as string);
-        const endTimeStr = props.flood_ended_at ? formatTime(props.flood_ended_at as string) : 'Đang ngập';
+        const floodingLabel = tPopup('flooding');
+        const endTimeStr = props.flood_ended_at ? formatTime(props.flood_ended_at as string) : floodingLabel;
+        const infoTypeLabel = isStreet ? 'đoạn' : 'điểm';
+        const floodInfoLabel = tPopup('floodInfo', { type: infoTypeLabel });
+        const floodDepthLabel = tPopup('floodDepth');
+        const cmLabel = tPopup('cm');
+        const floodStartLocLabel = tPopup('floodStartLocation');
+        const floodTimeLabel = tPopup('floodTime');
+        const floodStatusLabel = tPopup('floodStatus');
+        const recededLabel = tPopup('receded');
         const desc = props.description ? `<div style="color:#6B7280;font-size:12px;margin-top:8px;padding-top:8px;border-top:1px solid #E5E7EB">${String(props.description)}</div>` : '';
 
         html = `
@@ -594,29 +611,29 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
   <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:2px;line-height:1.4;padding-right:4px">${title}</div>
   <div style="font-size:12px;color:#6B7280;margin-bottom:12px">${wardDistrict}</div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
-    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Thông tin ${isStreet ? 'đoạn' : 'điểm'} ngập</div>
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${floodInfoLabel}</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
       <tr>
-        <td style="color:#6B7280;padding:5px 0;width:45%">Mức ngập</td>
+        <td style="color:#6B7280;padding:5px 0;width:45%">${floodDepthLabel}</td>
         <td style="text-align:right;font-weight:700;color:${color};padding:5px 0;font-size:14px">
-          ${wl > 0 ? `${wl} <span style="font-size:11px;font-weight:400;color:#6B7280">cm</span>` : '<span style="color:#9CA3AF">—</span>'}
+          ${wl > 0 ? `${wl} <span style="font-size:11px;font-weight:400;color:#6B7280">${cmLabel}</span>` : '<span style="color:#9CA3AF">—</span>'}
         </td>
       </tr>
       ${isStreet ? `
       <tr style="border-top:1px solid #E5E7EB">
-        <td style="color:#6B7280;padding:5px 0;vertical-align:top">Địa điểm bắt đầu</td>
+        <td style="color:#6B7280;padding:5px 0;vertical-align:top">${floodStartLocLabel}</td>
         <td style="text-align:right;color:#374151;padding:5px 0;word-break:break-word">${startAddr}</td>
       </tr>` : ''}
       <tr style="border-top:1px solid #E5E7EB">
-        <td style="color:#6B7280;padding:5px 0">Thời gian ngập</td>
+        <td style="color:#6B7280;padding:5px 0">${floodTimeLabel}</td>
         <td style="text-align:right;color:#374151;padding:5px 0">${timeStr}</td>
       </tr>
       <tr style="border-top:1px solid #E5E7EB">
-        <td style="color:#6B7280;padding:5px 0">Tình trạng</td>
+        <td style="color:#6B7280;padding:5px 0">${floodStatusLabel}</td>
         <td style="text-align:right;padding:5px 0">
           ${props.flood_ended_at
-            ? `<span style="background:#F3F4F6;color:#6B7280;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">Đã rút</span>`
-            : `<span style="background:#DCFCE7;color:#16A34A;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">Đang ngập</span>`
+            ? `<span style="background:#F3F4F6;color:#6B7280;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${recededLabel}</span>`
+            : `<span style="background:#DCFCE7;color:#16A34A;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${floodingLabel}</span>`
           }
         </td>
       </tr>
@@ -635,30 +652,36 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
         const label = String(props.station_type_label ?? props.station_type ?? '—');
         const addr = String(props.address ?? props.area ?? '—');
         const wardDistrict = [props.ward_name, props.district_name].filter(Boolean).join(', ');
+        const phoneLabel = tPopup('phone');
+        const stationHeaderLabel = tPopup('sensorStationHeader');
+        const sensorInfoLabel = tPopup('sensorStation');
+        const stationTypeLabel = tPopup('stationType');
+        const addressLabel = tPopup('address');
+        const waterLevelLabel = tPopup('waterLevel');
         const phone = props.phone ? `
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Điện thoại</td>
+        <td style="color:#6B7280;padding:4px 0">${phoneLabel}</td>
         <td style="text-align:right;color:#374151;padding:4px 0">📞 ${String(props.phone)}</td>
       </tr>` : '';
 
         html = `
 <div style="font-family:system-ui,sans-serif;width:100%;box-sizing:border-box">
-  <div style="font-size:10px;font-weight:700;color:#7C3AED;letter-spacing:.08em;margin-bottom:4px">${icon} TRẠM ĐO</div>
+  <div style="font-size:10px;font-weight:700;color:#7C3AED;letter-spacing:.08em;margin-bottom:4px">${icon} ${stationHeaderLabel}</div>
   <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:2px;line-height:1.4;padding-right:4px">${String(props.name ?? '—')}</div>
   <div style="font-size:12px;color:#6B7280;margin-bottom:12px">${wardDistrict || addr}</div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
-    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Thông tin trạm</div>
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${sensorInfoLabel}</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
       <tr>
-        <td style="color:#6B7280;padding:5px 0;width:45%">Loại trạm</td>
+        <td style="color:#6B7280;padding:5px 0;width:45%">${stationTypeLabel}</td>
         <td style="text-align:right;color:#374151;padding:5px 0;word-break:break-word">${label}</td>
       </tr>
       <tr style="border-top:1px solid #E5E7EB">
-        <td style="color:#6B7280;padding:5px 0;vertical-align:top">Địa chỉ</td>
+        <td style="color:#6B7280;padding:5px 0;vertical-align:top">${addressLabel}</td>
         <td style="text-align:right;color:#374151;padding:5px 0;word-break:break-word">${addr}</td>
       </tr>
       <tr style="border-top:1px solid #E5E7EB">
-        <td style="color:#6B7280;padding:5px 0">Mực nước</td>
+        <td style="color:#6B7280;padding:5px 0">${waterLevelLabel}</td>
         <td style="text-align:right;font-weight:700;color:#7C3AED;padding:5px 0;font-size:14px">
           ${depth ? `${depth} <span style="font-size:11px;font-weight:400;color:#6B7280">m</span>` : '<span style="color:#9CA3AF;font-size:12px;font-weight:400">—</span>'}
         </td>
@@ -671,17 +694,17 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
         const wardDistrict = [props.ward_name, props.district_name].filter(Boolean).join(', ');
         html = `
 <div style="font-family:system-ui,sans-serif;min-width:260px;max-width:320px">
-  <div style="font-size:10px;font-weight:700;color:#DC2626;letter-spacing:.08em;margin-bottom:4px">⚠️ SỰ CỐ</div>
-  <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;line-height:1.3">${String(props.title ?? 'Sự cố')}</div>
+  <div style="font-size:10px;font-weight:700;color:#DC2626;letter-spacing:.08em;margin-bottom:4px">⚠️ ${tPopup('incidents') || 'INCIDENT'}</div>
+  <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;line-height:1.3">${String(props.title ?? '—')}</div>
   <div style="font-size:12px;color:#6B7280;margin-bottom:12px">${wardDistrict || String(props.address ?? '—')}</div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Trạng thái</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('status')}</td>
         <td style="text-align:right;padding:4px 0"><span style="background:#FEF3C7;color:#D97706;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${String(props.status ?? '—')}</span></td>
       </tr>
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Mức độ</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('severity')}</td>
         <td style="text-align:right;padding:4px 0"><span style="background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${String(props.severity ?? '—')}</span></td>
       </tr>
     </table>
@@ -693,23 +716,23 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
         const pct = cap > 0 ? Math.round((1 - avail / cap) * 100) : 0;
         html = `
 <div style="font-family:system-ui,sans-serif;min-width:260px;max-width:320px">
-  <div style="font-size:10px;font-weight:700;color:#16A34A;letter-spacing:.08em;margin-bottom:4px">🏠 ĐIỂM TRÚ ẨN</div>
+  <div style="font-size:10px;font-weight:700;color:#16A34A;letter-spacing:.08em;margin-bottom:4px">🏠 ${tPopup('shelter')}</div>
   <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:12px;line-height:1.3">${String(props.name ?? '—')}</div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Sức chứa</td>
-        <td style="text-align:right;color:#374151;font-weight:600;padding:4px 0">${cap} người</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('capacity')}</td>
+        <td style="text-align:right;color:#374151;font-weight:600;padding:4px 0">${cap} ${tPopup('people')}</td>
       </tr>
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Còn trống</td>
-        <td style="text-align:right;font-weight:700;color:#16A34A;padding:4px 0">${avail} chỗ</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('available')}</td>
+        <td style="text-align:right;font-weight:700;color:#16A34A;padding:4px 0">${avail} ${tPopup('spots')}</td>
       </tr>
       <tr><td colspan="2" style="padding:6px 0 2px">
         <div style="background:#E5E7EB;border-radius:99px;height:6px;overflow:hidden">
           <div style="background:#16A34A;height:100%;width:${100-pct}%;border-radius:99px;transition:width .3s"></div>
         </div>
-        <div style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right">${pct}% đã sử dụng</div>
+        <div style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right">${pct}% ${tPopup('used')}</div>
       </td></tr>
     </table>
   </div>
@@ -717,16 +740,16 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
       } else if (layerId === 'layer-rescue-teams') {
         html = `
 <div style="font-family:system-ui,sans-serif;min-width:220px">
-  <div style="font-size:10px;font-weight:700;color:#EA580C;letter-spacing:.08em;margin-bottom:4px">🚒 ĐỘI CỨU HỘ</div>
+  <div style="font-size:10px;font-weight:700;color:#EA580C;letter-spacing:.08em;margin-bottom:4px">🚒 ${tPopup('rescueTeam')}</div>
   <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:12px">${String(props.name ?? '—')}</div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Trạng thái</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('status')}</td>
         <td style="text-align:right;padding:4px 0"><span style="background:#FED7AA;color:#EA580C;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${String(props.status ?? '—')}</span></td>
       </tr>
       <tr>
-        <td style="color:#6B7280;padding:4px 0">Loại đội</td>
+        <td style="color:#6B7280;padding:4px 0">${tPopup('teamType')}</td>
         <td style="text-align:right;color:#374151;padding:4px 0">${String(props.team_type ?? '—')}</td>
       </tr>
     </table>
@@ -780,7 +803,7 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
       {loading && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-background/90 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs shadow">
           <RefreshCw size={12} className="animate-spin text-primary" />
-          <span>Đang tải dữ liệu...</span>
+          <span>{t('loading')}</span>
         </div>
       )}
 
@@ -793,7 +816,7 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
           onClick={() => setLayerPanelOpen(v => !v)}
         >
           <Layers size={14} />
-          Lớp bản đồ
+          {tMap('title')}
         </Button>
 
         {layerPanelOpen && (
@@ -802,7 +825,7 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/40">
               <div className="flex items-center gap-1.5 text-xs font-semibold">
                 <Layers size={13} className="text-primary" />
-                Lớp dữ liệu
+                {tMap('dataLayers')}
               </div>
               <button onClick={() => setLayerPanelOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X size={14} />
@@ -811,8 +834,8 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
 
             {/* Groups */}
             <div className="py-1 max-h-[420px] overflow-y-auto">
-              {LAYER_GROUPS.map(group => {
-                const groupLayers = LAYER_CONFIGS.filter(c => c.group === group.id);
+              {layerGroups.map(group => {
+                const groupLayers = layerConfigs.filter(c => c.group === group.id);
                 return (
                   <div key={group.id}>
                     {/* Group header */}
@@ -859,7 +882,7 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
           className="h-8 w-8 shadow-md"
           onClick={fetchData}
           disabled={loading}
-          title="Làm mới dữ liệu"
+          title={t('refresh')}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </Button>
@@ -868,13 +891,13 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
       {/* Legend */}
       <div className="absolute bottom-10 right-10 z-10 bg-background/90 backdrop-blur-sm border border-border rounded-lg p-2 text-[10px] space-y-1 shadow">
         <div className="font-semibold text-xs mb-1 flex items-center gap-1">
-          <MapPin size={11} /> Mực nước ngập
+          <MapPin size={11} /> {tLegend('waterLevel')}
         </div>
         {[
-          { color: '#EF4444', label: '≥ 75 cm' },
-          { color: '#F97316', label: '≥ 50 cm' },
-          { color: '#3B82F6', label: '≥ 25 cm' },
-          { color: '#22C55E', label: '< 25 cm'  },
+          { color: '#EF4444', label: tLegend('above75') },
+          { color: '#F97316', label: tLegend('above50') },
+          { color: '#3B82F6', label: tLegend('above25') },
+          { color: '#22C55E', label: tLegend('below25') },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full inline-block" style={{ background: color }} />

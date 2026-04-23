@@ -45,6 +45,7 @@ interface FloodRisk {
 export function ForecastPanel() {
   const t = useTranslations('dashboard');
   const tF = useTranslations('dashboard.forecast');
+  const tCommon = useTranslations('common');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [waterSensor, setWaterSensor] = useState<SensorData | null>(null);
   const [floodRisk, setFloodRisk] = useState<FloodRisk | null>(null);
@@ -116,7 +117,7 @@ export function ForecastPanel() {
       icon: Droplets,
       label: tF('rainfall'),
       value: weather?.rainfall_mm != null ? `${weather.rainfall_mm}mm` : '—',
-      sub: weather?.district?.name ?? 'Đà Nẵng',
+      sub: weather?.district?.name ?? tCommon('cityName'),
       color: 'text-blue-500',
     },
     {
