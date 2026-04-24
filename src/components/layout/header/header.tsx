@@ -18,6 +18,7 @@ import {
   DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { NotificationBell } from '@/components/notification/NotificationBell';
 
 const ROLE_PORTAL_HREF: Record<string, { href: string; icon: React.ElementType }> = {
   city_admin:      { href: '/dashboard', icon: LayoutDashboard },
@@ -106,6 +107,11 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-3">
           <LocaleToggle />
           <ThemeToggle />
+
+          {user && (
+            <NotificationBell />
+          )}
+
           <div className="h-6 w-px bg-border mx-1" />
 
           {user ? (

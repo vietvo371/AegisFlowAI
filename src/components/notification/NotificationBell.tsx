@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Bell, CheckCheck, Trash2, AlertTriangle, Megaphone, HeartPulse, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 interface Notification {
   id: string;
@@ -40,8 +41,44 @@ function timeAgo(date: Date): string {
   return `${days} ngày trước`;
 }
 
+function getLinkByRole(type: string, data: Record<string, unknown>, role?: string): string {
+  if (role === 'citizen') {
+    return '/citizen';
+  }
+  if (role === 'rescue_team') {
+    if ((type === 'rescue' || type === 'incident') && data.id) {
+      return `/team/requests/${data.id}`;
+    }
+    return '/team/requests';
+  }
+  if (type === 'incident' && data.id) {
+    return `/dashboard/incidents/${data.id}`;
+  }
+  if (type === 'alert') {
+    return '/dashboard/alerts';
+  }
+  if (type === 'rescue') {
+    return '/dashboard/rescue-requests';
+  }
+  if (type === 'prediction') {
+    return '/dashboard/predictions';
+  }
+  return '/dashboard/notifications';
+}
+
+function getAllLink(role?: string): string {
+  if (role === 'citizen') {
+    return '/citizen';
+  }
+  if (role === 'rescue_team') {
+    return '/team/requests';
+  }
+  return '/dashboard/notifications';
+}
+
 export function NotificationBell({ className = '' }: NotificationBellProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [animate, setAnimate] = useState(false);
@@ -49,6 +86,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
   const prevCountRef = useRef(0);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  const userRole = user?.role || user?.roles?.[0];
 
   // Listen for realtime events and add to notifications
   useEffect(() => {
@@ -59,7 +97,9 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
         title: `Sự cố mới: ${data.title}`,
         message: data.address || 'Không có địa chỉ',
         type: 'incident',
-        link: `/dashboard/incidents/${data.id}`,
+        link: getLinkByRole('incident', data, userRole),
+        read: false,
+        timestamp: new Date(),
         data,
       });
     };
@@ -71,7 +111,9 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
         title: `Cảnh báo: ${data.title}`,
         message: data.description || 'Không có mô tả',
         type: 'alert',
-        link: '/dashboard/alerts',
+        link: getLinkByRole('alert', data, userRole),
+        read: false,
+        timestamp: new Date(),
         data,
       });
     };
@@ -83,7 +125,9 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
         title: 'Yêu cầu cứu hộ mới',
         message: `${data.address} - Cần ${data.people_count} người`,
         type: 'rescue',
-        link: '/dashboard/rescue-requests',
+        link: getLinkByRole('rescue', data, userRole),
+        read: false,
+        timestamp: new Date(),
         data,
       });
     };
@@ -95,7 +139,9 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
         title: 'AI dự báo mới',
         message: `Độ tin cậy: ${Math.round((data.confidence || 0) * 100)}%`,
         type: 'prediction',
-        link: '/dashboard/predictions',
+        link: getLinkByRole('prediction', data, userRole),
+        read: false,
+        timestamp: new Date(),
         data,
       });
     };
@@ -111,7 +157,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
       window.removeEventListener('aegis:rescue_request:created', handleRescueCreated as EventListener);
       window.removeEventListener('aegis:prediction:received', handlePredictionReceived as EventListener);
     };
-  }, []);
+  }, [userRole]);
 
   const addNotification = useCallback((notification: Notification) => {
     setNotifications(prev => {
@@ -124,12 +170,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     // Animate bell
     setAnimate(true);
     setTimeout(() => setAnimate(false), 600);
-
-    // Auto open dropdown if closed
-    if (!open) {
-      setOpen(true);
-    }
-  }, [open]);
+  }, []);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -264,6 +305,21 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
               })
             )}
           </div>
+
+          {/* Footer: Xem tất cả */}
+          {notifications.length > 0 && (
+            <div className="border-t border-border px-4 py-2.5">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  router.push(getAllLink(userRole));
+                }}
+                className="w-full text-xs text-center text-primary hover:underline font-semibold"
+              >
+                Xem tất cả thông báo
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
