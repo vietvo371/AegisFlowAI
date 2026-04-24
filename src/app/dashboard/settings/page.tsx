@@ -3,193 +3,405 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { motion } from 'framer-motion';
+import {
+  Settings, User, Bell, Shield, Palette, Globe, Key,
+  Mail, Phone, MapPin, Save, Camera, CheckCircle
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Mail, Phone, User, Save, RefreshCw } from 'lucide-react';
-import api from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function SettingsPage() {
   const t = useTranslations('dashboard');
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = React.useState(false);
-  const [formData, setFormData] = React.useState({
-    name: '',
-    phone: '',
-    current_password: '',
-    new_password: '',
-    new_password_confirmation: '',
+  const [profile, setProfile] = React.useState({
+    name: user?.name ?? '',
+    email: user?.email ?? '',
+    phone: user?.phone ?? '',
   });
 
-  React.useEffect(() => {
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        name: user.name || '',
-        phone: user.phone || '',
-      }));
-    }
-  }, [user]);
+  const [notifications, setNotifications] = React.useState({
+    email: true,
+    push: true,
+    sms: false,
+    alerts: true,
+    rescue_requests: true,
+    predictions: false,
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const [preferences, setPreferences] = React.useState({
+    theme: 'system',
+    language: 'vi',
+    timezone: 'Asia/Ho_Chi_Minh',
+  });
 
-  const updateProfile = async () => {
+  const handleProfileUpdate = async () => {
     setLoading(true);
     try {
-      const res = await api.put('/auth/profile', {
-        name: formData.name,
-        phone: formData.phone,
-      });
-      if (res.data?.success) {
-        await refreshUser();
-      }
+      const api = (await import('@/lib/api')).default;
+      await api.patch('/users/profile', profile);
+      await refreshUser();
+      toast.success('Cập nhật hồ sơ thành công!');
     } catch (e) {
-      console.error(e);
+      toast.error('Không thể cập nhật hồ sơ');
     } finally {
       setLoading(false);
     }
   };
 
-  const updatePassword = async () => {
-    if (formData.new_password !== formData.new_password_confirmation) {
-      toast.error(t('settings.passwordMismatch'));
-      return;
-    }
-    if (formData.new_password.length < 8) {
-      toast.error(t('settings.passwordTooShort'));
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const currentPassword = formData.get('current_password');
+    const newPassword = formData.get('new_password');
+    const confirmPassword = formData.get('confirm_password');
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu mới không khớp');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/change-password', {
-        current_password: formData.current_password,
-        new_password: formData.new_password,
-        new_password_confirmation: formData.new_password_confirmation,
+      const api = (await import('@/lib/api')).default;
+      await api.post('/auth/change-password', {
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword,
       });
-      if (res.data?.success) {
-        setFormData(prev => ({
-          ...prev,
-          current_password: '',
-          new_password: '',
-          new_password_confirmation: '',
-        }));
-      }
+      toast.success('Đổi mật khẩu thành công!');
+      e.currentTarget.reset();
     } catch (e) {
-      console.error(e);
+      toast.error('Không thể đổi mật khẩu');
     } finally {
       setLoading(false);
     }
   };
-
-  if (!user) return <div className="p-8">{t('settings.loadingUser')}</div>;
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+    <div className="h-full overflow-auto p-6 space-y-6 custom-scroll">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('pages.settings')}</h1>
-        <p className="text-muted-foreground mt-1">{t('settings.subtitle')}</p>
+        <h1 className="text-2xl font-bold tracking-tight">Cài đặt</h1>
+        <p className="text-sm text-muted-foreground">Quản lý tài khoản và tùy chọn</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* User Card */}
-        <div className="md:col-span-1 space-y-6">
-          <Card className="border-border overflow-hidden">
-            <div className="h-24 bg-primary/10 w-full" />
-            <div className="px-6 pb-6 pt-0 relative flex flex-col items-center text-center">
-              <div className="w-20 h-20 bg-background rounded-full border-4 border-background flex items-center justify-center -mt-10 overflow-hidden shadow-sm">
-                {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-primary/20 text-primary flex items-center justify-center font-bold text-2xl">
-                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Profile Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User size={20} />
+                  Hồ sơ cá nhân
+                </CardTitle>
+                <CardDescription>Cập nhật thông tin cá nhân của bạn</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Avatar */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-20 h-20">
+                    {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
+                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                      {user?.name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Camera size={14} />
+                      Đổi ảnh
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">JPG, PNG tối đa 2MB</p>
                   </div>
-                )}
-              </div>
-              <h3 className="text-xl font-bold mt-3">{user.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 justify-center"><Mail className="w-3.5 h-3.5" /> {user.email}</p>
+                </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                <Badge variant="secondary" className="capitalize"><ShieldCheck className="w-3 h-3 mr-1" /> {user.role?.replace('_', ' ') || 'User'}</Badge>
-                {user.status === 'active' ? (
-                  <Badge className="bg-emerald-500">{t('settings.statusActive')}</Badge>
-                ) : (
-                  <Badge variant="destructive">{t('settings.statusLocked')}</Badge>
-                )}
-              </div>
-            </div>
-          </Card>
+                <Separator />
+
+                {/* Form */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Họ và tên</Label>
+                    <Input
+                      id="name"
+                      value={profile.name}
+                      onChange={(e) => setProfile(p => ({ ...p, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email}
+                      onChange={(e) => setProfile(p => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Số điện thoại</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phone}
+                      onChange={(e) => setProfile(p => ({ ...p, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Vai trò</Label>
+                    <Input value={user?.role ?? ''} disabled className="bg-muted" />
+                  </div>
+                </div>
+
+                <Button onClick={handleProfileUpdate} disabled={loading} className="gap-2">
+                  {loading ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <Save size={14} />
+                  )}
+                  Lưu thay đổi
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Password Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key size={20} />
+                  Đổi mật khẩu
+                </CardTitle>
+                <CardDescription>Cập nhật mật khẩu để bảo vệ tài khoản</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="current_password">Mật khẩu hiện tại</Label>
+                    <Input
+                      id="current_password"
+                      name="current_password"
+                      type="password"
+                      required
+                    />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new_password">Mật khẩu mới</Label>
+                      <Input
+                        id="new_password"
+                        name="new_password"
+                        type="password"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm_password">Xác nhận mật khẩu</Label>
+                      <Input
+                        id="confirm_password"
+                        name="confirm_password"
+                        type="password"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loading} className="gap-2">
+                    <Shield size={14} />
+                    Đổi mật khẩu
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* Forms */}
-        <div className="md:col-span-2 space-y-6">
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle>{t('settings.profileTitle')}</CardTitle>
-              <CardDescription>{t('settings.profileDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('settings.fieldName')}</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="name" name="name" value={formData.name} onChange={handleChange} className="pl-9" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t('settings.fieldPhone')}</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} className="pl-9" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('settings.fieldEmail')}</Label>
-                <div className="relative opacity-60">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="email" readOnly value={user.email} className="pl-9 bg-muted cursor-not-allowed" />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-muted/30 pt-4 flex justify-end">
-              <Button onClick={updateProfile} disabled={loading} className="gap-2">
-                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('settings.updateProfileBtn')}
-              </Button>
-            </CardFooter>
-          </Card>
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Notification Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell size={20} />
+                  Thông báo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: 'email', label: 'Email', description: 'Nhận thông báo qua email' },
+                  { key: 'push', label: 'Push notification', description: 'Nhận thông báo trên trình duyệt' },
+                  { key: 'sms', label: 'SMS', description: 'Nhận tin nhắn SMS' },
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                        <Bell size={14} className="text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifications[item.key as keyof typeof notifications]}
+                      onCheckedChange={(checked) =>
+                        setNotifications(n => ({ ...n, [item.key]: checked }))
+                      }
+                    />
+                  </div>
+                ))}
 
-          <Card className="border-border border-destructive/20">
-            <CardHeader>
-              <CardTitle className="text-destructive">{t('settings.passwordTitle')}</CardTitle>
-              <CardDescription>{t('settings.passwordDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current_password">{t('settings.fieldCurrentPassword')}</Label>
-                <Input id="current_password" type="password" name="current_password" value={formData.current_password} onChange={handleChange} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Separator />
+
+                <p className="text-sm font-medium">Loại thông báo</p>
+                {[
+                  { key: 'alerts', label: 'Cảnh báo ngập lụt' },
+                  { key: 'rescue_requests', label: 'Yêu cầu cứu hộ' },
+                  { key: 'predictions', label: 'Dự báo AI' },
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center justify-between">
+                    <span className="text-sm">{item.label}</span>
+                    <Switch
+                      checked={notifications[item.key as keyof typeof notifications]}
+                      onCheckedChange={(checked) =>
+                        setNotifications(n => ({ ...n, [item.key]: checked }))
+                      }
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Preferences */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette size={20} />
+                  Giao diện
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new_password">{t('settings.fieldNewPassword')}</Label>
-                  <Input id="new_password" type="password" name="new_password" value={formData.new_password} onChange={handleChange} />
+                  <Label>Chủ đề</Label>
+                  <Select
+                    value={preferences.theme}
+                    onValueChange={(value) =>
+                      value && setPreferences(p => ({ ...p, theme: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Sáng</SelectItem>
+                      <SelectItem value="dark">Tối</SelectItem>
+                      <SelectItem value="system">Hệ thống</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="new_password_confirmation">{t('settings.fieldConfirmPassword')}</Label>
-                  <Input id="new_password_confirmation" type="password" name="new_password_confirmation" value={formData.new_password_confirmation} onChange={handleChange} />
+                  <Label>Ngôn ngữ</Label>
+                  <Select
+                    value={preferences.language}
+                    onValueChange={(value) =>
+                      value && setPreferences(p => ({ ...p, language: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vi">Tiếng Việt</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-muted/30 pt-4 flex justify-end">
-              <Button variant="destructive" onClick={updatePassword} disabled={loading || !formData.new_password} className="gap-2">
-                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} {t('settings.changePasswordBtn')}
-              </Button>
-            </CardFooter>
-          </Card>
+
+                <div className="space-y-2">
+                  <Label>Múi giờ</Label>
+                  <Select
+                    value={preferences.timezone}
+                    onValueChange={(value) =>
+                      value && setPreferences(p => ({ ...p, timezone: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Asia/Ho_Chi_Minh">Việt Nam (UTC+7)</SelectItem>
+                      <SelectItem value="Asia/Bangkok">Thái Lan (UTC+7)</SelectItem>
+                      <SelectItem value="Asia/Singapore">Singapore (UTC+8)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Danger Zone */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="border-red-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-600">
+                  <Shield size={20} />
+                  Vùng nguy hiểm
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Xóa tài khoản</p>
+                    <p className="text-xs text-muted-foreground">
+                      Xóa vĩnh viễn tài khoản và dữ liệu
+                    </p>
+                  </div>
+                  <Button variant="destructive" size="sm">
+                    Xóa
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>

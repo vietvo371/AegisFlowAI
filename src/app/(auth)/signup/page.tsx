@@ -2,47 +2,52 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, Loader2, User, Mail, Lock, Phone } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, Phone } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth-context';
 
 export default function SignUpPage() {
   const t = useTranslations('auth');
-  const { register } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [agreed, setAgreed] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    password_confirmation: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!agreed) {
-      toast.error('Vui lòng đồng ý với điều khoản sử dụng');
-      return;
-    }
     setIsLoading(true);
 
-    const fd = new FormData(e.currentTarget);
-    const firstName = fd.get('firstName') as string;
-    const lastName  = fd.get('lastName') as string;
-
     try {
-      await register({
-        name:                  `${firstName} ${lastName}`.trim(),
-        email:                 fd.get('email'),
-        phone:                 fd.get('phone') || undefined,
-        password:              fd.get('password'),
-        password_confirmation: fd.get('password'),
-      });
-      toast.success('Đăng ký thành công!');
-      await new Promise(r => setTimeout(r, 100));
-      window.location.replace('/citizen');
+      const api = (await import('@/lib/api')).default;
+      const res = await api.post('/auth/register', formData);
+
+      if (res.data?.success) {
+        const { token, user: userData } = res.data.data;
+        localStorage.setItem('aegisflow_token', token);
+        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+
+        toast.success('Đăng ký thành công!');
+        window.location.href = '/citizen';
+      }
     } catch (error: any) {
+      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+        setIsLoading(false);
+        return;
+      }
       toast.error(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
@@ -59,38 +64,24 @@ export default function SignUpPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t('firstName')}
-            </Label>
-            <div className="relative">
-              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                id="firstName" name="firstName"
-                placeholder={t('firstNamePlaceholder')}
-                className="h-11 rounded-xl bg-muted/30 pl-9"
-                autoComplete="given-name"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t('lastName')}
-            </Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {t('fullName')}
+          </Label>
+          <div className="relative">
+            <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
-              id="lastName" name="lastName"
-              placeholder={t('lastNamePlaceholder')}
-              className="h-11 rounded-xl bg-muted/30"
-              autoComplete="family-name"
+              id="name" name="name" type="text"
+              placeholder={t('fullNamePlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9"
+              autoComplete="name"
               required
+              value={formData.name}
+              onChange={handleChange}
             />
           </div>
         </div>
 
-        {/* Email */}
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('email')}
@@ -103,30 +94,32 @@ export default function SignUpPage() {
               className="h-11 rounded-xl bg-muted/30 pl-9"
               autoComplete="email"
               required
+              value={formData.email}
+              onChange={handleChange}
             />
           </div>
         </div>
 
-        {/* Phone */}
         <div className="space-y-1.5">
           <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Số điện thoại <span className="normal-case font-normal text-muted-foreground/60">(tùy chọn)</span>
+            {t('phone')}
           </Label>
           <div className="relative">
             <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               id="phone" name="phone" type="tel"
-              placeholder="0901 234 567"
+              placeholder="0912 345 678"
               className="h-11 rounded-xl bg-muted/30 pl-9"
               autoComplete="tel"
+              value={formData.phone}
+              onChange={handleChange}
             />
           </div>
         </div>
 
-        {/* Password */}
         <div className="space-y-1.5">
           <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {t('createPassword')}
+            {t('password')}
           </Label>
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -136,8 +129,10 @@ export default function SignUpPage() {
               placeholder={t('passwordPlaceholder')}
               className="h-11 rounded-xl bg-muted/30 pl-9 pr-10"
               autoComplete="new-password"
-              minLength={8}
               required
+              minLength={8}
+              value={formData.password}
+              onChange={handleChange}
             />
             <button
               type="button"
@@ -148,36 +143,50 @@ export default function SignUpPage() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <p className="text-[11px] text-muted-foreground ml-1">Tối thiểu 8 ký tự</p>
         </div>
 
-        {/* Terms */}
-        <div className="flex items-start gap-2.5 pt-1">
-          <Checkbox
+        <div className="space-y-1.5">
+          <Label htmlFor="password_confirmation" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {t('confirmPassword')}
+          </Label>
+          <div className="relative">
+            <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              id="password_confirmation" name="password_confirmation"
+              type={showPassword ? 'text' : 'password'}
+              placeholder={t('confirmPasswordPlaceholder')}
+              className="h-11 rounded-xl bg-muted/30 pl-9"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={formData.password_confirmation}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 pt-2">
+          <input
+            type="checkbox"
             id="terms"
-            checked={agreed}
-            onCheckedChange={v => setAgreed(!!v)}
-            className="mt-0.5"
+            required
+            className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary"
           />
-          <Label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+          <Label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed">
             Tôi đồng ý với{' '}
-            <Link href="/privacy" className="text-primary font-bold hover:underline underline-offset-4">
-              Điều khoản sử dụng
-            </Link>{' '}
-            và{' '}
-            <Link href="/privacy" className="text-primary font-bold hover:underline underline-offset-4">
-              Chính sách bảo mật
-            </Link>
+            <Link href="/terms" className="text-primary hover:underline">Điều khoản sử dụng</Link>
+            {' '}và{' '}
+            <Link href="/privacy" className="text-primary hover:underline">Chính sách bảo mật</Link>
           </Label>
         </div>
 
         <Button
           type="submit"
-          disabled={isLoading || !agreed}
+          disabled={isLoading}
           className="w-full h-11 font-bold rounded-xl shadow-lg shadow-primary/20"
         >
           {isLoading
-            ? <><Loader2 size={16} className="animate-spin mr-2" />{t('signingUp')}</>
+            ? <><Loader2 size={16} className="animate-spin mr-2" />{t('creating')}</>
             : t('signUp')
           }
         </Button>
@@ -196,9 +205,19 @@ export default function SignUpPage() {
 
       <Link href="/signin" className="w-full">
         <Button variant="outline" className="w-full h-11 rounded-xl font-bold">
-          {t('signInLink')}
+          {t('signIn')}
         </Button>
       </Link>
+
+      {/* Trust */}
+      <div className="flex items-center justify-center gap-3 pt-2">
+        {['AES-256 SSL', 'ISO 27001', 'GDPR'].map((badge, i) => (
+          <React.Fragment key={badge}>
+            {i > 0 && <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />}
+            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{badge}</span>
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }

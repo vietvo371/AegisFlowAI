@@ -8,14 +8,27 @@ import { ReliefPanel } from '@/components/panels/relief-panel';
 import type { EvacuationRoute } from '@/lib/openmap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CloudRain, Navigation } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
+interface SelectedTeam {
+  id: number;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+}
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
   const [evacuationRoute, setEvacuationRoute] = React.useState<EvacuationRoute | null>(null);
+  const [selectedTeam, setSelectedTeam] = React.useState<SelectedTeam | null>(null);
 
   const handleSelectRoute = (route: EvacuationRoute) => {
     setEvacuationRoute(route);
+    setSelectedTeam(null);
+  };
+
+  const handleSelectTeam = (team: SelectedTeam) => {
+    setSelectedTeam(team);
   };
 
   return (
@@ -42,13 +55,13 @@ export default function DashboardPage() {
                 {t('reliefDispatch')}
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="forecast" className="mt-6 animate-fade-in-up">
               <ForecastPanel />
             </TabsContent>
-            
+
             <TabsContent value="relief" className="mt-6 animate-fade-in-up">
-              <ReliefPanel onSelectRoute={handleSelectRoute} />
+              <ReliefPanel onSelectRoute={handleSelectRoute} onSelectTeam={handleSelectTeam} />
             </TabsContent>
           </Tabs>
         </div>
@@ -61,15 +74,16 @@ export default function DashboardPage() {
           <div className="px-3 py-1.5 rounded-xl bg-background/90 backdrop-blur-md border border-border shadow-lg flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary" />
             <span className="text-xs font-bold">{t('floodMap')}</span>
-            <span className="text-[10px] text-muted-foreground uppercase ml-1">Đà Nẵng</span>
+            <span className="text-[10px] text-muted-foreground uppercase ml-1">{tCommon('cityName')}</span>
           </div>
         </div>
 
-        {/* Map Controls Overlay — removed, MapComponent has its own layer panel */}
-
         {/* The Map */}
         <div className="w-full h-full">
-          <MapComponent evacuationRoute={evacuationRoute} />
+          <MapComponent
+            evacuationRoute={evacuationRoute}
+            focusTeam={selectedTeam}
+          />
         </div>
       </div>
     </div>

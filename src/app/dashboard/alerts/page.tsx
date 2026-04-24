@@ -1,271 +1,371 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import api from '@/lib/api';
-import { useTable } from '@/lib/use-table';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { motion } from 'framer-motion';
+import {
+  Megaphone, Bell, AlertTriangle, Clock, Eye, Send,
+  Search, Filter, Plus, CheckCircle, XCircle, Volume2
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { DataPagination } from '@/components/ui/data-pagination';
-import { RefreshCw, Search, Megaphone, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Alert {
-  id: number; alert_number?: string; title: string; description?: string;
-  alert_type: string; severity: string; status: string;
-  effective_from: string; effective_until?: string; source?: string;
+  id: number;
+  title: string;
+  description?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: 'flood' | 'weather' | 'rescue' | 'system' | 'emergency';
+  status: 'active' | 'resolved' | 'expired';
+  area?: string;
+  affected_population?: number;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string;
 }
-
-const SEV_COLOR: Record<string, string> = {
-  critical: 'bg-red-500 animate-pulse', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500',
-};
-const STA_CLS: Record<string, string> = {
-  active:   'bg-red-500 text-white',
-  updated:  'bg-orange-500 text-white',
-  resolved: 'bg-emerald-500 text-white',
-  expired:  'text-gray-400',
-  draft:    'text-muted-foreground',
-};
 
 export default function AlertsPage() {
   const t = useTranslations('dashboard');
-  const tEnum = useTranslations('enums');
-
-  const { data: alerts, meta, loading, setFilter, setPage, refresh } = useTable<Alert>({
-    endpoint: '/alerts', perPage: 20,
-  });
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    title: '', description: '', alert_type: 'flood',
-    severity: 'medium', effective_from: '', effective_until: '',
-  });
+  const [alerts, setAlerts] = React.useState<Alert[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [search, setSearch] = React.useState('');
+  const [severityFilter, setSeverityFilter] = React.useState('all');
+  const [statusFilter, setStatusFilter] = React.useState('all');
 
   React.useEffect(() => {
-    const h = () => refresh();
-    window.addEventListener('aegis:alert:created', h);
-    return () => window.removeEventListener('aegis:alert:created', h);
-  }, [refresh]);
+    const fetchAlerts = async () => {
+      setLoading(true);
+      try {
+        const api = (await import('@/lib/api')).default;
+        const params: any = {};
+        if (severityFilter !== 'all') params.severity = severityFilter;
+        if (statusFilter !== 'all') params.status = statusFilter;
+        const res = await api.get('/alerts', { params });
+        setAlerts(res.data?.data ?? []);
+      } catch (e) {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleCreate = async () => {
-    if (!form.title || !form.description) { toast.error(t('alerts.validationError')); return; }
-    setSubmitting(true);
+    fetchAlerts();
+
+    const handler = () => fetchAlerts();
+    window.addEventListener('aegis:alert:created', handler);
+    return () => window.removeEventListener('aegis:alert:created', handler);
+  }, [severityFilter, statusFilter]);
+
+  const handleResolve = async (id: number) => {
     try {
-      await api.post('/alerts', {
-        ...form,
-        effective_from: form.effective_from || new Date().toISOString().slice(0, 16),
-        effective_until: form.effective_until || undefined,
-      });
-      setIsCreateOpen(false);
-      setForm({ title: '', description: '', alert_type: 'flood', severity: 'medium', effective_from: '', effective_until: '' });
-      refresh();
-    } catch (e) { console.error(e); }
-    finally { setSubmitting(false); }
+      const api = (await import('@/lib/api')).default;
+      await api.post(`/alerts/${id}/resolve`);
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'resolved', resolved_at: new Date().toISOString() } : a));
+      toast.success('Đã giải quyết cảnh báo');
+    } catch (e) {
+      toast.error('Không thể giải quyết cảnh báo');
+    }
   };
 
-  const getStatusLabel = (status: string) => {
-    const map: Record<string, string> = {
-      active: t('alerts.statusActive'),
-      updated: t('alerts.statusUpdated'),
-      resolved: t('alerts.statusResolved'),
-      expired: t('alerts.statusExpired'),
-      draft: t('alerts.statusDraft'),
-    };
-    return map[status] ?? status;
+  const getSeverityConfig = (severity: string) => {
+    switch (severity) {
+      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: 'Nghiêm trọng' };
+      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Cao' };
+      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Trung bình' };
+      case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: 'Thấp' };
+      default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: severity };
+    }
   };
 
-  const getTypeLabel = (type: string) => {
-    const map: Record<string, string> = {
-      flood: t('alerts.typeFlood'),
-      storm: t('alerts.typeStorm'),
-      landslide: t('alerts.typeLandslide'),
-      evacuation: t('alerts.typeEvacuation'),
-      system: t('alerts.typeSystem'),
-    };
-    return map[type] ?? type;
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'active': return { color: 'text-green-600', bg: 'bg-green-50', label: 'Đang hoạt động', icon: Bell };
+      case 'resolved': return { color: 'text-blue-600', bg: 'bg-blue-50', label: 'Đã giải quyết', icon: CheckCircle };
+      case 'expired': return { color: 'text-gray-600', bg: 'bg-gray-50', label: 'Hết hạn', icon: Clock };
+      default: return { color: 'text-gray-600', bg: 'bg-gray-50', label: status, icon: Clock };
+    }
   };
 
-  const activeCount = alerts.filter(a => a.status === 'active').length;
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'flood': return '🌊';
+      case 'weather': return '⛈️';
+      case 'rescue': return '🚑';
+      case 'system': return '⚙️';
+      case 'emergency': return '🚨';
+      default: return '📢';
+    }
+  };
+
+  const filteredAlerts = alerts.filter(alert =>
+    alert.title.toLowerCase().includes(search.toLowerCase()) ||
+    alert.description?.toLowerCase().includes(search.toLowerCase()) ||
+    alert.area?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const activeAlerts = filteredAlerts.filter(a => a.status === 'active');
+  const resolvedAlerts = filteredAlerts.filter(a => a.status === 'resolved');
+
+  const stats = {
+    total: alerts.length,
+    active: alerts.filter(a => a.status === 'active').length,
+    critical: alerts.filter(a => a.status === 'active' && a.severity === 'critical').length,
+    resolved: alerts.filter(a => a.status === 'resolved').length,
+  };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="h-full overflow-auto p-6 space-y-6 custom-scroll">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('pages.alerts')}</h1>
-          <p className="text-muted-foreground mt-1">{t('alerts.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight">Cảnh báo</h1>
+          <p className="text-sm text-muted-foreground">Quản lý và phát cảnh báo</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
-            <Megaphone size={16} /> {t('alerts.issueBtn')}
-          </Button>
-        </div>
+        <Button className="gap-2">
+          <Plus size={16} />
+          Tạo cảnh báo mới
+        </Button>
       </div>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder={t('alerts.searchPlaceholder')} className="pl-9 h-9 bg-muted/50"
-                onChange={e => setFilter('search', e.target.value)} />
-            </div>
-            <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-40"><SelectValue placeholder={t('alerts.statusPlaceholder')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('table.all')}</SelectItem>
-                <SelectItem value="active">{tEnum('alertStatus.active')}</SelectItem>
-                <SelectItem value="resolved">{tEnum('alertStatus.resolved')}</SelectItem>
-                <SelectItem value="expired">{tEnum('alertStatus.expired')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={v => setFilter('severity', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-36"><SelectValue placeholder={t('alerts.severityPlaceholder')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('table.all')}</SelectItem>
-                <SelectItem value="critical">{t('alerts.sevCritical')}</SelectItem>
-                <SelectItem value="high">{t('alerts.sevHigh')}</SelectItem>
-                <SelectItem value="medium">{t('alerts.sevMedium')}</SelectItem>
-                <SelectItem value="low">{t('alerts.sevLow')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={v => setFilter('alert_type', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-36"><SelectValue placeholder={t('alerts.typePlaceholder')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('table.all')}</SelectItem>
-                <SelectItem value="flood">{t('alerts.typeFlood')}</SelectItem>
-                <SelectItem value="storm">{t('alerts.typeStorm')}</SelectItem>
-                <SelectItem value="landslide">{t('alerts.typeLandslide')}</SelectItem>
-                <SelectItem value="evacuation">{t('alerts.typeEvacuation')}</SelectItem>
-              </SelectContent>
-            </Select>
-            {activeCount > 0 && (
-              <span className="text-sm font-medium text-red-500 whitespace-nowrap">
-                {t('alerts.activeCount', { count: activeCount })}
-              </span>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[110px]">{t('alerts.colCode')}</TableHead>
-                <TableHead>{t('alerts.colContent')}</TableHead>
-                <TableHead>{t('alerts.colType')}</TableHead>
-                <TableHead>{t('alerts.colSeverity')}</TableHead>
-                <TableHead>{t('alerts.colStatus')}</TableHead>
-                <TableHead className="text-right">{t('alerts.colEffective')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="h-32 text-center"><RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-              ) : alerts.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground">{t('alerts.noAlerts')}</TableCell></TableRow>
-              ) : alerts.map(a => {
-                const staCls = STA_CLS[a.status];
-                return (
-                  <TableRow key={a.id} className="hover:bg-muted/30">
-                    <TableCell><Badge variant="outline" className="font-mono text-xs">{a.alert_number ?? `#${a.id}`}</Badge></TableCell>
-                    <TableCell>
-                      <div className="flex items-start gap-2">
-                        <AlertCircle size={15} className={`mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-red-500' : 'text-orange-500'}`} />
-                        <div>
-                          <p className="font-semibold text-sm leading-snug">{a.title}</p>
-                          {a.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{a.description}</p>}
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Tổng cảnh báo', value: stats.total, icon: Megaphone, color: 'text-blue-600 bg-blue-100' },
+          { label: 'Đang hoạt động', value: stats.active, icon: Bell, color: 'text-green-600 bg-green-100' },
+          { label: 'Nghiêm trọng', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
+          { label: 'Đã giải quyết', value: stats.resolved, icon: CheckCircle, color: 'text-gray-600 bg-gray-100' },
+        ].map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center`}>
+                  <stat.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input
+            placeholder="Tìm kiếm cảnh báo..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={severityFilter} onValueChange={(v) => v && setSeverityFilter(v)}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="Mức độ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả mức độ</SelectItem>
+            <SelectItem value="critical">Nghiêm trọng</SelectItem>
+            <SelectItem value="high">Cao</SelectItem>
+            <SelectItem value="medium">Trung bình</SelectItem>
+            <SelectItem value="low">Thấp</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="active">Đang hoạt động</SelectItem>
+            <SelectItem value="resolved">Đã giải quyết</SelectItem>
+            <SelectItem value="expired">Hết hạn</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Alerts Tabs */}
+      <Tabs defaultValue="active" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="active" className="gap-2">
+            <Bell size={14} />
+            Đang hoạt động ({activeAlerts.length})
+          </TabsTrigger>
+          <TabsTrigger value="resolved" className="gap-2">
+            <CheckCircle size={14} />
+            Đã giải quyết ({resolvedAlerts.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-4">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="h-24 bg-muted rounded-lg animate-pulse" />
+                </CardContent>
+              </Card>
+            ))
+          ) : activeAlerts.length > 0 ? (
+            activeAlerts.map((alert, i) => {
+              const severity = getSeverityConfig(alert.severity);
+              const status = getStatusConfig(alert.status);
+              const StatusIcon = status.icon;
+
+              return (
+                <motion.div
+                  key={alert.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Card className={`${alert.severity === 'critical' ? 'border-red-200 bg-red-50/30' : ''}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl ${severity.bg} flex items-center justify-center text-2xl shrink-0`}>
+                          {getTypeIcon(alert.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold">{alert.title}</h3>
+                            <Badge className={`${severity.text} bg-opacity-10`} style={{ backgroundColor: 'var(--tw-bg-opacity, 0.1)' }}>
+                              {severity.label}
+                            </Badge>
+                            <Badge variant="outline" className={`${status.color} gap-1`}>
+                              <StatusIcon size={12} />
+                              {status.label}
+                            </Badge>
+                          </div>
+                          {alert.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
+                            {alert.area && (
+                              <span className="flex items-center gap-1">
+                                📍 {alert.area}
+                              </span>
+                            )}
+                            {alert.affected_population && (
+                              <span className="flex items-center gap-1">
+                                👥 {alert.affected_population.toLocaleString()} người
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 ml-auto">
+                              <Clock size={14} />
+                              {new Date(alert.created_at).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button variant="outline" size="sm" className="gap-1">
+                            <Eye size={14} />
+                            Chi tiết
+                          </Button>
+                          <Button size="sm" onClick={() => handleResolve(alert.id)} className="gap-1">
+                            <CheckCircle size={14} />
+                            Giải quyết
+                          </Button>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell><span className="text-xs text-muted-foreground">{getTypeLabel(a.alert_type)}</span></TableCell>
-                    <TableCell>
-                      <Badge className={`${SEV_COLOR[a.severity]} text-white`}>
-                        {tEnum(`severity.${a.severity}` as any, { defaultValue: a.severity })}
-                      </Badge>
-                    </TableCell>
-                    <TableCell><Badge variant="outline" className={staCls}>{getStatusLabel(a.status)}</Badge></TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      <div className="flex items-center justify-end gap-1">
-                        <Calendar size={11} />
-                        {new Date(a.effective_from).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                      </div>
-                      {!a.effective_until && <div className="text-[10px] text-red-400">{t('alerts.indefinite')}</div>}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <DataPagination meta={meta} onPageChange={setPage} />
-        </CardContent>
-      </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Không có cảnh báo nào đang hoạt động</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t('alerts.createTitle')}</DialogTitle>
-            <DialogDescription>{t('alerts.createDesc')}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 py-3">
-            <div className="space-y-1.5"><Label>{t('alerts.fieldTitle')}</Label>
-              <Input placeholder={t('alerts.fieldTitlePlaceholder')} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>{t('alerts.fieldType')}</Label>
-                <Select value={form.alert_type} onValueChange={v => setForm(f => ({ ...f, alert_type: v ?? '' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="flood">{t('alerts.typeFlood')}</SelectItem>
-                    <SelectItem value="storm">{t('alerts.typeStorm')}</SelectItem>
-                    <SelectItem value="landslide">{t('alerts.typeLandslide')}</SelectItem>
-                    <SelectItem value="evacuation">{t('alerts.typeEvacuation')}</SelectItem>
-                    <SelectItem value="system">{t('alerts.typeSystem')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>{t('alerts.fieldSeverity')}</Label>
-                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v ?? '' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">{t('alerts.sevLow')}</SelectItem>
-                    <SelectItem value="medium">{t('alerts.sevMedium')}</SelectItem>
-                    <SelectItem value="high">{t('alerts.sevHigh')}</SelectItem>
-                    <SelectItem value="critical">{t('alerts.sevCritical')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>{t('alerts.fieldEffectiveFrom')}</Label>
-                <Input type="datetime-local" value={form.effective_from} onChange={e => setForm(f => ({ ...f, effective_from: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5"><Label>{t('alerts.fieldEffectiveUntil')}</Label>
-                <Input type="datetime-local" value={form.effective_until} onChange={e => setForm(f => ({ ...f, effective_until: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-1.5"><Label>{t('alerts.fieldContent')}</Label>
-              <Textarea placeholder={t('alerts.fieldContentPlaceholder')} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px] resize-none" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>{t('actions.cancel')}</Button>
-            <Button variant="destructive" onClick={handleCreate} disabled={submitting}>
-              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              <Megaphone size={14} className="mr-2" /> {t('alerts.issueCommand')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <TabsContent value="resolved" className="space-y-4">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="h-24 bg-muted rounded-lg animate-pulse" />
+                </CardContent>
+              </Card>
+            ))
+          ) : resolvedAlerts.length > 0 ? (
+            resolvedAlerts.map((alert, i) => {
+              const severity = getSeverityConfig(alert.severity);
+              const status = getStatusConfig(alert.status);
+              const StatusIcon = status.icon;
+
+              return (
+                <motion.div
+                  key={alert.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Card className="opacity-75">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl ${severity.bg} flex items-center justify-center text-2xl shrink-0 opacity-50`}>
+                          {getTypeIcon(alert.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold opacity-75">{alert.title}</h3>
+                            <Badge className={`${severity.text} bg-opacity-10 opacity-50`} style={{ backgroundColor: 'var(--tw-bg-opacity, 0.1)' }}>
+                              {severity.label}
+                            </Badge>
+                            <Badge variant="outline" className={`${status.color} gap-1 opacity-75`}>
+                              <StatusIcon size={12} />
+                              {status.label}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            {alert.resolved_at && (
+                              <span>Giải quyết lúc: {new Date(alert.resolved_at).toLocaleString('vi-VN')}</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          <Eye size={14} />
+                          Xem lại
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Không có cảnh báo nào đã giải quyết</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

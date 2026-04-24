@@ -14,6 +14,7 @@ const ROLE_ROUTES: Record<string, string> = {
   city_admin:      '/dashboard',
   rescue_operator: '/dashboard',
   ai_operator:     '/dashboard',
+  sensor:          '/dashboard',
   rescue_team:     '/team',
   citizen:         '/citizen',
 };
@@ -47,6 +48,11 @@ export default function SignInPage() {
         window.location.replace(ROLE_ROUTES[role] ?? '/dashboard');
       }
     } catch (error: any) {
+      // Ignore abort errors (user navigated away)
+      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+        setIsLoading(false);
+        return;
+      }
       toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
     } finally {
       setIsLoading(false);

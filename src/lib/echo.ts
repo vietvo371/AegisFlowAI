@@ -1,32 +1,33 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-// Đưa Pusher vào window tập cục bộ để Echo có thể truy cập nếu cần
+// Reverb uses Pusher protocol — make Pusher available globally
 if (typeof window !== 'undefined') {
   (window as any).Pusher = Pusher;
 }
 
-/**
- * Khởi tạo Laravel Echo kết nối với Reverb
- */
-const echo = typeof window !== 'undefined' 
-  ? new Echo({
-      broadcaster: 'reverb',
-      key: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
-      cluster: 'mt1', // Reverb không dùng cluster nhưng Pusher-js yêu cầu (hoặc mặc định)
-      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || '127.0.0.1',
-      wsPort: process.env.NEXT_PUBLIC_REVERB_PORT ? parseInt(process.env.NEXT_PUBLIC_REVERB_PORT) : 6001,
-      forceTLS: process.env.NEXT_PUBLIC_REVERB_SCHEME === 'https',
-      enabledTransports: ['ws', 'wss'],
-      // Authorization header for private channels
-      authEndpoint: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/broadcasting/auth`,
-      auth: {
-        headers: {
-          Authorization: typeof localStorage !== 'undefined' ? `Bearer ${localStorage.getItem('aegisflow_token')}` : '',
-          Accept: 'application/json',
-        },
-      },
-    })
-  : null;
+let echoInstance: Echo<'reverb'> | null = null;
 
-export default echo;
+export function getEcho(): Echo<'reverb'> {
+  if (typeof window === 'undefined') {
+    throw new Error('Echo can only be used in browser');
+  }
+
+  if (!echoInstance) {
+    const isHttps = process.env.NEXT_PUBLIC_REVERB_SCHEME === 'https';
+
+    echoInstance = new Echo({
+      broadcaster: 'reverb',
+      key: process.env.NEXT_PUBLIC_REVERB_KEY || 'aegisflow-key',
+      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || '127.0.0.1',
+      wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT) || 8080,
+      wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT) || 443,
+      forceTLS: isHttps,
+      enabledTransports: ['ws', 'wss'],
+    });
+  }
+
+  return echoInstance;
+}
+
+export default getEcho;

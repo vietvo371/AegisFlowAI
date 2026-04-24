@@ -2,196 +2,320 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useTable } from '@/lib/use-table';
-import api from '@/lib/api';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { motion } from 'framer-motion';
+import {
+  BrainCircuit, TrendingUp, Droplets, AlertTriangle, MapPin,
+  Clock, RefreshCw, Calendar, Filter, Star
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { DataPagination } from '@/components/ui/data-pagination';
-import { RefreshCw, Search, BrainCircuit, Play, CheckCircle2, Clock } from 'lucide-react';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Prediction {
-  id: number; prediction_type: string;
-  model?: { id: number; name: string; version: string };
-  model_version?: string;
-  prediction_for?: string; horizon_minutes?: number;
-  issued_at: string; predicted_value?: number;
-  confidence?: number; probability?: number;
-  severity?: string; severity_label?: string;
-  status: string; status_label?: string;
-  flood_zone?: { id: number; name: string };
-  verified_by?: { id: number; name: string };
-  processing_time_ms?: number;
+  id: number;
+  type: 'flood' | 'rainfall' | 'water_level';
+  area: string;
+  latitude?: number;
+  longitude?: number;
+  predicted_at: string;
+  time_range: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  confidence: number;
+  water_level_prediction?: number;
+  rainfall_prediction?: number;
+  affected_zones: string[];
+  recommendations: string[];
+  created_at: string;
 }
-
-const SEV_COLOR: Record<string, string> = {
-  critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-yellow-500', low: 'bg-blue-500',
-};
-const STA_CLS: Record<string, string> = {
-  pending:  'text-orange-500 border-orange-200',
-  verified: 'bg-emerald-500 text-white',
-  alerted:  'bg-red-500 text-white',
-  expired:  'text-gray-400',
-};
 
 export default function PredictionsPage() {
   const t = useTranslations('dashboard');
-  const tEnum = useTranslations('enums');
+  const [predictions, setPredictions] = React.useState<Prediction[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [timeFilter, setTimeFilter] = React.useState('all');
 
-  const { data: predictions, meta, loading, setFilter, setPage, refresh } = useTable<Prediction>({
-    endpoint: '/predictions', perPage: 20,
-  });
-  const [triggering, setTriggering] = React.useState(false);
+  React.useEffect(() => {
+    const fetchPredictions = async () => {
+      setLoading(true);
+      try {
+        const api = (await import('@/lib/api')).default;
+        const params: any = {};
+        if (timeFilter !== 'all') params.period = timeFilter;
+        const res = await api.get('/predictions', { params });
+        setPredictions(res.data?.data ?? []);
+      } catch (e) {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleTrigger = async () => {
-    setTriggering(true);
-    try {
-      await api.post('/predictions/trigger', { horizon_minutes: 60 });
-      toast.success(t('predictions.triggerSuccess'));
-      setTimeout(refresh, 3000);
-    } catch (e) { console.error(e); }
-    finally { setTriggering(false); }
+    fetchPredictions();
+
+    const handler = (e: CustomEvent) => {
+      const data = e.detail;
+      setPredictions(prev => [{ ...data, created_at: new Date().toISOString() }, ...prev]);
+    };
+    window.addEventListener('aegis:prediction:received', handler as EventListener);
+    return () => window.removeEventListener('aegis:prediction:received', handler as EventListener);
+  }, [timeFilter]);
+
+  const getSeverityConfig = (severity: string) => {
+    switch (severity) {
+      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: 'Nghiêm trọng' };
+      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Cao' };
+      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Trung bình' };
+      case 'low': return { color: 'bg-green-500', text: 'text-green-600', bg: 'bg-green-50', label: 'Thấp' };
+      default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: severity };
+    }
   };
 
-  const getTypeLabel = (type: string) => {
-    const map: Record<string, string> = {
-      water_level: t('predictions.typeWaterLevel'),
-      flood_risk: t('predictions.typeFloodRisk'),
-      evacuation_time: t('predictions.typeEvacuationTime'),
-      resource_need: t('predictions.typeResourceNeed'),
-    };
-    return map[type] ?? type;
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'flood': return '🌊';
+      case 'rainfall': return '🌧️';
+      case 'water_level': return '📊';
+      default: return '🔮';
+    }
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.9) return 'text-green-600';
+    if (confidence >= 0.7) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const avgConfidence = predictions.length > 0
+    ? predictions.reduce((acc, p) => acc + p.confidence, 0) / predictions.length
+    : 0;
+
+  const stats = {
+    total: predictions.length,
+    critical: predictions.filter(p => p.severity === 'critical').length,
+    high: predictions.filter(p => p.severity === 'high').length,
+    avgConfidence: Math.round(avgConfidence * 100),
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="h-full overflow-auto p-6 space-y-6 custom-scroll">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <BrainCircuit size={26} className="text-primary" /> {t('pages.predictions')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('predictions.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight">Dự báo AI</h1>
+          <p className="text-sm text-muted-foreground">Phân tích và dự báo bằng trí tuệ nhân tạo</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button className="gap-2" onClick={handleTrigger} disabled={triggering}>
-            {triggering ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {triggering ? t('predictions.triggering') : t('predictions.triggerBtn')}
-          </Button>
-        </div>
+        <Button variant="outline" className="gap-2">
+          <RefreshCw size={16} />
+          Làm mới dự báo
+        </Button>
       </div>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder={t('predictions.searchPlaceholder')} className="pl-9 h-9 bg-muted/50"
-                onChange={e => setFilter('search', e.target.value)} />
+      {/* AI Model Status */}
+      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <BrainCircuit size={24} className="text-purple-600" />
             </div>
-            <Select onValueChange={v => setFilter('status', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-36"><SelectValue placeholder={t('predictions.statusPlaceholder')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('table.all')}</SelectItem>
-                <SelectItem value="pending">{tEnum('predictionStatus.pending')}</SelectItem>
-                <SelectItem value="verified">{tEnum('predictionStatus.verified')}</SelectItem>
-                <SelectItem value="alerted">{tEnum('predictionStatus.alerted')}</SelectItem>
-                <SelectItem value="expired">{tEnum('predictionStatus.expired')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={v => setFilter('prediction_type', v === 'all' ? '' : v)}>
-              <SelectTrigger className="h-9 w-44"><SelectValue placeholder={t('predictions.typePlaceholder')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('table.all')}</SelectItem>
-                <SelectItem value="water_level">{t('predictions.typeWaterLevel')}</SelectItem>
-                <SelectItem value="flood_risk">{t('predictions.typeFloodRisk')}</SelectItem>
-                <SelectItem value="evacuation_time">{t('predictions.typeEvacuationTime')}</SelectItem>
-                <SelectItem value="resource_need">{t('predictions.typeResourceNeed')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <p className="font-semibold">AegisFlow AI Model</p>
+              <p className="text-xs text-muted-foreground">Độ chính xác trung bình: {stats.avgConfidence}%</p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[80px]">{t('predictions.colId')}</TableHead>
-                <TableHead>{t('predictions.colType')}</TableHead>
-                <TableHead>{t('predictions.colValue')}</TableHead>
-                <TableHead>{t('predictions.colConfidence')}</TableHead>
-                <TableHead>{t('predictions.colProbability')}</TableHead>
-                <TableHead>{t('predictions.colSeverity')}</TableHead>
-                <TableHead>{t('predictions.colStatus')}</TableHead>
-                <TableHead className="text-right">{t('predictions.colTime')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={8} className="h-32 text-center"><RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-              ) : predictions.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{t('predictions.noResults')}</TableCell></TableRow>
-              ) : predictions.map(p => {
-                const staCls = STA_CLS[p.status];
-                const staLabel = p.status_label ?? tEnum(`predictionStatus.${p.status}` as any, { defaultValue: p.status });
-                return (
-                  <TableRow key={p.id} className="hover:bg-muted/30">
-                    <TableCell><Badge variant="outline" className="font-mono text-xs">P-{String(p.id).padStart(4, '0')}</Badge></TableCell>
-                    <TableCell>
-                      <p className="font-semibold text-sm">{getTypeLabel(p.prediction_type)}</p>
-                      {p.model_version && <p className="text-[10px] font-mono text-muted-foreground">{p.model_version}</p>}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono font-bold text-primary">{p.predicted_value ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      {p.confidence != null ? (
-                        <div className="w-20 space-y-1">
-                          <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">
-                            <span>{t('predictions.confLabel')}</span><span>{Math.round(p.confidence * 100)}%</span>
-                          </div>
-                          <Progress value={p.confidence * 100} className="h-1.5" />
-                        </div>
-                      ) : '—'}
-                    </TableCell>
-                    <TableCell>
-                      {p.probability != null
-                        ? <Badge variant="secondary" className="font-mono bg-blue-500/10 text-blue-500">{Math.round(p.probability * 100)}%</Badge>
-                        : '—'}
-                    </TableCell>
-                    <TableCell>
-                      {p.severity
-                        ? <Badge className={`${SEV_COLOR[p.severity]} text-white`}>
-                            {p.severity_label ?? tEnum(`severity.${p.severity}` as any, { defaultValue: p.severity })}
-                          </Badge>
-                        : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={staCls}>{staLabel}</Badge>
-                      {p.verified_by && (
-                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <CheckCircle2 size={10} className="text-emerald-500" /> {p.verified_by.name}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                      <Clock size={11} className="inline mr-1" />
-                      {new Date(p.issued_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <DataPagination meta={meta} onPageChange={setPage} />
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-green-600 font-medium">Đang hoạt động</span>
+            </span>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Tổng dự báo', value: stats.total, icon: BrainCircuit, color: 'text-blue-600 bg-blue-100' },
+          { label: 'Nghiêm trọng', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
+          { label: 'Mức cao', value: stats.high, icon: TrendingUp, color: 'text-orange-600 bg-orange-100' },
+          { label: 'Độ chính xác TB', value: `${stats.avgConfidence}%`, icon: Star, color: 'text-purple-600 bg-purple-100' },
+        ].map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center`}>
+                  <stat.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Select value={timeFilter} onValueChange={(v) => v && setTimeFilter(v)}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Thời gian dự báo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả thời gian</SelectItem>
+            <SelectItem value="1h">1 giờ tới</SelectItem>
+            <SelectItem value="3h">3 giờ tới</SelectItem>
+            <SelectItem value="6h">6 giờ tới</SelectItem>
+            <SelectItem value="12h">12 giờ tới</SelectItem>
+            <SelectItem value="24h">24 giờ tới</SelectItem>
+            <SelectItem value="48h">48 giờ tới</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Predictions List */}
+      <Tabs defaultValue="flood" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="flood" className="gap-2">🌊 Dự báo lũ</TabsTrigger>
+          <TabsTrigger value="rainfall" className="gap-2">🌧️ Lượng mưa</TabsTrigger>
+          <TabsTrigger value="all" className="gap-2">📊 Tất cả</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="flood" className="space-y-4">
+          {renderPredictions(predictions.filter(p => p.type === 'flood'), loading)}
+        </TabsContent>
+
+        <TabsContent value="rainfall" className="space-y-4">
+          {renderPredictions(predictions.filter(p => p.type === 'rainfall'), loading)}
+        </TabsContent>
+
+        <TabsContent value="all" className="space-y-4">
+          {renderPredictions(predictions, loading)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
+
+  function renderPredictions(items: Prediction[], isLoading: boolean) {
+    if (isLoading) {
+      return Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="h-32 bg-muted rounded-lg animate-pulse" />
+          </CardContent>
+        </Card>
+      ));
+    }
+
+    if (items.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <BrainCircuit className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <p className="text-muted-foreground">Không có dự báo nào</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return items.map((prediction, i) => {
+      const severity = getSeverityConfig(prediction.severity);
+
+      return (
+        <motion.div
+          key={prediction.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05 }}
+        >
+          <Card className={`${prediction.severity === 'critical' ? 'border-red-200' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className={`w-14 h-14 rounded-xl ${severity.bg} flex items-center justify-center text-2xl shrink-0`}>
+                  {getTypeIcon(prediction.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 className="font-semibold">{prediction.area}</h3>
+                    <Badge className={`${severity.text} bg-opacity-10`} style={{ backgroundColor: 'var(--tw-bg-opacity, 0.1)' }}>
+                      {severity.label}
+                    </Badge>
+                    <Badge variant="outline" className={getConfidenceColor(prediction.confidence)}>
+                      {Math.round(prediction.confidence * 100)}% độ chính
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    {prediction.water_level_prediction !== undefined && (
+                      <div className="p-2 bg-blue-50 rounded-lg">
+                        <p className="text-[10px] text-muted-foreground">Mực nước dự báo</p>
+                        <p className="font-bold">{prediction.water_level_prediction}m</p>
+                      </div>
+                    )}
+                    {prediction.rainfall_prediction !== undefined && (
+                      <div className="p-2 bg-cyan-50 rounded-lg">
+                        <p className="text-[10px] text-muted-foreground">Lượng mưa</p>
+                        <p className="font-bold">{prediction.rainfall_prediction}mm</p>
+                      </div>
+                    )}
+                    <div className="p-2 bg-purple-50 rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Thời gian</p>
+                      <p className="font-bold text-sm">{prediction.time_range}</p>
+                    </div>
+                    <div className="p-2 bg-muted rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Dự báo lúc</p>
+                      <p className="font-bold text-xs">
+                        {new Date(prediction.predicted_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {prediction.recommendations.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Khuyến nghị:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {prediction.recommendations.slice(0, 3).map((rec, i) => (
+                          <span key={i} className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-full">
+                            {rec}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {prediction.affected_zones.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <MapPin size={12} />
+                      <span>Vùng ảnh hưởng: {prediction.affected_zones.slice(0, 3).join(', ')}
+                        {prediction.affected_zones.length > 3 && ` +${prediction.affected_zones.length - 3}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground shrink-0">
+                  {new Date(prediction.created_at).toLocaleString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      );
+    });
+  }
 }

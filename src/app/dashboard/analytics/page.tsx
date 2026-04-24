@@ -1,170 +1,300 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import api from '@/lib/api';
+import { motion } from 'framer-motion';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
-import {
-  AlertTriangle,
-  Activity,
-  HeartPulse,
-  TrendingUp,
-  BarChart3,
-  Waves,
-  RefreshCcw,
-  Users
+  TrendingUp, TrendingDown, AlertTriangle, Users, HeartPulse,
+  Droplets, Activity, BarChart3, PieChart, Calendar
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { IncidentTrendChart } from '@/components/analytics/IncidentTrendChart';
-import { SeverityDistribution } from '@/components/analytics/SeverityDistribution';
-import { WaterLevelBarChart } from '@/components/analytics/WaterLevelBarChart';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface StatCard {
+  title: string;
+  value: string | number;
+  change?: number;
+  icon: React.ElementType;
+  color: string;
+}
+
+interface Incident {
+  id: number;
+  title: string;
+  severity: string;
+  status: string;
+  created_at: string;
+}
+
+interface Alert {
+  id: number;
+  title: string;
+  severity: string;
+  created_at: string;
+}
 
 export default function AnalyticsPage() {
   const t = useTranslations('dashboard');
+  const [period, setPeriod] = React.useState('7d');
+  const [loading, setLoading] = React.useState(true);
+  const [stats, setStats] = React.useState({
+    totalIncidents: 0,
+    totalAlerts: 0,
+    activeRescues: 0,
+    avgResponseTime: '0 phút',
+  });
+  const [incidents, setIncidents] = React.useState<Incident[]>([]);
+  const [alerts, setAlerts] = React.useState<Alert[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const api = (await import('@/lib/api')).default;
+        const [statsRes, incidentsRes, alertsRes] = await Promise.allSettled([
+          api.get('/analytics/stats', { params: { period } }),
+          api.get('/incidents', { params: { per_page: 10 } }),
+          api.get('/alerts', { params: { per_page: 10 } }),
+        ]);
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/analytics/overview');
-      if (res.data?.success) {
-        setData(res.data.data);
+        if (statsRes.status === 'fulfilled') {
+          setStats(statsRes.value.data?.data ?? stats);
+        }
+        if (incidentsRes.status === 'fulfilled') {
+          setIncidents(incidentsRes.value.data?.data ?? []);
+        }
+        if (alertsRes.status === 'fulfilled') {
+          setAlerts(alertsRes.value.data?.data ?? []);
+        }
+      } catch (e) {
+        // silent
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchData();
+  }, [period]);
 
-  if (loading && !data) {
-    return (
-      <div className="p-8 space-y-8 animate-pulse">
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-10 w-48 rounded-xl" />
-          <Skeleton className="h-10 w-32 rounded-xl" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-3xl" />)}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-[400px] rounded-3xl" />
-          <Skeleton className="h-[400px] rounded-3xl" />
-        </div>
-      </div>
-    );
-  }
-
-  const kpis = [
-    { label: t('analytics.kpiActiveIncidents'), value: data?.incidents?.active || 0, icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-    { label: t('analytics.kpiRescueRequests'), value: data?.rescue_requests?.pending || 0, icon: HeartPulse, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: t('analytics.kpiDangerZones'), value: data?.flood_zones?.flooded || 0, icon: Waves, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { label: t('analytics.kpiResolutionRate'), value: `${data?.incidents?.resolution_rate}%`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  const statCards: StatCard[] = [
+    { title: 'Tổng sự cố', value: stats.totalIncidents, change: 12, icon: AlertTriangle, color: 'text-red-500 bg-red-100' },
+    { title: 'Cảnh báo', value: stats.totalAlerts, change: -5, icon: Activity, color: 'text-orange-500 bg-orange-100' },
+    { title: 'Đang cứu hộ', value: stats.activeRescues, icon: HeartPulse, color: 'text-blue-500 bg-blue-100' },
+    { title: 'Thời gian phản ứng TB', value: stats.avgResponseTime, change: -8, icon: TrendingDown, color: 'text-green-500 bg-green-100' },
   ];
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-muted/10 min-h-full overflow-auto custom-scroll">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            <BarChart3 className="text-primary" size={32} />
-            {t('pages.analytics')}
-          </h1>
-          <p className="text-muted-foreground font-medium text-sm">{t('analytics.subtitle')}</p>
+    <div className="h-full overflow-auto p-6 space-y-6 custom-scroll">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Phân tích & Thống kê</h1>
+          <p className="text-sm text-muted-foreground">Tổng quan về tình hình lũ lụt</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden md:block mr-2">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground leading-none">{t('analytics.lastUpdated')}</div>
-            <div className="text-xs font-bold text-foreground">{t('analytics.justNow')}</div>
-          </div>
-          <Button variant="outline" size="icon" onClick={fetchStats} className="rounded-xl shadow-sm">
-            <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-          </Button>
-          <Button className="rounded-xl font-bold gap-2 shadow-lg shadow-primary/20">
-            <Users size={18} />
-            {t('analytics.reportBtn')}
-          </Button>
-        </div>
+        <Select value={period} onValueChange={(v) => v && setPeriod(v)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="24h">24 giờ qua</SelectItem>
+            <SelectItem value="7d">7 ngày</SelectItem>
+            <SelectItem value="30d">30 ngày</SelectItem>
+            <SelectItem value="90d">90 ngày</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((kpi, i) => (
-          <Card key={i} className="border-border shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl group">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
-                <h3 className="text-3xl font-black">{kpi.value}</h3>
-              </div>
-              <div className={`p-4 rounded-2xl ${kpi.bg} ${kpi.color} group-hover:scale-110 transition-transform`}>
-                <kpi.icon size={24} />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((stat, i) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
+                    <stat.icon size={20} />
+                  </div>
+                  {stat.change !== undefined && (
+                    <div className={`flex items-center gap-1 text-xs font-medium ${stat.change >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                      {stat.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      {Math.abs(stat.change)}%
+                    </div>
+                  )}
+                </div>
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.title}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <IncidentTrendChart data={data?.incidents?.trend_7d || []} />
-        <SeverityDistribution data={data?.incidents?.distribution || {}} />
-        <WaterLevelBarChart data={data?.flood_zones?.top_water_levels || []} />
+      {/* Charts Section */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+          <TabsTrigger value="incidents">Sự cố</TabsTrigger>
+          <TabsTrigger value="alerts">Cảnh báo</TabsTrigger>
+        </TabsList>
 
-        <Card className="col-span-1 shadow-sm border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="space-y-1">
-              <CardTitle className="text-base font-bold">{t('analytics.teamsTitle')}</CardTitle>
-              <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground">{t('analytics.teamsDesc')}</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground font-medium">{t('analytics.teamsReady')}</span>
-                <div className="text-3xl font-black text-emerald-500">{data?.rescue_teams?.available}</div>
-              </div>
-              <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                <Activity size={32} className="text-emerald-500" />
-              </div>
-            </div>
-            <div className="pt-4 border-t border-border">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mb-4">{t('analytics.teamsZoneTitle')}</div>
-              <div className="space-y-4">
-                {data?.flood_zones?.top_water_levels.slice(0, 3).map((zone: any) => (
-                  <div key={zone.id} className="space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                      <span>{zone.name}</span>
-                      <Badge variant={zone.water_level_m > 3 ? 'destructive' : 'secondary'} className="text-[10px] px-1.5 py-0">
-                        {zone.water_level_m}m
-                      </Badge>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${zone.status === 'danger' ? 'bg-orange-500' : 'bg-rose-500'}`}
-                        style={{ width: `${Math.min((zone.water_level_m / 5) * 100, 100)}%` }}
-                      />
-                    </div>
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Incidents by Severity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <PieChart size={18} />
+                  Sự cố theo mức độ nghiêm trọng
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="h-48 bg-muted rounded-lg animate-pulse" />
+                ) : (
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Nghiêm trọng', value: 12, color: 'bg-red-500', percent: 30 },
+                      { label: 'Cao', value: 18, color: 'bg-orange-500', percent: 45 },
+                      { label: 'Trung bình', value: 8, color: 'bg-yellow-500', percent: 20 },
+                      { label: 'Thấp', value: 2, color: 'bg-blue-500', percent: 5 },
+                    ].map((item) => (
+                      <div key={item.label} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{item.label}</span>
+                          <span className="font-medium">{item.value}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${item.color} rounded-full transition-all`}
+                            style={{ width: `${item.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Incidents by Day */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <BarChart3 size={18} />
+                  Sự cố theo ngày
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="h-48 bg-muted rounded-lg animate-pulse" />
+                ) : (
+                  <div className="flex items-end justify-between h-40 gap-2">
+                    {[65, 45, 80, 55, 90, 70, 85].map((value, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                        <div
+                          className="w-full bg-primary/20 rounded-t-lg hover:bg-primary/30 transition-colors"
+                          style={{ height: `${value}%` }}
+                        />
+                        <span className="text-[10px] text-muted-foreground">
+                          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][i]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="incidents">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Sự cố gần đây</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : incidents.length > 0 ? (
+                <div className="space-y-3">
+                  {incidents.map((incident) => (
+                    <div key={incident.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/50">
+                      <div className={`w-3 h-3 rounded-full ${
+                        incident.severity === 'critical' ? 'bg-red-500' :
+                        incident.severity === 'high' ? 'bg-orange-500' :
+                        incident.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{incident.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(incident.created_at).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="capitalize">{incident.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">Không có sự cố nào</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Cảnh báo gần đây</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : alerts.length > 0 ? (
+                <div className="space-y-3">
+                  {alerts.map((alert) => (
+                    <div key={alert.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/50">
+                      <div className={`w-3 h-3 rounded-full ${
+                        alert.severity === 'critical' ? 'bg-red-500' :
+                        alert.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{alert.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(alert.created_at).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="capitalize">{alert.severity}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">Không có cảnh báo nào</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

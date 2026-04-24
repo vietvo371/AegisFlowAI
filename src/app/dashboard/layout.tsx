@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu,
@@ -20,6 +20,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { RealtimeListener } from '@/components/realtime/RealtimeListener';
 import { PageTransition } from '@/components/ui/page-transition';
+import { NotificationBell } from '@/components/notification/NotificationBell';
+
+// Roles that are allowed to access dashboard
+const DASHBOARD_ROLES = ['city_admin', 'rescue_operator', 'ai_operator', 'sensor'];
 
 export default function DashboardLayout({
   children,
@@ -28,28 +32,40 @@ export default function DashboardLayout({
 }) {
   const t = useTranslations();
   const tDash = useTranslations('dashboard');
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const pathname = usePathname();
-  const [unreadCount, setUnreadCount] = React.useState(0);
+  const router = useRouter();
 
+  // Check if user has access to dashboard
+  const hasAccess = !loading && user && DASHBOARD_ROLES.includes(user.role);
+
+  // Redirect unauthorized roles away from dashboard
   React.useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const res = await (await import('@/lib/api')).default.get('/alerts', { params: { status: 'active', per_page: 1 } });
-        setUnreadCount(res.data?.meta?.total ?? 0);
-      } catch { /* silent */ }
-    };
-    fetchUnread();
-    const handler = () => fetchUnread();
-    window.addEventListener('aegis:alert:created', handler);
-    window.addEventListener('aegis:incident:created', handler);
-    window.addEventListener('aegis:rescue_request:created', handler);
-    return () => {
-      window.removeEventListener('aegis:alert:created', handler);
-      window.removeEventListener('aegis:incident:created', handler);
-      window.removeEventListener('aegis:rescue_request:created', handler);
-    };
-  }, []);
+    if (hasAccess === false && loading === false && user) {
+      const roleRoute: Record<string, string> = {
+        citizen: '/citizen',
+        rescue_team: '/team',
+      };
+      router.replace(roleRoute[user.role] ?? '/signin');
+    }
+  }, [hasAccess, loading, user, router]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-muted-foreground font-medium">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // User doesn't have access to dashboard - return null, useEffect will redirect
+  if (!hasAccess) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
@@ -181,14 +197,7 @@ export default function DashboardLayout({
             <div className="h-4 w-px bg-border mx-1" />
 
             <Link href="/dashboard/notifications" className="relative">
-              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
-                <Bell size={20} className="text-muted-foreground" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Button>
+              <NotificationBell />
             </Link>
 
             <Avatar className="h-9 w-9 border border-border mt-1">

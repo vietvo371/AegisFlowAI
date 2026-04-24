@@ -75,7 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             throw new Error('Không thể tải thông tin người dùng');
           }
-        } catch (error) {
+        } catch (error: any) {
+          // Ignore abort errors (user navigated away)
+          if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+            return;
+          }
           console.error('Auth initialization error:', error);
           localStorage.removeItem('aegisflow_token');
           document.cookie = 'aegisflow_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -151,7 +155,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = res.data.data?.user ?? res.data.data;
         setUser(normalizeUser(userData));
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignore abort errors (user navigated away)
+      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+        return;
+      }
       console.error('Refresh user error:', error);
     }
   };

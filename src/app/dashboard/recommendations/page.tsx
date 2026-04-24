@@ -1,299 +1,313 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import api from '@/lib/api';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { motion } from 'framer-motion';
+import {
+  CheckCircle2, Lightbulb, AlertTriangle, TrendingUp,
+  Clock, Filter, RefreshCw, ArrowUpRight, ArrowDownRight, Minus
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  RefreshCw, BrainCircuit, CheckCircle2, XCircle, Clock,
-  Navigation, Megaphone, ShieldAlert, RotateCcw, Search
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogDescription
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Recommendation {
   id: number;
-  type: string;
-  type_label?: string;
+  type: 'evacuation' | 'preparation' | 'prevention' | 'emergency' | 'general';
+  title: string;
   description: string;
-  details?: Record<string, any>;
-  status: 'pending' | 'approved' | 'rejected' | 'executed';
-  status_label?: string;
-  prediction?: { id: number } | null;
-  incident?: { id: number; title: string } | null;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  target_area?: string;
+  target_audience?: string[];
+  impact?: string;
+  confidence?: number;
+  status: 'active' | 'implemented' | 'expired';
   created_at: string;
+  expires_at?: string;
 }
-
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  priority_route: <Navigation className="w-4 h-4 text-purple-500" />,
-  alert: <Megaphone className="w-4 h-4 text-red-500" />,
-  evacuation: <ShieldAlert className="w-4 h-4 text-orange-500" />,
-  reroute: <RotateCcw className="w-4 h-4 text-blue-500" />,
-};
 
 export default function RecommendationsPage() {
   const t = useTranslations('dashboard');
-  const tEnum = useTranslations('enums');
+  const [recommendations, setRecommendations] = React.useState<Recommendation[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [priorityFilter, setPriorityFilter] = React.useState('all');
 
-  const [items, setItems] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [rejectTarget, setRejectTarget] = useState<Recommendation | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [search, setSearch] = useState('');
+  React.useEffect(() => {
+    const fetchRecommendations = async () => {
+      setLoading(true);
+      try {
+        const api = (await import('@/lib/api')).default;
+        const params: any = {};
+        if (typeFilter !== 'all') params.type = typeFilter;
+        if (priorityFilter !== 'all') params.priority = priorityFilter;
+        const res = await api.get('/recommendations', { params });
+        setRecommendations(res.data?.data ?? []);
+      } catch (e) {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchItems = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/recommendations');
-      if (res.data?.success) setItems(res.data.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+    fetchRecommendations();
+  }, [typeFilter, priorityFilter]);
+
+  const getPriorityConfig = (priority: string) => {
+    switch (priority) {
+      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: 'Khẩn cấp' };
+      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Cao' };
+      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Trung bình' };
+      case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: 'Thấp' };
+      default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: priority };
     }
   };
 
-  const handleApprove = async (id: number) => {
-    try {
-      await api.put(`/recommendations/${id}/approve`);
-      fetchItems();
-    } catch (e) {
-      console.error(e);
+  const getTypeConfig = (type: string) => {
+    switch (type) {
+      case 'evacuation': return { icon: '🚨', label: 'Sơ tán', color: 'text-red-600 bg-red-100' };
+      case 'preparation': return { icon: '🛡️', label: 'Chuẩn bị', color: 'text-blue-600 bg-blue-100' };
+      case 'prevention': return { icon: '⚠️', label: 'Phòng ngừa', color: 'text-green-600 bg-green-100' };
+      case 'emergency': return { icon: '🚑', label: 'Khẩn cấp', color: 'text-orange-600 bg-orange-100' };
+      case 'general': return { icon: '📋', label: 'Chung', color: 'text-gray-600 bg-gray-100' };
+      default: return { icon: '📌', label: type, color: 'text-gray-600 bg-gray-100' };
     }
   };
 
-  const handleRejectSubmit = async () => {
-    if (!rejectTarget || !rejectReason.trim()) {
-      toast.error(t('recommendations.rejectValidation'));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await api.put(`/recommendations/${rejectTarget.id}/reject`, { reason: rejectReason });
-      setRejectTarget(null);
-      setRejectReason('');
-      fetchItems();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  useEffect(() => { fetchItems(); }, []);
-
-  const getStatusBadge = (status: string) => {
-    const label = tEnum(`recommendationStatus.${status}` as any, { defaultValue: status });
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'pending': return <Badge variant="outline" className="text-orange-500 border-orange-200 animate-pulse">{label}</Badge>;
-      case 'approved': return <Badge className="bg-emerald-500">{label}</Badge>;
-      case 'rejected': return <Badge variant="destructive">{label}</Badge>;
-      case 'executed': return <Badge className="bg-blue-500">{label}</Badge>;
-      default: return <Badge variant="outline">{label}</Badge>;
+      case 'active': return { label: 'Đang hoạt động', color: 'text-green-600' };
+      case 'implemented': return { label: 'Đã triển khai', color: 'text-blue-600' };
+      case 'expired': return { label: 'Hết hạn', color: 'text-gray-600' };
+      default: return { label: status, color: 'text-gray-600' };
     }
   };
 
-  const pendingCount = items.filter(i => i.status === 'pending').length;
-  const filtered = items.filter(i =>
-    !search || i.description.toLowerCase().includes(search.toLowerCase()) || i.type.includes(search)
-  );
+  const filteredRecommendations = recommendations.filter(rec => {
+    if (typeFilter !== 'all' && rec.type !== typeFilter) return false;
+    if (priorityFilter !== 'all' && rec.priority !== priorityFilter) return false;
+    return true;
+  });
+
+  const stats = {
+    total: recommendations.length,
+    active: recommendations.filter(r => r.status === 'active').length,
+    implemented: recommendations.filter(r => r.status === 'implemented').length,
+    critical: recommendations.filter(r => r.priority === 'critical' && r.status === 'active').length,
+  };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="h-full overflow-auto p-6 space-y-6 custom-scroll">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <BrainCircuit className="text-primary" size={28} />
-            {t('pages.recommendations')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('recommendations.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight">Khuyến nghị</h1>
+          <p className="text-sm text-muted-foreground">AI đề xuất hành động tối ưu</p>
         </div>
-        <div className="flex items-center gap-2">
-          {pendingCount > 0 && (
-            <Badge variant="destructive" className="animate-pulse text-sm px-3 py-1">
-              {t('recommendations.pendingBadge', { count: pendingCount })}
-            </Badge>
-          )}
-          <Button variant="outline" size="icon" onClick={fetchItems} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <Button variant="outline" className="gap-2">
+          <RefreshCw size={16} />
+          Cập nhật
+        </Button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: t('recommendations.statPending'), value: items.filter(i => i.status === 'pending').length, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-          { label: t('recommendations.statApproved'), value: items.filter(i => i.status === 'approved').length, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: t('recommendations.statExecuted'), value: items.filter(i => i.status === 'executed').length, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: t('recommendations.statRejected'), value: items.filter(i => i.status === 'rejected').length, color: 'text-red-500', bg: 'bg-red-500/10' },
-        ].map((s, i) => (
-          <Card key={i} className="border-border shadow-sm">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">{s.label}</p>
-                <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-              </div>
-              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
-                <BrainCircuit className={`w-5 h-5 ${s.color}`} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t('recommendations.searchPlaceholder')}
-              className="pl-9 h-9 bg-muted/50"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+      {/* AI Summary */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+              <Lightbulb size={24} className="text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold">AI Recommendation Engine</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.active} khuyến nghị đang hoạt động • {stats.critical} ưu tiên cao
+              </p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[60px]">{t('recommendations.colId')}</TableHead>
-                  <TableHead className="w-[140px]">{t('recommendations.colType')}</TableHead>
-                  <TableHead>{t('recommendations.colContent')}</TableHead>
-                  <TableHead>{t('recommendations.colLink')}</TableHead>
-                  <TableHead>{t('recommendations.colStatus')}</TableHead>
-                  <TableHead className="text-right">{t('recommendations.colTime')}</TableHead>
-                  <TableHead className="w-[160px] text-center">{t('recommendations.colAction')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                      {t('recommendations.loadingText')}
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                      {t('recommendations.noRecommendations')}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-muted/30">
-                      <TableCell className="text-muted-foreground font-mono text-xs">#{item.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {TYPE_ICONS[item.type] ?? <BrainCircuit className="w-4 h-4 text-muted-foreground" />}
-                          <span className="text-xs font-semibold">{item.type_label || item.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm font-medium leading-snug max-w-xs">{item.description}</p>
-                        {item.details?.action && (
-                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                            action: {item.details.action}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                          {item.prediction && (
-                            <span className="font-mono">Prediction #{item.prediction.id}</span>
-                          )}
-                          {item.incident && (
-                            <span className="truncate max-w-[120px]" title={item.incident.title}>
-                              {item.incident.title}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(item.status)}</TableCell>
-                      <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        {new Date(item.created_at).toLocaleString('vi-VN', {
-                          hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        {item.status === 'pending' ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              size="sm"
-                              className="h-8 gap-1 bg-emerald-500 hover:bg-emerald-600 text-white"
-                              onClick={() => handleApprove(item.id)}
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" /> {t('recommendations.approveBtn')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 gap-1 text-red-500 border-red-200 hover:bg-red-50"
-                              onClick={() => setRejectTarget(item)}
-                            >
-                              <XCircle className="w-3.5 h-3.5" /> {t('recommendations.rejectBtn')}
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-center">
-                            <span className="text-xs text-muted-foreground italic">—</span>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <Badge className="bg-green-100 text-green-700">Hoạt động</Badge>
         </CardContent>
       </Card>
 
-      <Dialog open={!!rejectTarget} onOpenChange={() => { setRejectTarget(null); setRejectReason(''); }}>
-        <DialogContent className="sm:max-w-[420px]">
-          <DialogHeader>
-            <DialogTitle>{t('recommendations.rejectTitle', { id: rejectTarget?.id ?? 0 })}</DialogTitle>
-            <DialogDescription>{t('recommendations.rejectDesc')}</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-3">
-            <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              {rejectTarget?.description}
-            </div>
-            <div className="space-y-2">
-              <Label>{t('recommendations.rejectReasonLabel')}</Label>
-              <Textarea
-                placeholder={t('recommendations.rejectReasonPlaceholder')}
-                value={rejectReason}
-                onChange={e => setRejectReason(e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>{t('actions.cancel')}</Button>
-            <Button variant="destructive" onClick={handleRejectSubmit} disabled={submitting}>
-              {submitting && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              {t('recommendations.rejectConfirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Tổng khuyến nghị', value: stats.total, icon: CheckCircle2, color: 'text-blue-600 bg-blue-100' },
+          { label: 'Đang hoạt động', value: stats.active, icon: TrendingUp, color: 'text-green-600 bg-green-100' },
+          { label: 'Đã triển khai', value: stats.implemented, icon: CheckCircle2, color: 'text-purple-600 bg-purple-100' },
+          { label: 'Khẩn cấp', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
+        ].map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center`}>
+                  <stat.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Select value={typeFilter} onValueChange={(v) => v && setTypeFilter(v)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectValue placeholder="Loại" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả loại</SelectItem>
+            <SelectItem value="evacuation">Sơ tán</SelectItem>
+            <SelectItem value="preparation">Chuẩn bị</SelectItem>
+            <SelectItem value="prevention">Phòng ngừa</SelectItem>
+            <SelectItem value="emergency">Khẩn cấp</SelectItem>
+            <SelectItem value="general">Chung</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={priorityFilter} onValueChange={(v) => v && setPriorityFilter(v)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectValue placeholder="Ưu tiên" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả ưu tiên</SelectItem>
+            <SelectItem value="critical">Khẩn cấp</SelectItem>
+            <SelectItem value="high">Cao</SelectItem>
+            <SelectItem value="medium">Trung bình</SelectItem>
+            <SelectItem value="low">Thấp</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Recommendations List */}
+      <Tabs defaultValue="active" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="active">Đang hoạt động ({filteredRecommendations.filter(r => r.status === 'active').length})</TabsTrigger>
+          <TabsTrigger value="implemented">Đã triển khai ({filteredRecommendations.filter(r => r.status === 'implemented').length})</TabsTrigger>
+          <TabsTrigger value="all">Tất cả</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-4">
+          {renderRecommendations(filteredRecommendations.filter(r => r.status === 'active'), loading)}
+        </TabsContent>
+
+        <TabsContent value="implemented" className="space-y-4">
+          {renderRecommendations(filteredRecommendations.filter(r => r.status === 'implemented'), loading)}
+        </TabsContent>
+
+        <TabsContent value="all" className="space-y-4">
+          {renderRecommendations(filteredRecommendations, loading)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
+
+  function renderRecommendations(items: Recommendation[], isLoading: boolean) {
+    if (isLoading) {
+      return Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="h-28 bg-muted rounded-lg animate-pulse" />
+          </CardContent>
+        </Card>
+      ));
+    }
+
+    if (items.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <p className="text-muted-foreground">Không có khuyến nghị nào</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return items.map((rec, i) => {
+      const priority = getPriorityConfig(rec.priority);
+      const type = getTypeConfig(rec.type);
+      const status = getStatusConfig(rec.status);
+
+      return (
+        <motion.div
+          key={rec.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05 }}
+        >
+          <Card className={`${rec.priority === 'critical' && rec.status === 'active' ? 'border-red-200' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl ${type.color} flex items-center justify-center text-xl shrink-0`}>
+                  {type.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-semibold">{rec.title}</h3>
+                    <Badge className={`${priority.text} bg-opacity-10`} style={{ backgroundColor: 'var(--tw-bg-opacity, 0.1)' }}>
+                      {priority.label}
+                    </Badge>
+                    <Badge variant="outline">{type.label}</Badge>
+                    <Badge variant="outline" className={`${status.color}`}>
+                      {status.label}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{rec.description}</p>
+
+                  <div className="flex flex-wrap items-center gap-4 mt-3">
+                    {rec.target_area && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        📍 {rec.target_area}
+                      </span>
+                    )}
+                    {rec.impact && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        📊 Tác động: {rec.impact}
+                      </span>
+                    )}
+                    {rec.confidence !== undefined && (
+                      <span className={`text-xs font-medium ${rec.confidence >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {Math.round(rec.confidence * 100)}% độ chính xác
+                      </span>
+                    )}
+                    {rec.target_audience && rec.target_audience.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        👥 {rec.target_audience.join(', ')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  {rec.status === 'active' && (
+                    <Button size="sm">
+                      Triển khai
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm">
+                    Chi tiết
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      );
+    });
+  }
 }

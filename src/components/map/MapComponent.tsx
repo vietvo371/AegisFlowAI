@@ -51,6 +51,7 @@ interface LayerGroup {
 
 interface Props {
   evacuationRoute?: EvacuationRoute | null;
+  focusTeam?: { id: number; name: string; latitude?: number; longitude?: number } | null;
   center?: [number, number];
   zoom?: number;
 }
@@ -113,7 +114,7 @@ function formatTime(iso: string | null | undefined): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
+export default function MapComponent({ evacuationRoute, focusTeam, center, zoom }: Props) {
   const t = useTranslations('dashboard');
   const tMap = useTranslations('dashboard.mapLayers');
   const tPopup = useTranslations('dashboard.mapPopup');
@@ -145,7 +146,7 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
   ];
 
   const [activeLayers, setActiveLayers] = useState<Set<LayerKey>>(
-    () => new Set(layerConfigs.filter(l => l.defaultOn).map(l => l.key))
+    () => new Set(layerConfigs.filter(l => l.defaultOn).map(l => l.key as LayerKey))
   );
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -531,6 +532,51 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
     }
   }, [evacuationRoute, mapReady]);
 
+  // ── Focus on team ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !focusTeam) return;
+
+    // Ensure rescue_teams layer is visible
+    setActiveLayers(prev => {
+      const next = new Set(prev);
+      next.add('rescue_teams');
+      return next;
+    });
+
+    // Fly to team location if coordinates available
+    if (focusTeam.latitude && focusTeam.longitude) {
+      m.flyTo({
+        center: [focusTeam.longitude, focusTeam.latitude],
+        zoom: 15,
+        duration: 1000,
+      });
+
+      // Open popup for the team marker
+      const features = m.querySourceFeatures('rescue_teams', {
+        filter: ['==', ['get', 'id'], focusTeam.id],
+      });
+      if (features.length > 0) {
+        const feature = features[0];
+        const geom = feature.geometry as { coordinates: number[] };
+        if (geom.coordinates) {
+          popupRef.current?.remove();
+          popupRef.current = new maplibregl.Popup({ offset: 15, closeButton: true, maxWidth: '300px' })
+            .setLngLat([geom.coordinates[0], geom.coordinates[1]])
+            .setHTML(`
+<div style="font-family:system-ui,sans-serif;min-width:220px">
+  <div style="font-size:10px;font-weight:700;color:#EA580C;letter-spacing:.08em;margin-bottom:4px">🚒 ĐỘI CỨU HỘ</div>
+  <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:12px">${focusTeam.name}</div>
+  <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;text-align:center">
+    <span style="color:#6B7280;font-size:12px">📍 Đã di chuyển đến vị trí đội</span>
+  </div>
+</div>`)
+            .addTo(m);
+        }
+      }
+    }
+  }, [focusTeam, mapReady]);
+
   // ── Popup handlers — attach ONCE after map ready ──────────────────────────
   useEffect(() => {
     const m = map.current;
@@ -845,11 +891,11 @@ export default function MapComponent({ evacuationRoute, center, zoom }: Props) {
                     </div>
                     {/* Layer rows */}
                     {groupLayers.map(cfg => {
-                      const on = activeLayers.has(cfg.key);
+                      const on = activeLayers.has(cfg.key as LayerKey);
                       return (
                         <button
                           key={cfg.key}
-                          onClick={() => toggleLayer(cfg.key)}
+                          onClick={() => toggleLayer(cfg.key as LayerKey)}
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted/60 transition-colors"
                         >
                           <span className="text-sm w-5 text-center">{cfg.icon}</span>

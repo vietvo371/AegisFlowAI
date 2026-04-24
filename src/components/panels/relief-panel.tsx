@@ -39,13 +39,16 @@ interface TeamItem {
   personnel_count: number;
   vehicle_count: number;
   district?: { id: number; name: string };
+  latitude?: number;
+  longitude?: number;
 }
 
 interface ReliefPanelProps {
   onSelectRoute: (route: EvacuationRoute) => void;
+  onSelectTeam?: (team: TeamItem) => void;
 }
 
-export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
+export function ReliefPanel({ onSelectRoute, onSelectTeam }: ReliefPanelProps) {
   const t = useTranslations('dashboard');
   const tR = useTranslations('dashboard.relief');
   const [routes, setRoutes] = useState<RouteItem[]>([]);
@@ -74,6 +77,8 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSelectRoute = (route: RouteItem) => {
@@ -205,7 +210,11 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
                 </div>
               ) : (
                 teams.slice(0, 6).map((team) => (
-                  <div key={team.id} className="p-3 rounded-xl border border-border bg-muted/30 flex items-center justify-between">
+                  <button
+                    key={team.id}
+                    onClick={() => onSelectTeam?.(team)}
+                    className="w-full p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/30 transition-all flex items-center justify-between cursor-pointer"
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         team.status === 'on_mission' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-primary/10 text-primary'
@@ -225,7 +234,7 @@ export function ReliefPanel({ onSelectRoute }: ReliefPanelProps) {
                         {team.status === 'on_mission' ? t('dispatched') : teamTypeLabel(team.team_type)}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
