@@ -58,7 +58,7 @@ export default function SignUpPage() {
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof SignUpInput, string>> = {};
-        error.errors.forEach(err => {
+        error.issues.forEach(err => {
           const fieldName = err.path[0] as keyof SignUpInput;
           if (fieldName) {
             fieldErrors[fieldName] = err.message;

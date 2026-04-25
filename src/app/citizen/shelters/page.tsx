@@ -187,7 +187,7 @@ export default function CitizenSheltersPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-sm truncate">{shelter.name}</h3>
                         {shelter.is_flood_safe && (
-                          <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Cao ráo" />
+                          <span title="Cao ráo"><ShieldCheck size={14} className="text-blue-500 shrink-0" /></span>
                         )}
                       </div>
                       {shelter.code && (

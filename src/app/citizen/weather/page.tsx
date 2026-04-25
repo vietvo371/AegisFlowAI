@@ -14,15 +14,15 @@ import {
 } from 'lucide-react';
 
 interface WeatherData {
-  temperature: number;
-  humidity: number;
-  rainfall: number;
-  wind_speed: number;
+  temperature_c: number;
+  humidity_pct: number;
+  rainfall_mm: number;
+  wind_speed_kmh: number;
   wind_direction: string;
-  pressure: number;
-  visibility: number;
+  pressure_hpa: number;
+  visibility_km: number;
   uv_index: number;
-  feels_like: number;
+  feels_like?: number;
 }
 
 interface ForecastHour {
@@ -33,10 +33,10 @@ interface ForecastHour {
 }
 
 export default function CitizenWeatherPage() {
+  const t = useTranslations('citizen.weather');
   const [current, setCurrent] = React.useState<WeatherData | null>(null);
   const [forecast, setForecast] = React.useState<ForecastHour[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [floodRisk, setFloodRisk] = React.useState<string>('low');
   const [lastUpdated, setLastUpdated] = React.useState<string>('');
 
   const fetchWeather = async () => {
@@ -44,25 +44,25 @@ export default function CitizenWeatherPage() {
     try {
       // Lấy dữ liệu thời tiết hiện tại
       const res = await api.get('/weather/current');
-      if (res.data?.success && res.data?.data) {
-        setCurrent(res.data.data);
+      if (res.data?.success && res.data?.data?.length > 0) {
+        const weather = res.data.data[0];
+        setCurrent(weather);
         setLastUpdated(new Date().toLocaleString('vi-VN'));
       }
 
       // Tạo mock forecast (vì BE có thể chưa có endpoint forecast)
-      // Trong thực tế sẽ gọi /weather/forecast
       setForecast(generateMockForecast());
     } catch (e) {
       console.error(e);
       // Fallback data
       setCurrent({
-        temperature: 28,
-        humidity: 85,
-        rainfall: 12,
-        wind_speed: 15,
+        temperature_c: 28,
+        humidity_pct: 85,
+        rainfall_mm: 12,
+        wind_speed_kmh: 15,
         wind_direction: 'NE',
-        pressure: 1013,
-        visibility: 8,
+        pressure_hpa: 1013,
+        visibility_km: 8,
         uv_index: 6,
         feels_like: 31,
       });
@@ -102,18 +102,18 @@ export default function CitizenWeatherPage() {
 
   const getRiskLevel = (rainfall: number, humidity: number): { level: string; color: string; label: string } => {
     if (rainfall > 50 || humidity > 95) {
-      return { level: 'critical', color: 'bg-red-500', label: 'Nguy cơ ngập rất cao' };
+      return { level: 'critical', color: 'bg-red-500', label: t('riskCritical') };
     }
     if (rainfall > 30 || humidity > 85) {
-      return { level: 'high', color: 'bg-orange-500', label: 'Nguy cơ ngập cao' };
+      return { level: 'high', color: 'bg-orange-500', label: t('riskHigh') };
     }
     if (rainfall > 10 || humidity > 75) {
-      return { level: 'medium', color: 'bg-yellow-500', label: 'Nguy cơ ngập trung bình' };
+      return { level: 'medium', color: 'bg-yellow-500', label: t('riskMedium') };
     }
-    return { level: 'low', color: 'bg-emerald-500', label: 'An toàn' };
+    return { level: 'low', color: 'bg-emerald-500', label: t('riskLow') };
   };
 
-  const riskInfo = current ? getRiskLevel(current.rainfall, current.humidity) : null;
+  const riskInfo = current ? getRiskLevel(current.rainfall_mm, current.humidity_pct) : null;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -146,17 +146,17 @@ export default function CitizenWeatherPage() {
               {current && (
                 <div className="text-center text-white">
                   <div className="flex items-center justify-center gap-2">
-                    {current.rainfall > 10 ? (
+                    {current.rainfall_mm > 10 ? (
                       <CloudRain size={48} className="text-white/90" />
-                    ) : current.rainfall > 0 ? (
+                    ) : current.rainfall_mm > 0 ? (
                       <Cloud size={48} className="text-white/90" />
                     ) : (
                       <Sun size={48} className="text-white/90" />
                     )}
-                    <span className="text-5xl font-black">{current.temperature}°</span>
+                    <span className="text-5xl font-black">{current.temperature_c}°</span>
                   </div>
                   <p className="text-white/80 text-sm mt-1">
-                    Cảm giác như {current.feels_like}°C
+                    {t('feelsLike', { temp: current.feels_like ?? current.temperature_c + 2 })}
                   </p>
                 </div>
               )}
@@ -165,18 +165,18 @@ export default function CitizenWeatherPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <Droplets size={16} className="mx-auto text-blue-500 mb-1" />
-                  <p className="text-lg font-bold">{current?.humidity ?? '--'}%</p>
-                  <p className="text-[10px] text-muted-foreground">Độ ẩm</p>
+                  <p className="text-lg font-bold">{current?.humidity_pct ?? '--'}%</p>
+                  <p className="text-[10px] text-muted-foreground">{t('humidity')}</p>
                 </div>
                 <div>
                   <Wind size={16} className="mx-auto text-gray-500 mb-1" />
-                  <p className="text-lg font-bold">{current?.wind_speed ?? '--'} km/h</p>
-                  <p className="text-[10px] text-muted-foreground">Gió {current?.wind_direction}</p>
+                  <p className="text-lg font-bold">{current?.wind_speed_kmh ?? '--'} km/h</p>
+                  <p className="text-[10px] text-muted-foreground">{t('wind', { direction: current?.wind_direction ?? '' })}</p>
                 </div>
                 <div>
                   <CloudRain size={16} className="mx-auto text-blue-400 mb-1" />
-                  <p className="text-lg font-bold">{current?.rainfall ?? '--'} mm</p>
-                  <p className="text-[10px] text-muted-foreground">Mưa</p>
+                  <p className="text-lg font-bold">{current?.rainfall_mm ?? '--'} mm</p>
+                  <p className="text-[10px] text-muted-foreground">{t('rainfall')}</p>
                 </div>
               </div>
             </CardContent>
@@ -192,7 +192,7 @@ export default function CitizenWeatherPage() {
                   </div>
                   <div>
                     <p className={`font-black text-sm ${riskInfo.level === 'critical' ? 'text-red-700' : riskInfo.level === 'high' ? 'text-orange-700' : 'text-yellow-700'}`}>
-                      Cảnh báo ngập lụt
+                      {t('floodWarning')}
                     </p>
                     <p className={`text-xs ${riskInfo.level === 'critical' ? 'text-red-600' : riskInfo.level === 'high' ? 'text-orange-600' : 'text-yellow-600'}`}>
                       {riskInfo.label}
@@ -210,14 +210,14 @@ export default function CitizenWeatherPage() {
                 <div className="flex items-center gap-3">
                   <Thermometer size={18} className="text-orange-500" />
                   <div>
-                    <p className="text-sm font-medium">Áp suất</p>
-                    <p className="text-lg font-bold">{current?.pressure ?? '--'} hPa</p>
+                    <p className="text-sm font-medium">{t('pressure')}</p>
+                    <p className="text-lg font-bold">{current?.pressure_hpa ?? '--'} hPa</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Sun size={18} className="text-yellow-500" />
                   <div>
-                    <p className="text-sm font-medium">Chỉ số UV</p>
+                    <p className="text-sm font-medium">{t('uvIndex')}</p>
                     <p className="text-lg font-bold">{current?.uv_index ?? '--'}</p>
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export default function CitizenWeatherPage() {
           {/* Hourly Forecast */}
           <div>
             <h2 className="font-black text-sm uppercase tracking-wide text-muted-foreground mb-3">
-              Dự báo 24 giờ tới
+              {t('hourlyForecast')}
             </h2>
             <Card className="border-border">
               <CardContent className="p-4">
@@ -259,10 +259,10 @@ export default function CitizenWeatherPage() {
                 Lời khuyên an toàn
               </h3>
               <ul className="text-xs text-blue-700/80 space-y-1 list-disc list-inside">
-                {current && current.rainfall > 20 && (
+                {current && current.rainfall_mm > 20 && (
                   <li>Tránh xa các khu vực ngập úng, đặc biệt là đường thấp trũng</li>
                 )}
-                {current && current.humidity > 80 && (
+                {current && current.humidity_pct > 80 && (
                   <li>Độ ẩm cao, cảnh giác với các vật dụng dễ ẩm mốc</li>
                 )}
                 <li>Theo dõi cảnh báo từ AegisFlow AI để cập nhật tình hình</li>

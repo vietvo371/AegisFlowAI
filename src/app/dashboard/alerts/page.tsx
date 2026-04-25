@@ -23,20 +23,33 @@ import {
 
 interface Alert {
   id: number;
+  alert_number?: string;
   title: string;
   description?: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  type: 'flood' | 'weather' | 'rescue' | 'system' | 'emergency';
-  status: 'active' | 'resolved' | 'expired';
+  alert_type: string;
+  severity: string;
+  status: string;
+  geometry?: any;
+  affected_districts?: any;
+  radius_km?: number;
+  effective_from: string;
+  effective_until?: string;
+  source?: string;
+  issued_by?: number;
+  resolved_by?: number;
+  resolved_at?: string;
+  related_incident_id?: number;
+  related_prediction_id?: number;
+  created_at: string;
   area?: string;
   affected_population?: number;
-  created_at: string;
-  updated_at: string;
-  resolved_at?: string;
+  updated_at?: string;
 }
 
 export default function AlertsPage() {
   const t = useTranslations('dashboard');
+  const tAlerts = useTranslations('dashboard.alerts');
+  const tEnum = useTranslations('enums');
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
@@ -74,36 +87,38 @@ export default function AlertsPage() {
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'resolved', resolved_at: new Date().toISOString() } : a));
       toast.success('Đã giải quyết cảnh báo');
     } catch (e) {
-      toast.error('Không thể giải quyết cảnh báo');
+      toast.error(t('alerts.updateError') || 'Không thể giải quyết cảnh báo');
     }
   };
 
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
-      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: 'Nghiêm trọng' };
-      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Cao' };
-      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Trung bình' };
-      case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: 'Thấp' };
+      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: tAlerts('sevCritical') };
+      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: tAlerts('sevHigh') };
+      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: tAlerts('sevMedium') };
+      case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: tAlerts('sevLow') };
       default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: severity };
     }
   };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'active': return { color: 'text-green-600', bg: 'bg-green-50', label: 'Đang hoạt động', icon: Bell };
-      case 'resolved': return { color: 'text-blue-600', bg: 'bg-blue-50', label: 'Đã giải quyết', icon: CheckCircle };
-      case 'expired': return { color: 'text-gray-600', bg: 'bg-gray-50', label: 'Hết hạn', icon: Clock };
+      case 'active': return { color: 'text-green-600', bg: 'bg-green-50', label: tAlerts('statusActive'), icon: Bell };
+      case 'updated': return { color: 'text-blue-600', bg: 'bg-blue-50', label: tAlerts('statusUpdated'), icon: Bell };
+      case 'resolved': return { color: 'text-blue-600', bg: 'bg-blue-50', label: tAlerts('statusResolved'), icon: CheckCircle };
+      case 'expired': return { color: 'text-gray-600', bg: 'bg-gray-50', label: tAlerts('statusExpired'), icon: Clock };
       default: return { color: 'text-gray-600', bg: 'bg-gray-50', label: status, icon: Clock };
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'flood': return '🌊';
-      case 'weather': return '⛈️';
-      case 'rescue': return '🚑';
-      case 'system': return '⚙️';
-      case 'emergency': return '🚨';
+      case 'flood_warning': return '🌊';
+      case 'heavy_rain': return '⛈️';
+      case 'dam_warning': return '⚠️';
+      case 'evacuation': return '🚨';
+      case 'all_clear': return '✅';
+      case 'weather': return '☁️';
       default: return '📢';
     }
   };
@@ -129,22 +144,22 @@ export default function AlertsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cảnh báo</h1>
-          <p className="text-sm text-muted-foreground">Quản lý và phát cảnh báo</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('pages.alerts')}</h1>
+          <p className="text-sm text-muted-foreground">{tAlerts('subtitle')}</p>
         </div>
         <Button className="gap-2">
           <Plus size={16} />
-          Tạo cảnh báo mới
+          {tAlerts('issueBtn')}
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Tổng cảnh báo', value: stats.total, icon: Megaphone, color: 'text-blue-600 bg-blue-100' },
-          { label: 'Đang hoạt động', value: stats.active, icon: Bell, color: 'text-green-600 bg-green-100' },
-          { label: 'Nghiêm trọng', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
-          { label: 'Đã giải quyết', value: stats.resolved, icon: CheckCircle, color: 'text-gray-600 bg-gray-100' },
+          { label: tAlerts('colStatus') || 'Tổng cảnh báo', value: stats.total, icon: Megaphone, color: 'text-blue-600 bg-blue-100' },
+          { label: tAlerts('statusActive') || 'Đang hoạt động', value: stats.active, icon: Bell, color: 'text-green-600 bg-green-100' },
+          { label: tAlerts('sevCritical') || 'Nghiêm trọng', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
+          { label: tAlerts('statusResolved') || 'Đã giải quyết', value: stats.resolved, icon: CheckCircle, color: 'text-gray-600 bg-gray-100' },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -172,7 +187,7 @@ export default function AlertsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
-            placeholder="Tìm kiếm cảnh báo..."
+            placeholder={tAlerts('searchPlaceholder')}
             className="pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -180,25 +195,26 @@ export default function AlertsPage() {
         </div>
         <Select value={severityFilter} onValueChange={(v) => v && setSeverityFilter(v)}>
           <SelectTrigger className="w-full sm:w-[140px]">
-            <SelectValue placeholder="Mức độ" />
+            <SelectValue placeholder={tAlerts('severityPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả mức độ</SelectItem>
-            <SelectItem value="critical">Nghiêm trọng</SelectItem>
-            <SelectItem value="high">Cao</SelectItem>
-            <SelectItem value="medium">Trung bình</SelectItem>
-            <SelectItem value="low">Thấp</SelectItem>
+            <SelectItem value="all">{t('table.all')}</SelectItem>
+            <SelectItem value="critical">{tAlerts('sevCritical')}</SelectItem>
+            <SelectItem value="high">{tAlerts('sevHigh')}</SelectItem>
+            <SelectItem value="medium">{tAlerts('sevMedium')}</SelectItem>
+            <SelectItem value="low">{tAlerts('sevLow')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
           <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Trạng thái" />
+            <SelectValue placeholder={tAlerts('statusPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="active">Đang hoạt động</SelectItem>
-            <SelectItem value="resolved">Đã giải quyết</SelectItem>
-            <SelectItem value="expired">Hết hạn</SelectItem>
+            <SelectItem value="all">{t('table.all')}</SelectItem>
+            <SelectItem value="active">{tAlerts('statusActive')}</SelectItem>
+            <SelectItem value="updated">{tAlerts('statusUpdated')}</SelectItem>
+            <SelectItem value="resolved">{tAlerts('statusResolved')}</SelectItem>
+            <SelectItem value="expired">{tAlerts('statusExpired')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -208,11 +224,11 @@ export default function AlertsPage() {
         <TabsList>
           <TabsTrigger value="active" className="gap-2">
             <Bell size={14} />
-            Đang hoạt động ({activeAlerts.length})
+            {tAlerts('statusActive')} ({activeAlerts.length})
           </TabsTrigger>
           <TabsTrigger value="resolved" className="gap-2">
             <CheckCircle size={14} />
-            Đã giải quyết ({resolvedAlerts.length})
+            {tAlerts('statusResolved')} ({resolvedAlerts.length})
           </TabsTrigger>
         </TabsList>
 
@@ -242,7 +258,7 @@ export default function AlertsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
                         <div className={`w-12 h-12 rounded-xl ${severity.bg} flex items-center justify-center text-2xl shrink-0`}>
-                          {getTypeIcon(alert.type)}
+                          {getTypeIcon(alert.alert_type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -327,7 +343,7 @@ export default function AlertsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
                         <div className={`w-12 h-12 rounded-xl ${severity.bg} flex items-center justify-center text-2xl shrink-0 opacity-50`}>
-                          {getTypeIcon(alert.type)}
+                          {getTypeIcon(alert.alert_type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">

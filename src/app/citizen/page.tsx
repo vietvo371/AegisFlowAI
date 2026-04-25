@@ -6,8 +6,8 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, HeartPulse, MapPin, CloudRain, Wind,
-  Phone, Shield, ChevronRight, Droplets, Thermometer, Gauge, User
+  AlertTriangle, MapPin, CloudRain, Wind,
+  Phone, Shield, ChevronRight, Droplets, Thermometer, Gauge, User, Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,7 @@ interface SensorData {
 
 export default function CitizenDashboard() {
   const t = useTranslations('citizen');
+  const tDashboard = useTranslations('dashboard');
   const { user } = useAuth();
   const [alerts, setAlerts] = React.useState<AlertData[]>([]);
   const [sensors, setSensors] = React.useState<SensorData | null>(null);
@@ -75,7 +76,7 @@ export default function CitizenDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Xin chào, {user?.name?.split(' ')[0] ?? 'Công dân'}!
+            {t('home.greeting', { name: user?.name?.split(' ')[0] ?? t('citizen') })}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString('vi-VN', {
@@ -89,7 +90,7 @@ export default function CitizenDashboard() {
         <Link href="/citizen/profile">
           <Button variant="outline" size="sm" className="gap-2">
             <User size={16} />
-            Hồ sơ
+            {t('profile.title')}
           </Button>
         </Link>
       </div>
@@ -108,8 +109,8 @@ export default function CitizenDashboard() {
                   <AlertTriangle size={28} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">GỌI SOS</h2>
-                  <p className="text-white/80 text-sm">Báo cáo khẩn cấp ngay lập tức</p>
+                  <h2 className="text-xl font-bold text-white">{t('home.requestRescue')}</h2>
+                  <p className="text-white/80 text-sm">{t('home.requestRescueDesc')}</p>
                 </div>
               </div>
               <ChevronRight size={24} className="text-white/60" />
@@ -124,28 +125,28 @@ export default function CitizenDashboard() {
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Droplets className="w-6 h-6 text-blue-500 mb-2" />
             <p className="text-2xl font-bold">{sensors?.water_level ?? '--'}</p>
-            <p className="text-xs text-muted-foreground">Mực nước (m)</p>
+            <p className="text-xs text-muted-foreground">{tDashboard('forecast.waterLevel')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <CloudRain className="w-6 h-6 text-blue-500 mb-2" />
             <p className="text-2xl font-bold">{sensors?.rainfall ?? '--'}</p>
-            <p className="text-xs text-muted-foreground">Lượng mưa (mm)</p>
+            <p className="text-xs text-muted-foreground">{tDashboard('forecast.rainfall')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Thermometer className="w-6 h-6 text-orange-500 mb-2" />
             <p className="text-2xl font-bold">{sensors?.temperature ?? '--'}°</p>
-            <p className="text-xs text-muted-foreground">Nhiệt độ</p>
+            <p className="text-xs text-muted-foreground">{tDashboard('forecast.temperature')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Gauge className="w-6 h-6 text-green-500 mb-2" />
             <p className="text-2xl font-bold">{sensors?.humidity ?? '--'}%</p>
-            <p className="text-xs text-muted-foreground">Độ ẩm</p>
+            <p className="text-xs text-muted-foreground">{tDashboard('forecast.humidity')}</p>
           </CardContent>
         </Card>
       </div>
@@ -155,11 +156,11 @@ export default function CitizenDashboard() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            Cảnh báo khu vực
+            {t('home.activeAlerts')}
           </CardTitle>
           <Link href="/citizen/alerts">
             <Button variant="ghost" size="sm" className="text-xs">
-              Xem tất cả
+              {t('home.viewAll')}
             </Button>
           </Link>
         </CardHeader>
@@ -183,7 +184,7 @@ export default function CitizenDashboard() {
                       </p>
                     </div>
                     <Badge variant="outline" className="text-xs capitalize">
-                      {alert.severity}
+                      {t(`alerts.severity.${alert.severity}`)}
                     </Badge>
                   </div>
                 </Link>
@@ -192,7 +193,7 @@ export default function CitizenDashboard() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Hiện không có cảnh báo nào</p>
+              <p className="text-sm">{t('home.noAlerts')}</p>
             </div>
           )}
         </CardContent>
@@ -204,11 +205,11 @@ export default function CitizenDashboard() {
           <Card className="hover:border-primary/50 transition-colors cursor-pointer">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-blue-600" />
+                <Building2 className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Điểm sơ tán</p>
-                <p className="text-xs text-muted-foreground">Gần bạn nhất</p>
+                <p className="font-semibold text-sm">{t('shelters.title')}</p>
+                <p className="text-xs text-muted-foreground">{t('home.floodMapDesc')}</p>
               </div>
             </CardContent>
           </Card>
@@ -220,7 +221,7 @@ export default function CitizenDashboard() {
                 <Wind className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Dự báo thời tiết</p>
+                <p className="font-semibold text-sm">{t('weather.title')}</p>
                 <p className="text-xs text-muted-foreground">48 giờ tới</p>
               </div>
             </CardContent>
@@ -233,25 +234,25 @@ export default function CitizenDashboard() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <Phone className="w-5 h-5 text-primary" />
-            Liên hệ khẩn cấp
+            {t('home.emergency')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-              <span className="text-xs text-muted-foreground">Đội cứu hộ</span>
+              <span className="text-xs text-muted-foreground">{t('home.emergency')}</span>
               <span className="font-bold">113</span>
             </Button>
             <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-              <span className="text-xs text-muted-foreground">Cứu hỏa</span>
+              <span className="text-xs text-muted-foreground">{t('home.fireService')}</span>
               <span className="font-bold">114</span>
             </Button>
             <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-              <span className="text-xs text-muted-foreground">Y tế</span>
+              <span className="text-xs text-muted-foreground">{t('home.ambulance')}</span>
               <span className="font-bold">115</span>
             </Button>
             <Button variant="outline" className="h-auto py-3 flex-col gap-1">
-              <span className="text-xs text-muted-foreground">Tổng đài</span>
+              <span className="text-xs text-muted-foreground">{t('home.police')}</span>
               <span className="font-bold">1022</span>
             </Button>
           </div>

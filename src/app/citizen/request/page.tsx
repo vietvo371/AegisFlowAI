@@ -150,7 +150,7 @@ export default function CitizenRequestPage() {
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        const errorMsgs = error.errors.map(e => e.message).join(', ');
+        const errorMsgs = error.issues.map(e => e.message).join(', ');
         toast.error(errorMsgs || 'Vui lòng kiểm tra lại các trường');
       } else {
         toast.error(error.response?.data?.message || 'Gửi yêu cầu thất bại');

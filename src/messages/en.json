@@ -254,7 +254,8 @@
       "statusUpdated": "Updated",
       "statusResolved": "Resolved",
       "statusExpired": "Expired",
-      "statusDraft": "Draft"
+      "statusDraft": "Draft",
+      "updateError": "Unable to update alert"
     },
     "sensors": {
       "subtitle": "Real-time water level and weather monitoring system",
@@ -479,6 +480,14 @@
       "triggerBtn": "SOS — REPORT EMERGENCY INCIDENT",
       "dialogTitle": "EMERGENCY REPORT",
       "dialogDesc": "Your information will be sent directly to the AegisFlow rescue operations center.",
+      "title": "Emergency Report",
+      "subtitle": "Send report to operations center",
+      "warningTitle": "WARNING",
+      "warningDesc": "If you are in immediate danger, call 113 now!",
+      "successTitle": "Report Submitted!",
+      "successDesc": "Your rescue request has been sent. A rescue team will contact you shortly.",
+      "viewMyRequest": "View My Request",
+      "backHome": "Back to Home",
       "fieldTitle": "Incident Title *",
       "fieldTitlePlaceholder": "E.g. Heavy flooding on ABC street...",
       "fieldType": "Incident Type *",
@@ -489,6 +498,7 @@
       "fieldAddressPlaceholder": "Current address...",
       "fieldDesc": "Detailed Description",
       "fieldDescPlaceholder": "Describe the situation, number of people needing help...",
+      "fieldVulnerable": "Priority Groups (if any)",
       "gpsTitle": "Get GPS Location",
       "gpsConfirm": "✓ GPS: {lat}, {lng}",
       "gpsNoSupport": "Browser does not support GPS",
@@ -725,6 +735,7 @@
       "all": "All",
       "noAlerts": "No alerts",
       "safeArea": "Current area is safe.",
+      "noDate": "No date",
       "inEffect": "Active",
       "expired": "Expired",
       "severity": {

@@ -22,7 +22,7 @@ export function PageTransition({ children }: PageTransitionProps) {
           duration: 0.4,
           ease: [0.22, 1, 0.36, 1]
         }}
-        className="w-full h-full overflow-hidden"
+        className="w-full"
       >
         {children}
       </motion.div>

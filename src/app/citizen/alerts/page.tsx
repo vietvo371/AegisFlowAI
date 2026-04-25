@@ -14,11 +14,16 @@ interface Alert {
   title: string;
   description?: string;
   alert_type: string;
+  alert_type_label?: string;
   severity: string;
+  severity_label?: string;
   status: string;
-  effective_from: string;
+  status_label?: string;
+  effective_from?: string;
   effective_until?: string;
-  source: string;
+  source?: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 const SEVERITY_BG: Record<string, string> = {
@@ -61,6 +66,19 @@ export default function CitizenAlertsPage() {
   }, []);
 
   const activeCount = alerts.filter(a => a.status === 'active').length;
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return t('noDate');
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return t('noDate');
+    return d.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -135,10 +153,10 @@ export default function CitizenAlertsPage() {
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1 border-t border-border/50">
                     <span className="flex items-center gap-1">
                       <Clock size={10} />
-                      {new Date(alert.effective_from).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      {formatDate(alert.created_at || alert.effective_from)}
                     </span>
-                    <span className="font-bold uppercase">{typeLabel}</span>
-                    <span className={`font-bold uppercase ${textClass}`}>{severityLabel}</span>
+                    <span className="font-bold uppercase">{alert.alert_type_label || typeLabel}</span>
+                    <span className={`font-bold uppercase ${textClass}`}>{alert.severity_label || severityLabel}</span>
                   </div>
                 </CardContent>
               </Card>

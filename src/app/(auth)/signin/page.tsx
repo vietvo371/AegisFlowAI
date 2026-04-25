@@ -66,7 +66,7 @@ export default function SignInPage() {
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof SignInInput, string>> = {};
-        error.errors.forEach(err => {
+        error.issues.forEach(err => {
           const fieldName = err.path[0] as keyof SignInInput;
           if (fieldName) fieldErrors[fieldName] = err.message;
         });

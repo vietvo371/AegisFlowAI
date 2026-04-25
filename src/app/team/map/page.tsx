@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Loader2, MapPin, Phone, Users, Clock, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -158,41 +158,39 @@ export default function TeamMapPage() {
                 <Sheet key={request.id} open={selectedRequest?.id === request.id} onOpenChange={(open) => {
                   if (!open) setSelectedRequest(null);
                 }}>
-                  <SheetTrigger asChild>
-                    <Card
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => setSelectedRequest(request)}
-                    >
-                      <CardContent className="pt-3 pb-3">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold flex items-center gap-2">
-                                {request.caller_name || 'Người dùng'}
-                                <Badge variant="outline" className={`text-white ${getUrgencyColor(request.urgency)}`}>
-                                  {getUrgencyLabel(request.urgency)}
-                                </Badge>
-                              </p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <MapPin size={12} /> {request.address}
-                              </p>
-                            </div>
-                            <ChevronRight size={16} className="text-muted-foreground" />
+                  <Card
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setSelectedRequest(request)}
+                  >
+                    <CardContent className="pt-3 pb-3">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold flex items-center gap-2">
+                              {request.caller_name || 'Người dùng'}
+                              <Badge variant="outline" className={`text-white ${getUrgencyColor(request.urgency)}`}>
+                                {getUrgencyLabel(request.urgency)}
+                              </Badge>
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                              <MapPin size={12} /> {request.address}
+                            </p>
                           </div>
-
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Users size={12} /> {request.people_count} người
-                            {request.caller_phone && (
-                              <>
-                                <span>•</span>
-                                <Phone size={12} /> {request.caller_phone}
-                              </>
-                            )}
-                          </div>
+                          <ChevronRight size={16} className="text-muted-foreground" />
                         </div>
-                      </CardContent>
-                    </Card>
-                  </SheetTrigger>
+
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Users size={12} /> {request.people_count} người
+                          {request.caller_phone && (
+                            <>
+                              <span>•</span>
+                              <Phone size={12} /> {request.caller_phone}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Detail Sheet */}
                   <SheetContent side="right" className="w-full sm:w-96">

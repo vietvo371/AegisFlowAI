@@ -1,449 +1,139 @@
 'use client';
 
-import * as React from 'react';
-import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import api from '@/lib/api';
+import Link from 'next/link';
+import Image from 'next/image';
 import {
-  fetchEvacuationRoute, fetchNearbyEvacuationPoints,
-  reverseGeocode, type LatLng, type EvacuationRoute
-} from '@/lib/openmap';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import {
-  Home, Navigation, MapPin, LocateFixed, RefreshCw,
-  ChevronUp, ChevronDown, Waves, Clock, Route,
-  AlertTriangle, Phone, X
+  Home, AlertTriangle, MapPin, Building2, Bell
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { LocaleToggle } from '@/components/theme/locale-toggle';
+import { useAuth } from '@/lib/auth-context';
 
-const MapComponent = dynamic(() => import('@/components/map/MapComponent'));
-
-interface Shelter {
-  id: number;
-  name: string;
-  address: string;
-  status: string;
-  capacity: number;
-  current_occupancy: number;
-  available_beds: number;
-  is_flood_safe: boolean;
-  location?: { lat: number; lng: number };
-  contact_phone?: string;
-  district?: { name: string };
-}
-
-type SheetTab = 'shelters' | 'route' | 'nearby';
+const CitizenMap = dynamic(() => import('@/components/map/CitizenMap'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgb(243,244,246)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+        <div style={{ width: '32px', height: '32px', border: '3px solid rgb(59,130,246)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontSize: '14px', color: '#6b7280' }}>Đang tải bản đồ...</p>
+      </div>
+    </div>
+  ),
+});
 
 export default function CitizenMapPage() {
   const t = useTranslations('citizen.map');
-  const [shelters, setShelters] = useState<Shelter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sheetOpen, setSheetOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<SheetTab>('shelters');
-  const [evacuationRoute, setEvacuationRoute] = useState<EvacuationRoute | null>(null);
+  const { user } = useAuth();
 
-  // Route finder state
-  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [selectedShelter, setSelectedShelter] = useState<Shelter | null>(null);
-  const [routeLoading, setRouteLoading] = useState(false);
-  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
-
-  // Nearby state
-  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [nearbyType, setNearbyType] = useState<'school' | 'hospital'>('school');
-
-  // Flood zones state
-  const [floodZones, setFloodZones] = useState<any>(null);
-  const [showFloodZones, setShowFloodZones] = useState(true);
-
-  const fetchShelters = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/shelters', { params: { per_page: 20 } });
-      setShelters(res.data?.data ?? []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  const fetchFloodZones = async () => {
-    try {
-      const res = await api.get('/flood-zones/geojson');
-      setFloodZones(res.data ?? null);
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    fetchShelters();
-    fetchFloodZones();
-
-    const shelterHandler = () => fetchShelters();
-    window.addEventListener('aegis:shelter:updated', shelterHandler);
-
-    return () => {
-      window.removeEventListener('aegis:shelter:updated', shelterHandler);
-    };
-  }, []);
-
-  // Get user GPS
-  const handleGetLocation = useCallback(() => {
-    if (!navigator.geolocation) { toast.error(t('toastNoGps')); return; }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        toast.success(t('toastGotLocation'));
-        setLocating(false);
-      },
-      () => { toast.error(t('toastGpsError')); setLocating(false); }
-    );
-  }, [t]);
-
-  // Find route to shelter
-  const handleFindRoute = async (shelter: Shelter) => {
-    if (!userLocation) { toast.error(t('toastNeedGps')); return; }
-    if (!shelter.location) { toast.error(t('toastNoCoords')); return; }
-
-    setSelectedShelter(shelter);
-    setRouteLoading(true);
-    setRouteInfo(null);
-
-    try {
-      const result = await fetchEvacuationRoute(
-        userLocation,
-        shelter.location,
-        'car'
-      );
-
-      if (result) {
-        setEvacuationRoute({
-          polyline: result.polyline,
-          origin: userLocation,
-          destination: shelter.location,
-          label: `→ ${shelter.name}`,
-        });
-        setRouteInfo({ distance: result.distance.text, duration: result.duration.text });
-        setActiveTab('route');
-        toast.success(t('toastRouteFound', { name: shelter.name }));
-      } else {
-        toast.error(t('toastRouteError'));
-      }
-    } catch (e) {
-      toast.error(t('toastRouteFail'));
-    } finally {
-      setRouteLoading(false);
-    }
-  };
-
-  // Find nearby evacuation points
-  const handleFindNearby = async () => {
-    if (!userLocation) { toast.error(t('toastNeedGps')); return; }
-    setNearbyLoading(true);
-    try {
-      const places = await fetchNearbyEvacuationPoints(userLocation, 3000, nearbyType);
-      setNearbyPlaces(places);
-      if (places.length === 0) toast.info(t('toastNoNearby'));
-    } catch (e) {
-      toast.error(t('toastNearbyFail'));
-    } finally {
-      setNearbyLoading(false);
-    }
-  };
-
-  const clearRoute = () => {
-    setEvacuationRoute(null);
-    setSelectedShelter(null);
-    setRouteInfo(null);
-  };
-
-  const openGoogleMaps = (dest: LatLng) => {
-    const origin = userLocation ? `${userLocation.lat},${userLocation.lng}` : '';
-    const url = origin
-      ? `https://maps.google.com/?saddr=${origin}&daddr=${dest.lat},${dest.lng}`
-      : `https://maps.google.com/?q=${dest.lat},${dest.lng}`;
-    window.open(url, '_blank');
-  };
-
-  const TABS: { id: SheetTab; label: string; icon: React.ElementType }[] = [
-    { id: 'shelters', label: t('tabShelters'), icon: Home },
-    { id: 'route',    label: t('tabRoute'),    icon: Route },
-    { id: 'nearby',   label: t('tabNearby'),   icon: MapPin },
+  const navItems = [
+    { href: '/citizen', icon: Home, label: 'Trang chủ' },
+    { href: '/citizen/sos', icon: AlertTriangle, label: 'SOS' },
+    { href: '/citizen/map', icon: MapPin, label: t('title'), active: true },
+    { href: '/citizen/shelters', icon: Building2, label: 'Điểm sơ tán' },
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] relative">
-      {/* Map */}
-      <div className="flex-1 relative">
-        <MapComponent
-          evacuationRoute={evacuationRoute ?? undefined}
-          floodZones={showFloodZones ? floodZones : null}
-          shelters={shelters}
-        />
-
-        {/* Map overlay badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-          <div className="px-3 py-1.5 rounded-xl bg-background/90 backdrop-blur border border-border shadow text-xs font-bold flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            {t('mapTitle')}
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'white',
+      }}
+    >
+      {/* Header - giống layout cha */}
+      <header
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderBottom: '1px solid rgb(224,224,224)',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          zIndex: 10,
+          backdropFilter: 'blur(8px)',
+          paddingTop: 'max(12px, env(safe-area-inset-top))',
+        }}
+      >
+        <Link href="/citizen" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgb(59,130,246)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Image src="/images/logo.png" alt="AegisFlow" width={20} height={20} style={{ width: '20px', height: '20px' }} />
           </div>
-          <button
-            onClick={() => setShowFloodZones(v => !v)}
-            className={`px-3 py-1.5 rounded-xl backdrop-blur border text-xs font-bold flex items-center gap-2 transition-all ${
-              showFloodZones
-                ? 'bg-red-500/10 border-red-500/30 text-red-600'
-                : 'bg-background/90 border-border text-muted-foreground'
-            }`}
-          >
-            <Waves size={13} />
-            {showFloodZones ? t('floodZonesOn') : t('floodZonesOff')}
+          <span style={{ fontSize: '18px', fontWeight: 'bold' }}>AegisFlow</span>
+          <span style={{ fontSize: '12px', fontWeight: '500', color: 'rgb(59,130,246)', backgroundColor: 'rgb(59,130,246,0.1)', padding: '2px 8px', borderRadius: '9999px' }}>Citizen</span>
+        </Link>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button style={{ background: 'none', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: 'rgb(107,114,128)' }}>
+            <Bell size={20} />
           </button>
-          {routeInfo && (
-            <div className="px-3 py-2 rounded-xl bg-primary/90 backdrop-blur text-primary-foreground text-xs font-bold flex items-center gap-3">
-              <Route size={12} />
-              <span>{routeInfo.distance}</span>
-              <span>·</span>
-              <Clock size={12} />
-              <span>{routeInfo.duration}</span>
-              <button onClick={clearRoute} className="ml-1 opacity-70 hover:opacity-100">
-                <X size={12} />
-              </button>
-            </div>
-          )}
+          <ThemeToggle />
+          <LocaleToggle />
+          <Avatar style={{ width: '32px', height: '32px' }}>
+            {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
+            <AvatarFallback style={{ backgroundColor: 'rgb(59,130,246)', color: 'white', fontSize: '14px' }}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         </div>
+      </header>
 
-        {/* GPS button */}
-        <button
-          onClick={handleGetLocation}
-          disabled={locating}
-          className="absolute top-3 right-3 z-10 w-10 h-10 rounded-xl bg-background/90 backdrop-blur border border-border shadow flex items-center justify-center text-primary hover:bg-background transition-colors"
-        >
-          <LocateFixed size={18} className={locating ? 'animate-spin' : ''} />
-        </button>
-
-        {userLocation && (
-          <div className="absolute top-16 right-3 z-10 px-2 py-1 rounded-lg bg-emerald-500/90 text-white text-[10px] font-bold">
-            {t('gpsConfirmed')}
-          </div>
-        )}
+      {/* Map */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+        <CitizenMap />
       </div>
 
-      {/* Bottom sheet */}
-      <div className={`bg-background border-t border-border transition-all duration-300 ${sheetOpen ? 'max-h-72' : 'max-h-12'}`}>
-        {/* Sheet handle */}
-        <div
-          onClick={() => setSheetOpen(v => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            {TABS.map(tab => (
-              <div
-                key={tab.id}
-                onClick={e => { e.stopPropagation(); setActiveTab(tab.id); setSheetOpen(true); }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <tab.icon size={11} />
-                {tab.label}
-              </div>
-            ))}
-          </div>
-          {sheetOpen ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronUp size={16} className="text-muted-foreground" />}
-        </div>
-
-        {/* Sheet content */}
-        {sheetOpen && (
-          <div className="overflow-y-auto max-h-56 px-4 pb-4 space-y-2">
-
-            {/* Tab: Shelters */}
-            {activeTab === 'shelters' && (
-              <>
-                {loading ? (
-                  <div className="flex justify-center py-4"><RefreshCw size={16} className="animate-spin text-muted-foreground" /></div>
-                ) : shelters.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">{t('noShelters')}</p>
-                ) : (
-                  shelters.map(s => {
-                    const isFull = s.status === 'full' || (s.capacity > 0 && s.current_occupancy >= s.capacity);
-                    return (
-                      <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-muted/30">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          isFull ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-600'
-                        }`}>
-                          <Home size={15} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate">{s.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{s.address}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge className={`text-[9px] ${isFull ? 'bg-red-500' : 'bg-emerald-500'} text-white`}>
-                              {isFull ? t('full') : t('availableBeds', { count: s.available_beds })}
-                            </Badge>
-                            {s.is_flood_safe && <span className="text-[9px] text-blue-500 font-bold">{t('floodSafe')}</span>}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 w-7 p-0 text-primary border-primary/30"
-                            onClick={() => handleFindRoute(s)}
-                            disabled={routeLoading}
-                            title={t('findRoute')}
-                          >
-                            {routeLoading && selectedShelter?.id === s.id
-                              ? <RefreshCw size={11} className="animate-spin" />
-                              : <Navigation size={11} />
-                            }
-                          </Button>
-                          {s.contact_phone && (
-                            <a href={`tel:${s.contact_phone}`}>
-                              <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-muted-foreground">
-                                <Phone size={11} />
-                              </Button>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </>
-            )}
-
-            {/* Tab: Route */}
-            {activeTab === 'route' && (
-              <div className="space-y-3 pt-1">
-                {!userLocation ? (
-                  <div className="text-center py-4 space-y-3">
-                    <p className="text-xs text-muted-foreground">{t('needGpsForRoute')}</p>
-                    <Button size="sm" onClick={handleGetLocation} disabled={locating} className="gap-2">
-                      <LocateFixed size={14} className={locating ? 'animate-spin' : ''} />
-                      {t('getGps')}
-                    </Button>
-                  </div>
-                ) : !evacuationRoute ? (
-                  <div className="text-center py-4 space-y-2">
-                    <Route size={28} className="mx-auto text-muted-foreground opacity-40" />
-                    <p className="text-xs text-muted-foreground">{t('selectShelter')}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                        <Route size={14} /> {t('evacuationRoute')}
-                      </div>
-                      {selectedShelter && (
-                        <p className="text-xs font-semibold">{selectedShelter.name}</p>
-                      )}
-                      {routeInfo && (
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Navigation size={11} /> {routeInfo.distance}</span>
-                          <span className="flex items-center gap-1"><Clock size={11} /> {routeInfo.duration}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      {selectedShelter?.location && (
-                        <Button
-                          size="sm"
-                          className="flex-1 gap-2 h-9 text-xs"
-                          onClick={() => openGoogleMaps(selectedShelter.location!)}
-                        >
-                          <Navigation size={12} /> {t('openMaps')}
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-9 text-xs gap-1" onClick={clearRoute}>
-                        <X size={12} /> {t('clearRoute')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tab: Nearby */}
-            {activeTab === 'nearby' && (
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1 p-1 bg-muted rounded-lg flex-1">
-                    {(['school', 'hospital'] as const).map(type => (
-                      <button
-                        key={type}
-                        onClick={() => setNearbyType(type)}
-                        className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${
-                          nearbyType === type ? 'bg-background shadow text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {type === 'school' ? t('school') : t('hospital')}
-                      </button>
-                    ))}
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleFindNearby}
-                    disabled={nearbyLoading || !userLocation}
-                    className="h-9 gap-1 text-xs shrink-0"
-                  >
-                    {nearbyLoading
-                      ? <RefreshCw size={12} className="animate-spin" />
-                      : <MapPin size={12} />
-                    }
-                    {t('findNearby')}
-                  </Button>
+      {/* Bottom nav - giống layout cha */}
+      <nav
+        style={{
+          backgroundColor: 'white',
+          borderTop: '1px solid rgb(224,224,224)',
+          padding: '8px 0',
+          paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+          display: 'flex',
+          justifyContent: 'space-around',
+          flexShrink: 0,
+          zIndex: 10,
+        }}
+      >
+        {navItems.map((item) => {
+          const active = !!item.active;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                color: active ? 'rgb(59,130,246)' : 'rgb(107,114,128)',
+              }}
+            >
+              {active ? (
+                <div style={{ position: 'relative' }}>
+                  <item.icon size={20} style={{ color: 'rgb(59,130,246)' }} />
+                  <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'rgb(59,130,246)' }} />
                 </div>
-
-                {!userLocation && (
-                  <div className="text-center py-3">
-                    <p className="text-xs text-muted-foreground mb-2">{t('needGpsForNearby')}</p>
-                    <Button size="sm" variant="outline" onClick={handleGetLocation} disabled={locating} className="gap-2">
-                      <LocateFixed size={12} className={locating ? 'animate-spin' : ''} /> {t('getGpsShort')}
-                    </Button>
-                  </div>
-                )}
-
-                {nearbyPlaces.length > 0 && (
-                  <div className="space-y-2">
-                    {nearbyPlaces.slice(0, 5).map((place, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-muted/30">
-                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0 text-sm">
-                          {nearbyType === 'school' ? '🏫' : '🏥'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate">{place.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{place.address}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 w-7 p-0 shrink-0 text-primary border-primary/30"
-                          onClick={() => place.location && openGoogleMaps(place.location)}
-                          title={t('findRoute')}
-                        >
-                          <Navigation size={11} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {nearbyPlaces.length === 0 && !nearbyLoading && userLocation && (
-                  <p className="text-xs text-muted-foreground text-center py-3">
-                    {t('findPrompt', { type: nearbyType === 'school' ? t('findPromptSchool') : t('findPromptHospital') })}
-                  </p>
-                )}
-              </div>
-            )}
-
-          </div>
-        )}
-      </div>
+              ) : (
+                <item.icon size={20} />
+              )}
+              <span style={{ fontSize: '10px', fontWeight: active ? 'bold' : 'normal' }}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
+

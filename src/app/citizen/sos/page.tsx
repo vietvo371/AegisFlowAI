@@ -48,9 +48,30 @@ export default function CitizenSOSPage() {
     if (!navigator.geolocation) { toast.error(t('gpsNoSupport')); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setAddress(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
+      async pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+
+        // Reverse geocoding để lấy địa chỉ
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`
+          );
+          const data = await res.json();
+          const parts = [
+            data.address?.house_number,
+            data.address?.road,
+            data.address?.neighbourhood,
+            data.address?.suburb,
+            data.address?.city_district,
+            data.address?.city,
+          ].filter(Boolean);
+          setAddress(parts.length > 0 ? parts.join(', ') : `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } catch {
+          setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        }
+
         toast.success(t('gpsSuccess'));
         setLocating(false);
       },
@@ -68,7 +89,7 @@ export default function CitizenSOSPage() {
     e.preventDefault();
 
     if (!form.title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề sự cố');
+      toast.error(t('validationError'));
       return;
     }
     if (!address && coords.lat === 16.0544) {
@@ -81,10 +102,10 @@ export default function CitizenSOSPage() {
     try {
       // Tạo incident
       await api.post('/incidents', {
-        name: form.title,
+        title: form.title,
         type: form.type,
         severity: form.severity,
-        description: form.description,
+        description: form.description || null,
         address: address || 'Đà Nẵng',
         latitude: coords.lat,
         longitude: coords.lng,
@@ -97,7 +118,7 @@ export default function CitizenSOSPage() {
         urgency: form.severity,
         category: 'rescue',
         people_count: 1,
-        description: form.description,
+        description: form.description || null,
         address: address || 'Đà Nẵng',
         latitude: coords.lat,
         longitude: coords.lng,
@@ -122,19 +143,19 @@ export default function CitizenSOSPage() {
             <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 size={32} className="text-white" />
             </div>
-            <h2 className="text-xl font-black text-emerald-700">Báo cáo thành công!</h2>
+            <h2 className="text-xl font-black text-emerald-700">{tCitizen('sos.successTitle')}</h2>
             <p className="text-sm text-emerald-600/80">
-              Yêu cầu cứu hộ của bạn đã được gửi. Đội cứu hộ sẽ liên hệ sớm nhất.
+              {tCitizen('sos.successDesc')}
             </p>
             <div className="flex flex-col gap-2">
               <Link href="/citizen/request">
                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                  Xem yêu cầu của tôi
+                  {tCitizen('sos.viewMyRequest')}
                 </Button>
               </Link>
               <Link href="/citizen">
                 <Button variant="outline" className="w-full">
-                  Quay về trang chủ
+                  {tCitizen('sos.backHome')}
                 </Button>
               </Link>
             </div>
@@ -145,7 +166,7 @@ export default function CitizenSOSPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/citizen" className="p-2 -ml-2 rounded-lg hover:bg-muted">
           <ChevronLeft size={20} />
@@ -153,9 +174,9 @@ export default function CitizenSOSPage() {
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
             <AlertTriangle className="text-red-500" size={24} />
-            Báo cáo khẩn cấp
+            {t('title')}
           </h1>
-          <p className="text-sm text-muted-foreground">Gửi báo cáo đến trung tâm điều hành</p>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -167,9 +188,9 @@ export default function CitizenSOSPage() {
               <AlertTriangle size={24} className="text-white" />
             </div>
             <div>
-              <p className="font-black text-red-700">KHUYẾN CÁO</p>
+              <p className="font-black text-red-700">{t('warningTitle')}</p>
               <p className="text-xs text-red-600/80">
-                Nếu bạn đang gặp nguy hiểm tính mạng, hãy gọi 113 ngay!
+                {t('warningDesc')}
               </p>
             </div>
           </div>
@@ -180,12 +201,12 @@ export default function CitizenSOSPage() {
         {/* Title */}
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-            Tiêu đề sự cố *
+            {t('fieldTitle')}
           </Label>
           <Input
             value={form.title}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="VD: Ngập nặng tại đường ABC..."
+            placeholder={t('fieldTitlePlaceholder')}
             required
             className="font-medium"
           />
@@ -195,7 +216,7 @@ export default function CitizenSOSPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-              Loại sự cố
+              {t('fieldType')}
             </Label>
             <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v ?? 'flood' }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -210,7 +231,7 @@ export default function CitizenSOSPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-              Mức độ nghiêm trọng
+              {t('fieldSeverity')}
             </Label>
             <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v ?? 'high' }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -227,14 +248,14 @@ export default function CitizenSOSPage() {
         {/* Location */}
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-            Vị trí / Địa chỉ *
+            {t('fieldAddress')}
           </Label>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <MapPin size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
               <Input
                 className="pl-8"
-                placeholder="Nhập địa chỉ hoặc lấy GPS"
+                placeholder={t('fieldAddressPlaceholder')}
                 value={address}
                 onChange={e => setAddress(e.target.value)}
               />
@@ -245,7 +266,7 @@ export default function CitizenSOSPage() {
           </div>
           {coords.lat !== 16.0544 && (
             <p className="text-[10px] text-emerald-600 font-medium">
-              ✓ GPS: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+              {t('gpsConfirm', { lat: coords.lat.toFixed(4), lng: coords.lng.toFixed(4) })}
             </p>
           )}
         </div>
@@ -253,28 +274,28 @@ export default function CitizenSOSPage() {
         {/* Vulnerable groups */}
         <div className="space-y-2">
           <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-            Nhóm cần ưu tiên (nếu có)
+            {t('fieldVulnerable')}
           </Label>
           <div className="grid grid-cols-2 gap-2">
-                  {['children', 'elderly', 'disabled', 'pregnant'].map(id => (
-                    <label key={id} className="flex items-center gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
-                      <Checkbox
-                        checked={vulnerableGroups.includes(id)}
-                        onCheckedChange={() => toggleVulnerable(id)}
-                      />
-                      <span className="text-xs font-medium">{VULNERABLE_LABELS[id][locale]}</span>
-                    </label>
-                  ))}
+            {['children', 'elderly', 'disabled', 'pregnant'].map(id => (
+              <label key={id} className="flex items-center gap-2 p-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+                <Checkbox
+                  checked={vulnerableGroups.includes(id)}
+                  onCheckedChange={() => toggleVulnerable(id)}
+                />
+                <span className="text-xs font-medium">{VULNERABLE_LABELS[id][locale]}</span>
+              </label>
+            ))}
           </div>
         </div>
 
         {/* Description */}
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-            Mô tả chi tiết
+            {t('fieldDesc')}
           </Label>
           <Textarea
-            placeholder="Mô tả tình hình, số người cần hỗ trợ..."
+            placeholder={t('fieldDescPlaceholder')}
             className="min-h-[100px] resize-none"
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -288,9 +309,9 @@ export default function CitizenSOSPage() {
           className="w-full h-14 bg-red-600 hover:bg-red-700 font-black text-base"
         >
           {submitting ? (
-            <><RefreshCw size={18} className="animate-spin mr-2" /> Đang gửi...</>
+            <><RefreshCw size={18} className="animate-spin mr-2" /> {t('submitting')}</>
           ) : (
-            <><AlertTriangle size={18} className="mr-2" /> GỬI BÁO CÁO KHẨN</>
+            <><AlertTriangle size={18} className="mr-2" /> {t('submit')}</>
           )}
         </Button>
       </form>

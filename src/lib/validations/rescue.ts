@@ -9,11 +9,11 @@ export const rescueRequestSchema = z.object({
     .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải là 10-11 chữ số'),
 
   urgency: z.enum(['low', 'medium', 'high', 'critical'], {
-    errorMap: () => ({ message: 'Vui lòng chọn mức độ khẩn cấp' })
+    error: 'Vui lòng chọn mức độ khẩn cấp'
   }),
 
   category: z.enum(['rescue', 'shelter', 'medical', 'food'], {
-    errorMap: () => ({ message: 'Vui lòng chọn danh mục' })
+    error: 'Vui lòng chọn danh mục'
   }),
 
   people_count: z.string()

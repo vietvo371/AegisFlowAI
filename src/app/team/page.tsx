@@ -24,6 +24,7 @@ interface RescueRequest {
 
 export default function TeamDashboard() {
   const t = useTranslations('team');
+  const tMissions = useTranslations('team.missions');
   const { user } = useAuth();
   const [pendingRequests, setPendingRequests] = React.useState<RescueRequest[]>([]);
   const [assignedRequests, setAssignedRequests] = React.useState<RescueRequest[]>([]);
@@ -70,10 +71,10 @@ export default function TeamDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <Badge variant="secondary">Chờ tiếp nhận</Badge>;
-      case 'assigned': return <Badge variant="default">Đã tiếp nhận</Badge>;
-      case 'in_progress': return <Badge variant="default" className="bg-blue-500">Đang thực hiện</Badge>;
-      case 'resolved': return <Badge variant="outline" className="text-green-600 border-green-600">Hoàn thành</Badge>;
+      case 'pending': return <Badge variant="secondary">{tMissions('pending')}</Badge>;
+      case 'assigned': return <Badge variant="default">{tMissions('statusOptions.assigned')}</Badge>;
+      case 'in_progress': return <Badge variant="default" className="bg-blue-500">{tMissions('statusOptions.in_progress')}</Badge>;
+      case 'resolved': return <Badge variant="outline" className="text-green-600 border-green-600">{tMissions('completed')}</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -84,7 +85,7 @@ export default function TeamDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Chào mừng, {user?.name ?? 'Đội cứu hộ'}!
+            {tMissions('title')}, {user?.name ?? t('profile.teamMember')}!
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString('vi-VN', {
@@ -116,14 +117,14 @@ export default function TeamDashboard() {
           <CardContent className="p-4 text-center">
             <AlertTriangle className="w-6 h-6 text-red-500 mx-auto mb-2" />
             <p className="text-3xl font-bold">{pendingRequests.length}</p>
-            <p className="text-xs text-muted-foreground">Đang chờ</p>
+            <p className="text-xs text-muted-foreground">{tMissions('pending')}</p>
           </CardContent>
         </Card>
         <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white">
           <CardContent className="p-4 text-center">
             <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2" />
             <p className="text-3xl font-bold">{stats.completed}</p>
-            <p className="text-xs text-muted-foreground">Hoàn thành</p>
+            <p className="text-xs text-muted-foreground">{tMissions('completed')}</p>
           </CardContent>
         </Card>
       </div>
@@ -134,7 +135,7 @@ export default function TeamDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <Truck className="w-5 h-5 text-blue-600" />
-              Nhiệm vụ đã tiếp nhận
+              {tMissions('active')}
             </CardTitle>
             <Link href="/team/assigned">
               <Button variant="ghost" size="sm" className="text-xs">
