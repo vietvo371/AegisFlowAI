@@ -3,6 +3,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { z } from 'zod';
+import { signInSchema, type SignInInput } from '@/lib/validations/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,17 +26,31 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  const [formData, setFormData] = React.useState<SignInInput>({
+    email: '',
+    password: '',
+  });
+
+  const [errors, setErrors] = React.useState<Partial<Record<keyof SignInInput, string>>>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name as keyof SignInInput]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
     setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email    = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
     try {
+      const validated = signInSchema.parse(formData);
+
       const api = (await import('@/lib/api')).default;
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', validated);
 
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
@@ -48,12 +64,19 @@ export default function SignInPage() {
         window.location.replace(ROLE_ROUTES[role] ?? '/dashboard');
       }
     } catch (error: any) {
-      // Ignore abort errors (user navigated away)
-      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
-        setIsLoading(false);
-        return;
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Partial<Record<keyof SignInInput, string>> = {};
+        error.errors.forEach(err => {
+          const fieldName = err.path[0] as keyof SignInInput;
+          if (fieldName) fieldErrors[fieldName] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast.error('Vui lòng kiểm tra lại');
+      } else if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+        // Ignore abort errors
+      } else {
+        toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
       }
-      toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +92,7 @@ export default function SignInPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email Field */}
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('email')}
@@ -78,13 +102,24 @@ export default function SignInPage() {
             <Input
               id="email" name="email" type="email"
               placeholder={t('emailPlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
+                errors.email ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="email"
               required
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
+          {errors.email && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.email}
+            </p>
+          )}
         </div>
 
+        {/* Password Field */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -100,19 +135,30 @@ export default function SignInPage() {
               id="password" name="password"
               type={showPassword ? 'text' : 'password'}
               placeholder={t('passwordPlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9 pr-10"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 pr-10 ${
+                errors.password ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="current-password"
               required
+              value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              disabled={isLoading}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {errors.password && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.password}
+            </p>
+          )}
         </div>
 
         <Button

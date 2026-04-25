@@ -17,6 +17,7 @@ import { LocaleToggle } from '@/components/theme/locale-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { PageTransition } from '@/components/ui/page-transition';
+import { ToasterProvider } from '@/components/ui/toaster-provider';
 
 export default function TeamLayout({
   children,
@@ -65,6 +66,7 @@ export default function TeamLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <ToasterProvider />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">

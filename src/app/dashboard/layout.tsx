@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { RealtimeListener } from '@/components/realtime/RealtimeListener';
 import { PageTransition } from '@/components/ui/page-transition';
 import { NotificationBell } from '@/components/notification/NotificationBell';
+import { ToasterProvider } from '@/components/ui/toaster-provider';
 
 // Roles that are allowed to access dashboard
 const DASHBOARD_ROLES = ['city_admin', 'rescue_operator', 'ai_operator', 'sensor'];
@@ -69,6 +70,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
+      <ToasterProvider />
       <RealtimeListener />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
@@ -196,9 +198,7 @@ export default function DashboardLayout({
             
             <div className="h-4 w-px bg-border mx-1" />
 
-            <Link href="/dashboard/notifications" className="relative">
-              <NotificationBell />
-            </Link>
+            <NotificationBell />
 
             <Avatar className="h-9 w-9 border border-border mt-1">
               {user?.avatar_url ? <AvatarImage src={user.avatar_url} /> : null}

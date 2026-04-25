@@ -34,10 +34,9 @@ export default function TeamDashboard() {
     const fetchData = async () => {
       try {
         const api = (await import('@/lib/api')).default;
-        const [pendingRes, assignedRes, statsRes] = await Promise.allSettled([
+        const [pendingRes, assignedRes] = await Promise.allSettled([
           api.get('/rescue-requests', { params: { status: 'pending', per_page: 5 } }),
           api.get('/rescue-requests', { params: { status: 'assigned', team_id: user?.id, per_page: 5 } }),
-          api.get('/rescue-requests/stats'),
         ]);
 
         if (pendingRes.status === 'fulfilled') {
@@ -45,9 +44,6 @@ export default function TeamDashboard() {
         }
         if (assignedRes.status === 'fulfilled') {
           setAssignedRequests(assignedRes.value.data?.data ?? []);
-        }
-        if (statsRes.status === 'fulfilled') {
-          setStats(statsRes.value.data?.data ?? stats);
         }
       } catch (e) {
         // silent

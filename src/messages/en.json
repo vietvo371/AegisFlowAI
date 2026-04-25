@@ -734,11 +734,14 @@
         "low": "Advisory"
       },
       "type": {
-        "flood_risk": "Flood Risk",
-        "weather": "Weather",
+        "flood_warning": "Flood Warning",
+        "heavy_rain": "Heavy Rain",
+        "dam_warning": "Dam Warning",
         "evacuation": "Evacuation",
-        "traffic": "Traffic",
-        "power_outage": "Power Outage",
+        "all_clear": "All Clear",
+        "weather": "Weather",
+        "flood_risk": "Flood Risk",
+        "warning": "Warning",
         "flood": "Flood"
       }
     },
@@ -780,7 +783,9 @@
       "toastRouteError": "Could not find a route",
       "toastRouteFail": "Error finding route",
       "toastNoNearby": "No nearby places found",
-      "toastNearbyFail": "Error finding nearby places"
+      "toastNearbyFail": "Error finding nearby places",
+      "floodZonesOn": "🌊 Show Flood Zones",
+      "floodZonesOff": "🌊 Hide Flood Zones"
     },
     "profile": {
       "title": "My Profile",
@@ -791,6 +796,49 @@
       "fullName": "Full Name",
       "phone": "Phone Number",
       "emailReadonly": "Email (cannot be changed)"
+    },
+    "sos": {
+      "title": "Emergency Report",
+      "subtitle": "Send report to operations center",
+      "warningTitle": "WARNING",
+      "warningDesc": "If you are in immediate danger, call 113 now!",
+      "successTitle": "Report Submitted!",
+      "successDesc": "Your rescue request has been sent. A rescue team will contact you shortly.",
+      "viewMyRequest": "View My Request",
+      "backHome": "Back to Home"
+    },
+    "shelters": {
+      "title": "Shelters",
+      "subtitle": "{count} shelters in Da Nang area",
+      "searchPlaceholder": "Search shelters...",
+      "available": "Available",
+      "almostFull": "Almost Full",
+      "floodSafe": "Flood Safe",
+      "spotsAvailable": "{count} spots available",
+      "directions": "Directions",
+      "viewMap": "View Map",
+      "noShelters": "No shelters found"
+    },
+    "weather": {
+      "title": "Da Nang Weather",
+      "lastUpdated": "Updated: {time}",
+      "feelsLike": "Feels like {temp}°C",
+      "humidity": "Humidity",
+      "wind": "Wind {direction}",
+      "rainfall": "Rainfall",
+      "pressure": "Pressure",
+      "uvIndex": "UV Index",
+      "hourlyForecast": "24-Hour Forecast",
+      "safetyTips": "Safety Tips",
+      "tipAvoidFlood": "Avoid flooded areas, especially low-lying roads",
+      "tipHighHumidity": "High humidity, watch for mold on items",
+      "tipMonitorAlerts": "Follow AegisFlow AI alerts for updates",
+      "tipCallRescue": "Call rescue team 113 if in danger",
+      "floodWarning": "Flood Warning",
+      "riskCritical": "Very high flood risk",
+      "riskHigh": "High flood risk",
+      "riskMedium": "Medium flood risk",
+      "riskLow": "Safe"
     }
   },
   "team": {
@@ -855,6 +903,10 @@
     "lastName": "Last name",
     "firstNamePlaceholder": "Enter first name",
     "lastNamePlaceholder": "Enter last name",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "phonePlaceholder": "Enter phone number",
+    "confirmPasswordPlaceholder": "Confirm your password",
     "createPassword": "Create a strong password",
     "signUp": "Create Account",
     "signingUp": "Creating account...",

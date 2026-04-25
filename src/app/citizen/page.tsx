@@ -39,16 +39,12 @@ export default function CitizenDashboard() {
     const fetchData = async () => {
       try {
         const api = (await import('@/lib/api')).default;
-        const [alertsRes, sensorRes] = await Promise.allSettled([
+        const [alertsRes] = await Promise.allSettled([
           api.get('/alerts', { params: { status: 'active', per_page: 5 } }),
-          api.get('/sensors/nearest'),
         ]);
 
         if (alertsRes.status === 'fulfilled') {
           setAlerts(alertsRes.value.data?.data ?? []);
-        }
-        if (sensorRes.status === 'fulfilled') {
-          setSensors(sensorRes.value.data?.data ?? null);
         }
       } catch (e) {
         // silent

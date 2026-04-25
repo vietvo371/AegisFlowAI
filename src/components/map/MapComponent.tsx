@@ -52,6 +52,8 @@ interface LayerGroup {
 interface Props {
   evacuationRoute?: EvacuationRoute | null;
   focusTeam?: { id: number; name: string; latitude?: number; longitude?: number } | null;
+  floodZones?: GeoJsonFeatureCollection | null;
+  shelters?: any[];
   center?: [number, number];
   zoom?: number;
 }
@@ -114,7 +116,7 @@ function formatTime(iso: string | null | undefined): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MapComponent({ evacuationRoute, focusTeam, center, zoom }: Props) {
+export default function MapComponent({ evacuationRoute, focusTeam, floodZones, shelters, center, zoom }: Props) {
   const t = useTranslations('dashboard');
   const tMap = useTranslations('dashboard.mapLayers');
   const tPopup = useTranslations('dashboard.mapPopup');
@@ -295,25 +297,29 @@ export default function MapComponent({ evacuationRoute, focusTeam, center, zoom 
     if (!mapReady) return;
     setLoading(true);
     try {
-      const [floodReports, sensorStations, incidents, floodZones, shelters, rescueTeams] =
+      const [floodReports, sensorStations, incidents, fetchedFloodZones, fetchedShelters, rescueTeams] =
         await Promise.allSettled([
           api.get<GeoJsonFeatureCollection>('/map/flood-reports'),
           api.get<GeoJsonFeatureCollection>('/map/sensor-stations'),
           api.get<GeoJsonFeatureCollection>('/map/incidents'),
-          api.get<GeoJsonFeatureCollection>('/map/flood-zones'),
-          api.get<GeoJsonFeatureCollection>('/map/shelters'),
+          floodZones ? Promise.resolve({ data: floodZones }) : api.get<GeoJsonFeatureCollection>('/map/flood-zones'),
+          shelters?.length ? Promise.resolve({ data: { type: 'FeatureCollection' as const, features: shelters.map((s: any) => ({
+            type: 'Feature' as const,
+            properties: s,
+            geometry: s.location ? { type: 'Point' as const, coordinates: [s.location.lng, s.location.lat] } : { type: 'Point' as const, coordinates: [0, 0] }
+          })) } }) : api.get<GeoJsonFeatureCollection>('/map/shelters'),
           api.get<GeoJsonFeatureCollection>('/map/rescue-teams'),
         ]);
 
-      const extract = (r: PromiseSettledResult<{ data: GeoJsonFeatureCollection }>): GeoJsonFeatureCollection =>
+      const extract = (r: PromiseSettledResult<any>): GeoJsonFeatureCollection =>
         r.status === 'fulfilled' ? r.value.data : { type: 'FeatureCollection', features: [] };
 
       dataRef.current = {
         flood_reports:   extract(floodReports),
         sensor_stations: extract(sensorStations),
         incidents:       extract(incidents),
-        flood_zones:     extract(floodZones),
-        shelters:        extract(shelters),
+        flood_zones:     extract(fetchedFloodZones),
+        shelters:        extract(fetchedShelters),
         rescue_teams:    extract(rescueTeams),
       };
 
@@ -321,7 +327,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, center, zoom 
     } finally {
       setLoading(false);
     }
-  }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapReady, floodZones, shelters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

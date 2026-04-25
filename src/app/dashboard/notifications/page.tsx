@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import api from '@/lib/api';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,101 +12,40 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   Bell, AlertTriangle, Info, Search, CheckCheck,
-  Clock, ChevronRight, ShieldAlert, Loader2, RefreshCw,
+  Clock, ChevronRight, ShieldAlert, RefreshCw,
   Megaphone, BrainCircuit, HeartPulse
 } from 'lucide-react';
 
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  data?: Record<string, any>;
-  read_at: string | null;
-  created_at: string;
-}
-
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string }> = {
-  AlertNotification:    { icon: Megaphone,    color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
-  IncidentCreated:      { icon: AlertTriangle, color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-  PredictionReceived:   { icon: BrainCircuit,  color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-  RescueRequestCreated: { icon: HeartPulse,    color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-  FloodZoneUpdated:     { icon: ShieldAlert,   color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  alert:      { icon: Megaphone,    color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+  incident:   { icon: AlertTriangle, color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+  prediction: { icon: BrainCircuit,  color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  rescue:     { icon: HeartPulse,    color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  sensor:     { icon: ShieldAlert,   color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
 };
 
 const DEFAULT_CONFIG = { icon: Info, color: 'bg-slate-500/10 text-slate-600 border-slate-500/20' };
 
-function timeAgo(iso: string): string {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+function timeAgo(date: Date): string {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
   if (diff < 60) return `${diff}s trước`;
   if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-  return new Date(iso).toLocaleDateString('vi-VN');
+  return date.toLocaleDateString('vi-VN');
 }
 
 export default function NotificationsPage() {
   const t = useTranslations('dashboard');
-
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
   const [markingAll, setMarkingAll] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [search, setSearch] = useState('');
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/alerts', { params: { per_page: 20, status: 'active' } });
-      const alerts = res.data?.data ?? [];
-      const mapped: Notification[] = alerts.map((a: any) => ({
-        id: String(a.id),
-        type: 'AlertNotification',
-        title: a.title,
-        body: a.description ?? '',
-        data: a,
-        read_at: a.status === 'resolved' ? a.updated_at : null,
-        created_at: a.created_at,
-      }));
-      setNotifications(mapped);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const markAsRead = async (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)
-    );
-  };
-
-  const markAllRead = async () => {
-    setMarkingAll(true);
-    setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
-    setMarkingAll(false);
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const handler = () => fetchNotifications();
-    window.addEventListener('aegis:alert:created', handler);
-    window.addEventListener('aegis:incident:created', handler);
-    window.addEventListener('aegis:rescue_request:created', handler);
-    return () => {
-      window.removeEventListener('aegis:alert:created', handler);
-      window.removeEventListener('aegis:incident:created', handler);
-      window.removeEventListener('aegis:rescue_request:created', handler);
-    };
-  }, [fetchNotifications]);
-
-  const unreadCount = notifications.filter(n => !n.read_at).length;
-
   const filtered = notifications.filter(n => {
-    const matchFilter = filter === 'all' || !n.read_at;
+    const matchFilter = filter === 'all' || !n.read;
     const matchSearch = !search ||
       n.title.toLowerCase().includes(search.toLowerCase()) ||
-      n.body.toLowerCase().includes(search.toLowerCase());
+      n.message.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 
@@ -129,7 +68,11 @@ export default function NotificationsPage() {
           <Button
             variant="outline" size="sm"
             className="rounded-xl h-10 px-4 font-bold"
-            onClick={markAllRead}
+            onClick={async () => {
+              setMarkingAll(true);
+              await markAllRead();
+              setMarkingAll(false);
+            }}
             disabled={markingAll || unreadCount === 0}
           >
             {markingAll
@@ -137,9 +80,6 @@ export default function NotificationsPage() {
               : <CheckCheck size={16} className="mr-2" />
             }
             {t('notifications.markAllRead')}
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10" onClick={fetchNotifications} disabled={loading}>
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </Button>
         </div>
       </div>
@@ -181,12 +121,7 @@ export default function NotificationsPage() {
         <div className="lg:col-span-3">
           <Card className="border-border shadow-sm overflow-hidden bg-card/50">
             <ScrollArea className="h-[calc(100vh-280px)]">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center p-20 gap-4">
-                  <Loader2 className="animate-spin text-primary" size={32} />
-                  <p className="text-sm font-bold text-muted-foreground">{t('notifications.loadingText')}</p>
-                </div>
-              ) : filtered.length === 0 ? (
+              {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-20 text-center">
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                     <Bell className="text-muted-foreground opacity-20" size={32} />
@@ -201,7 +136,7 @@ export default function NotificationsPage() {
                   {filtered.map(item => {
                     const cfg = TYPE_CONFIG[item.type] ?? DEFAULT_CONFIG;
                     const Icon = cfg.icon;
-                    const isUnread = !item.read_at;
+                    const isUnread = !item.read;
                     return (
                       <div
                         key={item.id}
@@ -222,11 +157,11 @@ export default function NotificationsPage() {
                             </h3>
                             <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1 shrink-0 whitespace-nowrap uppercase tracking-wider">
                               <Clock size={12} />
-                              {timeAgo(item.created_at)}
+                              {timeAgo(item.timestamp)}
                             </span>
                           </div>
                           <p className={cn('text-sm leading-relaxed line-clamp-2', isUnread ? 'text-muted-foreground' : 'text-muted-foreground/60')}>
-                            {item.body}
+                            {item.message}
                           </p>
                           {isUnread && (
                             <div className="mt-3">

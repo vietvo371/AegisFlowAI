@@ -69,7 +69,8 @@ export default function RescueTeamsPage() {
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type?: string) => {
+    if (!type) return '🛡️';
     switch (type.toLowerCase()) {
       case 'fire': return '🚒';
       case 'medical': return '🚑';

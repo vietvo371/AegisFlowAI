@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
         const params: any = {};
         if (roleFilter !== 'all') params.role = roleFilter;
         if (statusFilter !== 'all') params.status = statusFilter;
-        const res = await api.get('/users', { params });
+        const res = await api.get('/admin/users', { params });
         setUsers(res.data?.data ?? []);
       } catch (e) {
         // silent

@@ -734,11 +734,14 @@
         "low": "Lưu ý"
       },
       "type": {
-        "flood_risk": "Nguy cơ ngập",
+        "flood_warning": "Cảnh báo ngập",
+        "heavy_rain": "Mưa lớn",
+        "dam_warning": "Cảnh báo đập",
+        "evacuation": "Lệnh sơ tán",
+        "all_clear": "Dỡ cảnh báo",
         "weather": "Thời tiết",
-        "evacuation": "Sơ tán",
-        "traffic": "Giao thông",
-        "power_outage": "Mất điện",
+        "flood_risk": "Nguy cơ ngập",
+        "warning": "Cảnh báo",
         "flood": "Lũ lụt"
       }
     },
@@ -780,7 +783,9 @@
       "toastRouteError": "Không tìm được tuyến đường",
       "toastRouteFail": "Lỗi khi tìm đường",
       "toastNoNearby": "Không tìm thấy địa điểm gần đây",
-      "toastNearbyFail": "Lỗi khi tìm địa điểm"
+      "toastNearbyFail": "Lỗi khi tìm địa điểm",
+      "floodZonesOn": "🌊 Hiển thị vùng ngập",
+      "floodZonesOff": "🌊 Ẩn vùng ngập"
     },
     "profile": {
       "title": "Hồ sơ cá nhân",
@@ -791,6 +796,49 @@
       "fullName": "Họ và tên",
       "phone": "Số điện thoại",
       "emailReadonly": "Email (không thể thay đổi)"
+    },
+    "sos": {
+      "title": "Báo cáo khẩn cấp",
+      "subtitle": "Gửi báo cáo đến trung tâm điều hành",
+      "warningTitle": "KHUYẾN CÁO",
+      "warningDesc": "Nếu bạn đang gặp nguy hiểm tính mạng, hãy gọi 113 ngay!",
+      "successTitle": "Báo cáo thành công!",
+      "successDesc": "Yêu cầu cứu hộ của bạn đã được gửi. Đội cứu hộ sẽ liên hệ sớm nhất.",
+      "viewMyRequest": "Xem yêu cầu của tôi",
+      "backHome": "Quay về trang chủ"
+    },
+    "shelters": {
+      "title": "Điểm sơ tán",
+      "subtitle": "{count} điểm trên địa bàn Đà Nẵng",
+      "searchPlaceholder": "Tìm kiếm điểm sơ tán...",
+      "available": "Còn chỗ",
+      "almostFull": "Gầy đầy",
+      "floodSafe": "Cao ráo",
+      "spotsAvailable": "{count} chỗ trống",
+      "directions": "Chỉ đường",
+      "viewMap": "Xem bản đồ",
+      "noShelters": "Không tìm thấy điểm sơ tán nào"
+    },
+    "weather": {
+      "title": "Thời tiết Đà Nẵng",
+      "lastUpdated": "Cập nhật: {time}",
+      "feelsLike": "Cảm giác như {temp}°C",
+      "humidity": "Độ ẩm",
+      "wind": "Gió {direction}",
+      "rainfall": "Mưa",
+      "pressure": "Áp suất",
+      "uvIndex": "Chỉ số UV",
+      "hourlyForecast": "Dự báo 24 giờ tới",
+      "safetyTips": "Lời khuyên an toàn",
+      "tipAvoidFlood": "Tránh xa các khu vực ngập úng, đặc biệt là đường thấp trũng",
+      "tipHighHumidity": "Độ ẩm cao, cảnh giác với các vật dụng dễ ẩm mốc",
+      "tipMonitorAlerts": "Theo dõi cảnh báo từ AegisFlow AI để cập nhật tình hình",
+      "tipCallRescue": "Liên hệ đội cứu hộ 113 nếu gặp nguy hiểm",
+      "floodWarning": "Cảnh báo ngập lụt",
+      "riskCritical": "Nguy cơ ngập rất cao",
+      "riskHigh": "Nguy cơ ngập cao",
+      "riskMedium": "Nguy cơ ngập trung bình",
+      "riskLow": "An toàn"
     }
   },
   "team": {
@@ -855,6 +903,10 @@
     "lastName": "Tên",
     "firstNamePlaceholder": "Nhập họ",
     "lastNamePlaceholder": "Nhập tên",
+    "fullName": "Họ và tên",
+    "phone": "Số điện thoại",
+    "phonePlaceholder": "Nhập số điện thoại",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu",
     "createPassword": "Tạo mật khẩu mạnh",
     "signUp": "Tạo tài khoản",
     "signingUp": "Đang tạo tài khoản...",

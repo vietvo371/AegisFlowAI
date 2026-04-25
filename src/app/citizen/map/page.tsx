@@ -19,7 +19,7 @@ import {
   AlertTriangle, Phone, X
 } from 'lucide-react';
 
-const MapComponent = dynamic(() => import('@/components/map/MapComponent'), { ssr: false });
+const MapComponent = dynamic(() => import('@/components/map/MapComponent'));
 
 interface Shelter {
   id: number;
@@ -57,6 +57,10 @@ export default function CitizenMapPage() {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyType, setNearbyType] = useState<'school' | 'hospital'>('school');
 
+  // Flood zones state
+  const [floodZones, setFloodZones] = useState<any>(null);
+  const [showFloodZones, setShowFloodZones] = useState(true);
+
   const fetchShelters = async () => {
     setLoading(true);
     try {
@@ -66,7 +70,24 @@ export default function CitizenMapPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchShelters(); }, []);
+  const fetchFloodZones = async () => {
+    try {
+      const res = await api.get('/flood-zones/geojson');
+      setFloodZones(res.data ?? null);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    fetchShelters();
+    fetchFloodZones();
+
+    const shelterHandler = () => fetchShelters();
+    window.addEventListener('aegis:shelter:updated', shelterHandler);
+
+    return () => {
+      window.removeEventListener('aegis:shelter:updated', shelterHandler);
+    };
+  }, []);
 
   // Get user GPS
   const handleGetLocation = useCallback(() => {
@@ -157,7 +178,11 @@ export default function CitizenMapPage() {
     <div className="flex flex-col h-[calc(100vh-7rem)] relative">
       {/* Map */}
       <div className="flex-1 relative">
-        <MapComponent evacuationRoute={evacuationRoute ?? undefined} />
+        <MapComponent
+          evacuationRoute={evacuationRoute ?? undefined}
+          floodZones={showFloodZones ? floodZones : null}
+          shelters={shelters}
+        />
 
         {/* Map overlay badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
@@ -165,6 +190,17 @@ export default function CitizenMapPage() {
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             {t('mapTitle')}
           </div>
+          <button
+            onClick={() => setShowFloodZones(v => !v)}
+            className={`px-3 py-1.5 rounded-xl backdrop-blur border text-xs font-bold flex items-center gap-2 transition-all ${
+              showFloodZones
+                ? 'bg-red-500/10 border-red-500/30 text-red-600'
+                : 'bg-background/90 border-border text-muted-foreground'
+            }`}
+          >
+            <Waves size={13} />
+            {showFloodZones ? t('floodZonesOn') : t('floodZonesOff')}
+          </button>
           {routeInfo && (
             <div className="px-3 py-2 rounded-xl bg-primary/90 backdrop-blur text-primary-foreground text-xs font-bold flex items-center gap-3">
               <Route size={12} />

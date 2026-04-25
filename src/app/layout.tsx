@@ -59,6 +59,8 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from '@/lib/auth-context';
+import { NotificationProvider } from '@/hooks/useNotifications';
+import RealtimeProviders from '@/components/realtime/RealtimeProviders';
 
 export default async function RootLayout({
   children,
@@ -80,8 +82,11 @@ export default async function RootLayout({
         >
           <NextIntlClientProvider messages={messages}>
             <AuthProvider>
-              <Toaster richColors position="top-right" />
-              {children}
+              <NotificationProvider>
+                <Toaster richColors position="top-right" />
+                <RealtimeProviders />
+                {children}
+              </NotificationProvider>
             </AuthProvider>
           </NextIntlClientProvider>
         </ThemeProvider>

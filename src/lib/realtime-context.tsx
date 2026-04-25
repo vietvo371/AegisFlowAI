@@ -10,6 +10,7 @@ import { getEcho } from '@/lib/echo';
 
 export interface RealtimeState {
   connected: boolean;
+  connectionError: string | null;
   lastIncident: any | null;
   lastAlert: any | null;
   lastRescueRequest: any | null;
@@ -27,6 +28,7 @@ const RealtimeContext = createContext<RealtimeContextType | null>(null);
 export function RealtimeProvider({ children, token }: { children: ReactNode; token?: string }) {
   const [state, setState] = useState<RealtimeState>({
     connected: false,
+    connectionError: null,
     lastIncident: null,
     lastAlert: null,
     lastRescueRequest: null,
@@ -72,6 +74,25 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
             lastAlert: data,
             unreadCount: prev.unreadCount + 1,
           }));
+          window.dispatchEvent(new CustomEvent('aegis:alert:created', { detail: data }));
+        });
+
+        channel.listen('.alert.updated', (data: any) => {
+          setState(prev => ({
+            ...prev,
+            connected: true,
+            lastAlert: data,
+          }));
+          window.dispatchEvent(new CustomEvent('aegis:alert:updated', { detail: data }));
+        });
+
+        channel.listen('.alert.resolved', (data: any) => {
+          setState(prev => ({
+            ...prev,
+            connected: true,
+            lastAlert: data,
+          }));
+          window.dispatchEvent(new CustomEvent('aegis:alert:resolved', { detail: data }));
         });
 
         channel.listen('.rescue_request.created', (data: any) => {
@@ -91,13 +112,27 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           window.dispatchEvent(new CustomEvent('aegis:sensor:reading', { detail: data }));
         });
 
-        setState(prev => ({ ...prev, connected: true }));
+        setState(prev => ({ ...prev, connected: true, connectionError: null }));
 
         if (process.env.NODE_ENV === 'development') {
           console.log('[RealtimeProvider] ✅ Connected to flood channel');
         }
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error('[RealtimeProvider] ❌ Failed to connect:', err);
+        setState(prev => ({
+          ...prev,
+          connected: false,
+          connectionError: errorMessage
+        }));
+
+        // Retry connection after 5 seconds
+        setTimeout(() => {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[RealtimeProvider] 🔄 Attempting to reconnect...');
+          }
+          setupListeners();
+        }, 5000);
       }
     };
 
@@ -108,6 +143,8 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
         try {
           channel.stopListening('.incident.created');
           channel.stopListening('.alert.created');
+          channel.stopListening('.alert.updated');
+          channel.stopListening('.alert.resolved');
           channel.stopListening('.rescue_request.created');
           channel.stopListening('.sensor.reading');
           channel.leave();

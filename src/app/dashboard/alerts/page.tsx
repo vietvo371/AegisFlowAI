@@ -70,7 +70,7 @@ export default function AlertsPage() {
   const handleResolve = async (id: number) => {
     try {
       const api = (await import('@/lib/api')).default;
-      await api.post(`/alerts/${id}/resolve`);
+      await api.put(`/alerts/${id}/status`, { status: 'resolved' });
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'resolved', resolved_at: new Date().toISOString() } : a));
       toast.success('Đã giải quyết cảnh báo');
     } catch (e) {

@@ -4,6 +4,8 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslations } from 'next-intl';
+import { z } from 'zod';
+import { rescueRequestSchema } from '@/lib/validations/rescue';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,33 +102,60 @@ export default function CitizenRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate location first
     if (!address && coords.lat === 16.0544) {
       toast.error(t('toastNoGps'));
       return;
     }
+
     setSubmitting(true);
+
     try {
-      await api.post('/rescue-requests', {
-        caller_name: form.caller_name || user?.name,
-        caller_phone: form.caller_phone || user?.phone,
+      // Validate with Zod
+      const validated = rescueRequestSchema.parse({
+        caller_name: form.caller_name || user?.name || '',
+        caller_phone: form.caller_phone || user?.phone || '',
         urgency: form.urgency,
         category: form.category,
-        people_count: parseInt(form.people_count) || 1,
-        water_level_m: form.water_level_m ? parseFloat(form.water_level_m) : undefined,
+        people_count: form.people_count,
+        water_level_m: form.water_level_m || '',
         description: form.description,
+      });
+
+      const res = await api.post('/rescue-requests', {
+        ...validated,
         address: address || 'Đà Nẵng',
         latitude: coords.lat,
         longitude: coords.lng,
         vulnerable_groups: vulnerableGroups,
       });
-      toast.success(t('successMsg'));
-      setShowForm(false);
-      setVulnerableGroups([]);
-      setAddress('');
-      setCoords({ lat: 16.0544, lng: 108.2022 });
-      fetchMyRequests();
-    } catch (e) {
-      console.error(e);
+
+      if (res.data?.success || res.status === 201) {
+        toast.success(t('successMsg'));
+        setShowForm(false);
+        setVulnerableGroups([]);
+        setAddress('');
+        setCoords({ lat: 16.0544, lng: 108.2022 });
+        setForm({
+          caller_name: user?.name ?? '',
+          caller_phone: user?.phone ?? '',
+          urgency: 'high',
+          category: 'rescue',
+          people_count: '1',
+          water_level_m: '',
+          description: '',
+        });
+        fetchMyRequests();
+      }
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        const errorMsgs = error.errors.map(e => e.message).join(', ');
+        toast.error(errorMsgs || 'Vui lòng kiểm tra lại các trường');
+      } else {
+        toast.error(error.response?.data?.message || 'Gửi yêu cầu thất bại');
+        console.error(error);
+      }
     } finally {
       setSubmitting(false);
     }

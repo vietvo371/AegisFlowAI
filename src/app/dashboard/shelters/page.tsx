@@ -111,7 +111,7 @@ export default function SheltersPage() {
                 Tổng quan công suất
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {stats.totalOccupancy.toLocaleString()} / {stats.totalCapacity.toLocaleString()} người
+                {stats.totalOccupancy ?? 0} / {stats.totalCapacity ?? 0} người
               </p>
             </div>
             <div className="text-right">
@@ -148,7 +148,7 @@ export default function SheltersPage() {
                   <stat.icon size={24} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stat.value.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{stat.value ? stat.value.toLocaleString() : '0'}</p>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               </CardContent>

@@ -194,7 +194,7 @@ export default function FloodZonesPage() {
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Dân cư ảnh hưởng</p>
-                            <p className="font-semibold">{zone.population_affected.toLocaleString()}</p>
+                            <p className="font-semibold">{zone.population_affected ? zone.population_affected.toLocaleString() : '-'}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Cập nhật</p>

@@ -4,6 +4,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { z } from 'zod';
+import { signUpSchema, type SignUpInput } from '@/lib/validations/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +17,8 @@ export default function SignUpPage() {
   const t = useTranslations('auth');
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [formData, setFormData] = React.useState({
+
+  const [formData, setFormData] = React.useState<SignUpInput>({
     name: '',
     email: '',
     phone: '',
@@ -23,32 +26,52 @@ export default function SignUpPage() {
     password_confirmation: '',
   });
 
+  const [errors, setErrors] = React.useState<Partial<Record<keyof SignUpInput, string>>>({});
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name as keyof SignUpInput]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
     setIsLoading(true);
 
     try {
+      const validated = signUpSchema.parse(formData);
+
       const api = (await import('@/lib/api')).default;
-      const res = await api.post('/auth/register', formData);
+      const res = await api.post('/auth/register', validated);
 
       if (res.data?.success) {
-        const { token, user: userData } = res.data.data;
+        const { token } = res.data.data;
         localStorage.setItem('aegisflow_token', token);
         document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
 
-        toast.success('Đăng ký thành công!');
+        toast.success('Đăng ký thành công! Chuyển hướng...');
         window.location.href = '/citizen';
       }
     } catch (error: any) {
-      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
-        setIsLoading(false);
-        return;
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Partial<Record<keyof SignUpInput, string>> = {};
+        error.errors.forEach(err => {
+          const fieldName = err.path[0] as keyof SignUpInput;
+          if (fieldName) {
+            fieldErrors[fieldName] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+        toast.error('Vui lòng kiểm tra lại các trường');
+      } else if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+        // Ignore abort errors
+      } else {
+        const message = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+        toast.error(message);
       }
-      toast.error(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +87,7 @@ export default function SignUpPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name Field */}
         <div className="space-y-1.5">
           <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('fullName')}
@@ -73,15 +97,24 @@ export default function SignUpPage() {
             <Input
               id="name" name="name" type="text"
               placeholder={t('fullNamePlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
+                errors.name ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="name"
               required
               value={formData.name}
               onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
+          {errors.name && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.name}
+            </p>
+          )}
         </div>
 
+        {/* Email Field */}
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('email')}
@@ -91,15 +124,24 @@ export default function SignUpPage() {
             <Input
               id="email" name="email" type="email"
               placeholder={t('emailPlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
+                errors.email ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="email"
               required
               value={formData.email}
               onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
+          {errors.email && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.email}
+            </p>
+          )}
         </div>
 
+        {/* Phone Field */}
         <div className="space-y-1.5">
           <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('phone')}
@@ -109,14 +151,23 @@ export default function SignUpPage() {
             <Input
               id="phone" name="phone" type="tel"
               placeholder="0912 345 678"
-              className="h-11 rounded-xl bg-muted/30 pl-9"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
+                errors.phone ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="tel"
               value={formData.phone}
               onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
+          {errors.phone && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.phone}
+            </p>
+          )}
         </div>
 
+        {/* Password Field */}
         <div className="space-y-1.5">
           <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('password')}
@@ -127,24 +178,33 @@ export default function SignUpPage() {
               id="password" name="password"
               type={showPassword ? 'text' : 'password'}
               placeholder={t('passwordPlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9 pr-10"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 pr-10 ${
+                errors.password ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="new-password"
               required
-              minLength={8}
               value={formData.password}
               onChange={handleChange}
+              disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              disabled={isLoading}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {errors.password && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.password}
+            </p>
+          )}
         </div>
 
+        {/* Confirm Password Field */}
         <div className="space-y-1.5">
           <Label htmlFor="password_confirmation" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t('confirmPassword')}
@@ -155,14 +215,21 @@ export default function SignUpPage() {
               id="password_confirmation" name="password_confirmation"
               type={showPassword ? 'text' : 'password'}
               placeholder={t('confirmPasswordPlaceholder')}
-              className="h-11 rounded-xl bg-muted/30 pl-9"
+              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
+                errors.password_confirmation ? 'border-red-500 focus:border-red-500' : ''
+              }`}
               autoComplete="new-password"
               required
-              minLength={8}
               value={formData.password_confirmation}
               onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
+          {errors.password_confirmation && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {errors.password_confirmation}
+            </p>
+          )}
         </div>
 
         <div className="flex items-start gap-2 pt-2">

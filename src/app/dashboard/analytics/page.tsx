@@ -47,9 +47,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = React.useState({
     totalIncidents: 0,
-    totalAlerts: 0,
+    activeIncidents: 0,
     activeRescues: 0,
-    avgResponseTime: '0 phút',
+    flooded: 0,
   });
   const [incidents, setIncidents] = React.useState<Incident[]>([]);
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
@@ -60,13 +60,21 @@ export default function AnalyticsPage() {
       try {
         const api = (await import('@/lib/api')).default;
         const [statsRes, incidentsRes, alertsRes] = await Promise.allSettled([
-          api.get('/analytics/stats', { params: { period } }),
+          api.get('/analytics/overview', { params: { period } }),
           api.get('/incidents', { params: { per_page: 10 } }),
           api.get('/alerts', { params: { per_page: 10 } }),
         ]);
 
         if (statsRes.status === 'fulfilled') {
-          setStats(statsRes.value.data?.data ?? stats);
+          const data = statsRes.value.data?.data;
+          if (data) {
+            setStats({
+              totalIncidents: data.incidents?.total ?? 0,
+              activeIncidents: data.incidents?.active ?? 0,
+              activeRescues: data.rescue_requests?.pending ?? 0,
+              flooded: data.flood_zones?.flooded ?? 0,
+            });
+          }
         }
         if (incidentsRes.status === 'fulfilled') {
           setIncidents(incidentsRes.value.data?.data ?? []);
@@ -86,9 +94,9 @@ export default function AnalyticsPage() {
 
   const statCards: StatCard[] = [
     { title: 'Tổng sự cố', value: stats.totalIncidents, change: 12, icon: AlertTriangle, color: 'text-red-500 bg-red-100' },
-    { title: 'Cảnh báo', value: stats.totalAlerts, change: -5, icon: Activity, color: 'text-orange-500 bg-orange-100' },
-    { title: 'Đang cứu hộ', value: stats.activeRescues, icon: HeartPulse, color: 'text-blue-500 bg-blue-100' },
-    { title: 'Thời gian phản ứng TB', value: stats.avgResponseTime, change: -8, icon: TrendingDown, color: 'text-green-500 bg-green-100' },
+    { title: 'Sự cố đang xử lý', value: stats.activeIncidents, change: -5, icon: Activity, color: 'text-orange-500 bg-orange-100' },
+    { title: 'Yêu cầu cứu hộ', value: stats.activeRescues, icon: HeartPulse, color: 'text-blue-500 bg-blue-100' },
+    { title: 'Khu vực ngập lụt', value: stats.flooded, change: -8, icon: Droplets, color: 'text-cyan-500 bg-cyan-100' },
   ];
 
   return (

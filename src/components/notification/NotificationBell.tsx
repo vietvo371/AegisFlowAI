@@ -1,21 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bell, CheckCheck, Trash2, AlertTriangle, Megaphone, HeartPulse, BrainCircuit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'incident' | 'alert' | 'rescue' | 'prediction' | 'sensor' | 'system';
-  link?: string;
-  read: boolean;
-  timestamp: Date;
-  data?: Record<string, unknown>;
-}
 
 interface NotificationBellProps {
   className?: string;
@@ -41,31 +30,6 @@ function timeAgo(date: Date): string {
   return `${days} ngày trước`;
 }
 
-function getLinkByRole(type: string, data: Record<string, unknown>, role?: string): string {
-  if (role === 'citizen') {
-    return '/citizen';
-  }
-  if (role === 'rescue_team') {
-    if ((type === 'rescue' || type === 'incident') && data.id) {
-      return `/team/requests/${data.id}`;
-    }
-    return '/team/requests';
-  }
-  if (type === 'incident' && data.id) {
-    return `/dashboard/incidents/${data.id}`;
-  }
-  if (type === 'alert') {
-    return '/dashboard/alerts';
-  }
-  if (type === 'rescue') {
-    return '/dashboard/rescue-requests';
-  }
-  if (type === 'prediction') {
-    return '/dashboard/predictions';
-  }
-  return '/dashboard/notifications';
-}
-
 function getAllLink(role?: string): string {
   if (role === 'citizen') {
     return '/citizen';
@@ -79,122 +43,13 @@ function getAllLink(role?: string): string {
 export function NotificationBell({ className = '' }: NotificationBellProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [animate, setAnimate] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [animate, setAnimate] = useState(false);
   const prevCountRef = useRef(0);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
   const userRole = user?.role || user?.roles?.[0];
-
-  // Listen for realtime events and add to notifications
-  useEffect(() => {
-    const handleIncidentCreated = (e: CustomEvent) => {
-      const data = e.detail;
-      addNotification({
-        id: `incident-${data.id}-${Date.now()}`,
-        title: `Sự cố mới: ${data.title}`,
-        message: data.address || 'Không có địa chỉ',
-        type: 'incident',
-        link: getLinkByRole('incident', data, userRole),
-        read: false,
-        timestamp: new Date(),
-        data,
-      });
-    };
-
-    const handleAlertCreated = (e: CustomEvent) => {
-      const data = e.detail;
-      addNotification({
-        id: `alert-${data.id}-${Date.now()}`,
-        title: `Cảnh báo: ${data.title}`,
-        message: data.description || 'Không có mô tả',
-        type: 'alert',
-        link: getLinkByRole('alert', data, userRole),
-        read: false,
-        timestamp: new Date(),
-        data,
-      });
-    };
-
-    const handleRescueCreated = (e: CustomEvent) => {
-      const data = e.detail;
-      addNotification({
-        id: `rescue-${data.id}-${Date.now()}`,
-        title: 'Yêu cầu cứu hộ mới',
-        message: `${data.address} - Cần ${data.people_count} người`,
-        type: 'rescue',
-        link: getLinkByRole('rescue', data, userRole),
-        read: false,
-        timestamp: new Date(),
-        data,
-      });
-    };
-
-    const handlePredictionReceived = (e: CustomEvent) => {
-      const data = e.detail;
-      addNotification({
-        id: `prediction-${Date.now()}`,
-        title: 'AI dự báo mới',
-        message: `Độ tin cậy: ${Math.round((data.confidence || 0) * 100)}%`,
-        type: 'prediction',
-        link: getLinkByRole('prediction', data, userRole),
-        read: false,
-        timestamp: new Date(),
-        data,
-      });
-    };
-
-    window.addEventListener('aegis:incident:created', handleIncidentCreated as EventListener);
-    window.addEventListener('aegis:alert:created', handleAlertCreated as EventListener);
-    window.addEventListener('aegis:rescue_request:created', handleRescueCreated as EventListener);
-    window.addEventListener('aegis:prediction:received', handlePredictionReceived as EventListener);
-
-    return () => {
-      window.removeEventListener('aegis:incident:created', handleIncidentCreated as EventListener);
-      window.removeEventListener('aegis:alert:created', handleAlertCreated as EventListener);
-      window.removeEventListener('aegis:rescue_request:created', handleRescueCreated as EventListener);
-      window.removeEventListener('aegis:prediction:received', handlePredictionReceived as EventListener);
-    };
-  }, [userRole]);
-
-  const addNotification = useCallback((notification: Notification) => {
-    setNotifications(prev => {
-      // Avoid duplicates
-      const exists = prev.some(n => n.id === notification.id);
-      if (exists) return prev;
-      return [notification, ...prev].slice(0, 50); // Keep max 50
-    });
-
-    // Animate bell
-    setAnimate(true);
-    setTimeout(() => setAnimate(false), 600);
-  }, []);
-
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }, []);
-
-  const markAllRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-  }, []);
-
-  const handleNotificationClick = useCallback((notif: Notification) => {
-    if (!notif.read) {
-      markAsRead(notif.id);
-    }
-    if (notif.link) {
-      setOpen(false);
-      router.push(notif.link);
-    } else {
-      setOpen(false);
-    }
-  }, [markAsRead, router]);
 
   // Animate when unread count increases
   useEffect(() => {
@@ -217,6 +72,18 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     }
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
+
+  const handleNotificationClick = (notif: any) => {
+    if (!notif.read) {
+      markAsRead(notif.id);
+    }
+    if (notif.link) {
+      setOpen(false);
+      router.push(notif.link);
+    } else {
+      setOpen(false);
+    }
+  };
 
   return (
     <div className={`relative ${className}`} ref={panelRef}>
@@ -272,7 +139,7 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
                 <p className="text-sm">Chưa có thông báo nào</p>
               </div>
             ) : (
-              notifications.map((notif: Notification) => {
+              notifications.map((notif) => {
                 const config = typeConfig[notif.type] || typeConfig.system;
                 const Icon = config.icon;
                 return (
@@ -325,5 +192,3 @@ export function NotificationBell({ className = '' }: NotificationBellProps) {
     </div>
   );
 }
-
-export type { Notification };
