@@ -4,136 +4,128 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
-  Home, AlertTriangle, MapPin, Building2, Bell
+  Home, AlertTriangle, MapPin, Building2, Bell, User
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
+import { useNotifications } from '@/hooks/useNotifications';
+import NotificationPanel from '@/components/citizen/NotificationPanel';
 
 const CitizenMap = dynamic(() => import('@/components/map/CitizenMap'), {
   ssr: false,
   loading: () => (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgb(243,244,246)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-        <div style={{ width: '32px', height: '32px', border: '3px solid rgb(59,130,246)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <p style={{ fontSize: '14px', color: '#6b7280' }}>Đang tải bản đồ...</p>
+    <div className="w-full h-full flex items-center justify-center bg-muted/30">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">Đang tải bản đồ...</p>
       </div>
     </div>
   ),
 });
 
 export default function CitizenMapPage() {
-  const t = useTranslations('citizen.map');
+  const t = useTranslations();
   const { user } = useAuth();
+  const pathname = usePathname();
+  const { unreadCount } = useNotifications();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const navItems = [
-    { href: '/citizen', icon: Home, label: 'Trang chủ' },
-    { href: '/citizen/sos', icon: AlertTriangle, label: 'SOS' },
-    { href: '/citizen/map', icon: MapPin, label: t('title'), active: true },
-    { href: '/citizen/shelters', icon: Building2, label: 'Điểm sơ tán' },
+    { href: '/citizen',          icon: Home,          label: t('common.dashboard') },
+    { href: '/citizen/sos',      icon: AlertTriangle, label: 'SOS' },
+    { href: '/citizen/map',      icon: MapPin,        label: t('citizen.map.title') },
+    { href: '/citizen/shelters', icon: Building2,     label: t('dashboard.pages.shelters') },
+    { href: '/citizen/profile',  icon: User,          label: t('citizen.profile.title') },
   ];
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'white',
-      }}
-    >
-      {/* Header - giống layout cha */}
-      <header
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderBottom: '1px solid rgb(224,224,224)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-          zIndex: 10,
-          backdropFilter: 'blur(8px)',
-          paddingTop: 'max(12px, env(safe-area-inset-top))',
-        }}
-      >
-        <Link href="/citizen" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgb(59,130,246)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Image src="/images/logo.png" alt="AegisFlow" width={20} height={20} style={{ width: '20px', height: '20px' }} />
-          </div>
-          <span style={{ fontSize: '18px', fontWeight: 'bold' }}>AegisFlow</span>
-          <span style={{ fontSize: '12px', fontWeight: '500', color: 'rgb(59,130,246)', backgroundColor: 'rgb(59,130,246,0.1)', padding: '2px 8px', borderRadius: '9999px' }}>Citizen</span>
-        </Link>
+  const isActive = (href: string) => {
+    if (href === '/citizen') return pathname === '/citizen';
+    return pathname.startsWith(href);
+  };
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button style={{ background: 'none', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: 'rgb(107,114,128)' }}>
-            <Bell size={20} />
-          </button>
-          <ThemeToggle />
-          <LocaleToggle />
-          <Avatar style={{ width: '32px', height: '32px' }}>
-            {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
-            <AvatarFallback style={{ backgroundColor: 'rgb(59,130,246)', color: 'white', fontSize: '14px' }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+  return (
+    <div className="fixed inset-0 flex flex-col bg-background" style={{ zIndex: 9999 }}>
+
+      {/* Header — đồng bộ với layout */}
+      <header className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-b border-border shrink-0 z-10"
+        style={{ paddingTop: 'max(0px, env(safe-area-inset-top))' }}>
+        <div className="px-4 h-14 flex items-center justify-between">
+          <Link href="/citizen" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Image src="/images/logo.png" alt="AegisFlow" width={20} height={20} className="w-5 h-5" />
+            </div>
+            <span className="text-base font-bold">AegisFlow</span>
+            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Citizen</span>
+          </Link>
+
+          <div className="flex items-center gap-1">
+            {/* Notification Bell — functional */}
+            <div className="relative">
+              <Button variant="ghost" size="icon" onClick={() => setShowNotifications(v => !v)}>
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+              {showNotifications && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50">
+                    <NotificationPanel onClose={() => setShowNotifications(false)} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <ThemeToggle />
+            <LocaleToggle />
+
+            <Avatar className="h-8 w-8">
+              {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {user?.name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
       {/* Map */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+      <div className="flex-1 min-h-0 relative overflow-hidden">
         <CitizenMap />
       </div>
 
-      {/* Bottom nav - giống layout cha */}
-      <nav
-        style={{
-          backgroundColor: 'white',
-          borderTop: '1px solid rgb(224,224,224)',
-          padding: '8px 0',
-          paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-          display: 'flex',
-          justifyContent: 'space-around',
-          flexShrink: 0,
-          zIndex: 10,
-        }}
-      >
-        {navItems.map((item) => {
-          const active = !!item.active;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                color: active ? 'rgb(59,130,246)' : 'rgb(107,114,128)',
-              }}
-            >
-              {active ? (
-                <div style={{ position: 'relative' }}>
-                  <item.icon size={20} style={{ color: 'rgb(59,130,246)' }} />
-                  <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'rgb(59,130,246)' }} />
-                </div>
-              ) : (
-                <item.icon size={20} />
-              )}
-              <span style={{ fontSize: '10px', fontWeight: active ? 'bold' : 'normal' }}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+      {/* Bottom nav — đồng bộ với layout */}
+      <nav className="bg-white dark:bg-zinc-900 border-t border-border shrink-0 z-10"
+        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+        <div className="flex justify-around py-2">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link key={item.href} href={item.href}
+                className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                {active ? (
+                  <div className="relative">
+                    <item.icon size={20} className="text-primary" />
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                  </div>
+                ) : (
+                  <item.icon size={20} />
+                )}
+                <span className={`text-[10px] font-medium ${active ? 'font-bold' : ''}`}>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );
 }
-

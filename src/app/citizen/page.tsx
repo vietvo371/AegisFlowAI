@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
+import { useNearestDistrict } from '@/hooks/useNearestDistrict';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle, MapPin, CloudRain, Wind,
@@ -21,10 +22,10 @@ interface AlertData {
 }
 
 interface SensorData {
-  water_level: number;
-  rainfall: number;
-  humidity: number;
-  temperature: number;
+  water_level: number | null;
+  rainfall: number | null;
+  humidity: number | null;
+  temperature: number | null;
   updated_at: string;
 }
 
@@ -32,21 +33,85 @@ export default function CitizenDashboard() {
   const t = useTranslations('citizen');
   const tDashboard = useTranslations('dashboard');
   const { user } = useAuth();
+  const { districtId, districtName, loading: locationLoading } = useNearestDistrict();
   const [alerts, setAlerts] = React.useState<AlertData[]>([]);
   const [sensors, setSensors] = React.useState<SensorData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // Chờ location resolve trước
+    if (locationLoading) return;
+
     const fetchData = async () => {
       try {
         const api = (await import('@/lib/api')).default;
-        const [alertsRes] = await Promise.allSettled([
+
+        const sensorParams: any = { per_page: 200 };
+        if (districtId) sensorParams.district_id = districtId;
+
+        const [alertsRes, sensorsRes, weatherRes, waterSensorsRes] = await Promise.allSettled([
           api.get('/alerts', { params: { status: 'active', per_page: 5 } }),
+          api.get('/sensors', { params: sensorParams }),
+          districtId
+            ? api.get('/weather/current', { params: { district_id: districtId } })
+            : Promise.reject('no district'),
+          // Water level sensors không lọc theo district
+          api.get('/sensors', { params: { type: 'water_level', per_page: 50 } }),
         ]);
 
         if (alertsRes.status === 'fulfilled') {
           setAlerts(alertsRes.value.data?.data ?? []);
         }
+
+        let merged: Partial<SensorData> = {};
+
+        // Ưu tiên weather data (temperature, humidity, rainfall)
+        if (weatherRes.status === 'fulfilled') {
+          const weatherList: any[] = weatherRes.value.data?.data ?? [];
+          if (weatherList.length > 0) {
+            const w = weatherList[0];
+            const t = parseFloat(w.temperature_c);
+            const h = parseFloat(w.humidity_pct);
+            const r = parseFloat(w.rainfall_mm);
+            if (!isNaN(t)) merged.temperature = t;
+            if (!isNaN(h)) merged.humidity = h;
+            if (!isNaN(r)) merged.rainfall = r;
+          }
+        }
+
+        // Lấy water_level từ tất cả sensors (không lọc district)
+        if (waterSensorsRes.status === 'fulfilled') {
+          const wList: any[] = waterSensorsRes.value.data?.data ?? [];
+          const vals = wList
+            .map((x: any) => parseFloat(x.last_value))
+            .filter((v) => !isNaN(v) && v > 0);
+          if (vals.length) {
+            // Lấy giá trị trung bình, đơn vị cm
+            const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+            merged.water_level = avg;
+          }
+        }
+
+        // Fallback rainfall/temp/humidity từ sensors nếu weather API trống
+        if (sensorsRes.status === 'fulfilled') {
+          const sensorList: any[] = sensorsRes.value.data?.data ?? [];
+          const fallback = (type: string) => {
+            if (merged[type as keyof SensorData] != null) return;
+            const s = sensorList.find((x: any) => x.type === type && x.last_value != null);
+            if (!s) return;
+            const v = parseFloat(s.last_value);
+            if (!isNaN(v)) (merged as any)[type] = v;
+          };
+          fallback('rainfall'); fallback('temperature'); fallback('humidity');
+        }
+
+        setSensors({
+          water_level: merged.water_level ?? null,
+          rainfall: merged.rainfall ?? null,
+          humidity: merged.humidity ?? null,
+          temperature: merged.temperature ?? null,
+          updated_at: new Date().toISOString(),
+        });
       } catch (e) {
         // silent
       } finally {
@@ -59,7 +124,7 @@ export default function CitizenDashboard() {
     const handler = () => fetchData();
     window.addEventListener('aegis:alert:created', handler);
     return () => window.removeEventListener('aegis:alert:created', handler);
-  }, []);
+  }, [districtId, locationLoading]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -71,7 +136,7 @@ export default function CitizenDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
@@ -121,31 +186,50 @@ export default function CitizenDashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {districtName && (
+          <div className="col-span-2 md:col-span-4 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin size={12} />
+            <span>Dữ liệu khu vực: <span className="font-semibold text-foreground">{districtName}</span></span>
+          </div>
+        )}
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Droplets className="w-6 h-6 text-blue-500 mb-2" />
-            <p className="text-2xl font-bold">{sensors?.water_level ?? '--'}</p>
+            <p className="text-2xl font-bold">
+              {sensors?.water_level != null ? `${sensors.water_level}cm` : '--'}
+            </p>
             <p className="text-xs text-muted-foreground">{tDashboard('forecast.waterLevel')}</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1 leading-tight">
+              Mực nước tuyệt đối tại trạm quan trắc
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <CloudRain className="w-6 h-6 text-blue-500 mb-2" />
-            <p className="text-2xl font-bold">{sensors?.rainfall ?? '--'}</p>
+            <p className="text-2xl font-bold">
+              {sensors?.rainfall != null ? (
+                <>{sensors.rainfall}<span className="text-sm font-normal">mm</span></>
+              ) : '--'}
+            </p>
             <p className="text-xs text-muted-foreground">{tDashboard('forecast.rainfall')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Thermometer className="w-6 h-6 text-orange-500 mb-2" />
-            <p className="text-2xl font-bold">{sensors?.temperature ?? '--'}°</p>
+            <p className="text-2xl font-bold">
+              {sensors?.temperature != null ? `${sensors.temperature}°` : '--°'}
+            </p>
             <p className="text-xs text-muted-foreground">{tDashboard('forecast.temperature')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex flex-col items-center text-center">
             <Gauge className="w-6 h-6 text-green-500 mb-2" />
-            <p className="text-2xl font-bold">{sensors?.humidity ?? '--'}%</p>
+            <p className="text-2xl font-bold">
+              {sensors?.humidity != null ? `${sensors.humidity}%` : '--%'}
+            </p>
             <p className="text-xs text-muted-foreground">{tDashboard('forecast.humidity')}</p>
           </CardContent>
         </Card>
@@ -174,7 +258,7 @@ export default function CitizenDashboard() {
           ) : alerts.length > 0 ? (
             <div className="space-y-3">
               {alerts.map((alert) => (
-                <Link key={alert.id} href={`/citizen/alerts/${alert.id}`}>
+                <Link key={alert.id} href={`/citizen/alerts`}>
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
                     <div className={`w-3 h-3 rounded-full ${getSeverityColor(alert.severity)}`} />
                     <div className="flex-1 min-w-0">

@@ -147,6 +147,15 @@ export default function CitizenRequestPage() {
           description: '',
         });
         fetchMyRequests();
+        // Gợi ý xem bản đồ nếu có tọa độ
+        if (coords.lat !== 16.0544) {
+          toast.info('Xem vị trí của bạn trên bản đồ', {
+            action: {
+              label: 'Xem bản đồ',
+              onClick: () => window.location.href = `/citizen/map?lat=${coords.lat}&lng=${coords.lng}&zoom=16`,
+            },
+          });
+        }
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {

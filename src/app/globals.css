@@ -366,3 +366,9 @@
 .dark .leaflet-control-zoom a:hover {
   background: #2d3748 !important;
 }
+
+/* ── Base UI portal z-index override ──────── */
+/* Ensure dropdowns render above fixed overlays (e.g. map page z:9999) */
+[data-radix-popper-content-wrapper] {
+  z-index: 10000 !important;
+}

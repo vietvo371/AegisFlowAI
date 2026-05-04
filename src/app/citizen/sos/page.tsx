@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   AlertTriangle, MapPin, LocateFixed, RefreshCw,
-  Phone, Users, Waves, CheckCircle2, ChevronLeft
+  Phone, Users, Waves, CheckCircle2
 } from 'lucide-react';
 
 const VULNERABLE_LABELS: Record<string, { vi: string; en: string }> = {
@@ -153,6 +153,12 @@ export default function CitizenSOSPage() {
                   {tCitizen('sos.viewMyRequest')}
                 </Button>
               </Link>
+              <Link href={`/citizen/map?lat=${coords.lat}&lng=${coords.lng}&zoom=16`}>
+                <Button variant="outline" className="w-full border-blue-300 text-blue-600 hover:bg-blue-50">
+                  <MapPin size={16} className="mr-2" />
+                  Xem trên bản đồ
+                </Button>
+              </Link>
               <Link href="/citizen">
                 <Button variant="outline" className="w-full">
                   {tCitizen('sos.backHome')}
@@ -168,9 +174,6 @@ export default function CitizenSOSPage() {
   return (
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center gap-3">
-        <Link href="/citizen" className="p-2 -ml-2 rounded-lg hover:bg-muted">
-          <ChevronLeft size={20} />
-        </Link>
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
             <AlertTriangle className="text-red-500" size={24} />

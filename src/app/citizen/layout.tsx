@@ -7,9 +7,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import {
-  Home, Bell, AlertTriangle, MapPin, Building2
-} from 'lucide-react';
+import { Home, Bell, AlertTriangle, MapPin, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
@@ -19,22 +17,16 @@ import { ToasterProvider } from '@/components/ui/toaster-provider';
 import NotificationPanel from '@/components/citizen/NotificationPanel';
 import { useNotifications } from '@/hooks/useNotifications';
 
-export default function CitizenLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CitizenLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations();
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = React.useState(false);
 
   React.useEffect(() => {
-    if (!loading && user && user.role !== 'citizen') {
-      router.replace('/dashboard');
-    }
+    if (!loading && user && user.role !== 'citizen') router.replace('/dashboard');
   }, [user, loading, router]);
 
   if (loading) {
@@ -48,125 +40,130 @@ export default function CitizenLayout({
     );
   }
 
-  if (!user) {
-    router.replace('/signin');
-    return null;
-  }
+  if (!user) { router.replace('/signin'); return null; }
 
   const navItems = [
-    { href: '/citizen', icon: Home, label: t('common.dashboard') },
-    { href: '/citizen/sos', icon: AlertTriangle, label: 'SOS' },
-    { href: '/citizen/map', icon: MapPin, label: t('citizen.map.title') },
-    { href: '/citizen/shelters', icon: Building2, label: t('dashboard.pages.shelters') },
+    { href: '/citizen',          icon: Home,          label: t('common.dashboard'),          sos: false },
+    { href: '/citizen/sos',      icon: AlertTriangle, label: 'SOS',                          sos: true  },
+    { href: '/citizen/map',      icon: MapPin,        label: t('citizen.map.title'),          sos: false },
+    { href: '/citizen/shelters', icon: Building2,     label: t('dashboard.pages.shelters'),   sos: false },
+    { href: '/citizen/profile',  icon: User,          label: t('citizen.profile.title'),      sos: false },
   ];
 
-  const isActive = (href: string) => {
-    if (href === '/citizen') return pathname === '/citizen';
-    return pathname.startsWith(href);
-  };
-
-  // Map page có header & bottom nav riêng (position: fixed)
+  const isActive = (href: string) => href === '/citizen' ? pathname === '/citizen' : pathname.startsWith(href);
   const isMapPage = pathname === '/citizen/map';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <ToasterProvider />
-      {/* Header */}
+
+      {/* ── Header ── */}
       {!isMapPage && (
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border shadow-sm shrink-0">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/citizen" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Image src="/images/logo.png" alt="AegisFlow" width={512} height={512} className="w-5 h-5" />
-            </div>
-            <span className="text-lg font-bold">AegisFlow</span>
-            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Citizen</span>
-          </Link>
+        <header
+          className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg border-b border-border shrink-0"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <div className="px-4 h-14 flex items-center justify-between">
+            <Link href="/citizen" className="flex items-center gap-2 group">
+              <div className="relative w-9 h-9 group-hover:scale-110 transition-transform flex items-center justify-center shrink-0">
+                <Image src="/images/logo.png" alt="AegisFlow AI Logo" width={512} height={512}
+                  className="object-contain w-full h-full drop-shadow-sm" priority />
+              </div>
+              <span className="text-base font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                AegisFlow <span className="text-primary">AI</span>
+              </span>
+              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">Citizen</span>
+            </Link>
 
-          <div className="flex items-center gap-2">
-            {/* Notification Bell */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowNotifications(v => !v)}
-              >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+            <div className="flex items-center gap-1">
+              {/* Bell */}
+              <div className="relative">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setShowNotifications(v => !v)}>
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+                {showNotifications && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                    <div className="absolute right-0 top-full mt-2 z-50">
+                      <NotificationPanel onClose={() => setShowNotifications(false)} />
+                    </div>
+                  </>
                 )}
-              </Button>
-
-              {/* Notification Dropdown */}
-              {showNotifications && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowNotifications(false)}
-                  />
-                  {/* Panel */}
-                  <div className="absolute right-0 top-full mt-2 z-50">
-                    <NotificationPanel onClose={() => setShowNotifications(false)} />
-                  </div>
-                </>
-              )}
-            </div>
-            <ThemeToggle />
-            <LocaleToggle />
-            <Avatar className="h-8 w-8">
-              {user.avatar_url && <AvatarImage src={user.avatar_url} />}
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {user.name?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-      </header>
-      )}
-
-      {/* Mobile Navigation */}
-      {!isMapPage && (
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border z-50 safe-area-bottom shrink-0">
-        <div className="flex justify-around py-2">
-          {navItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${
-                  active
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-primary'
-                }`}
-              >
-                {active ? (
-                  <div className="relative">
-                    <item.icon size={20} className="text-primary" />
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                  </div>
-                ) : (
-                  <item.icon size={20} />
-                )}
-                <span className={`text-[10px] font-medium ${active ? 'text-primary font-bold' : ''}`}>
-                  {item.label}
-                </span>
+              </div>
+              <ThemeToggle />
+              <LocaleToggle />
+              <Link href="/citizen/profile">
+                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all">
+                  {user.avatar_url && <AvatarImage src={user.avatar_url} />}
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
+                    {user.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </Link>
-            );
-          })}
-        </div>
-      </nav>
+            </div>
+          </div>
+        </header>
       )}
 
-      {/* Main Content */}
-      <main className="flex-1">
+      {/* ── Main content ── */}
+      <main className={`flex-1 ${!isMapPage ? 'pb-20' : ''}`}>
         <PageTransition>
           {children}
         </PageTransition>
       </main>
+
+      {/* ── Bottom nav ── */}
+      {!isMapPage && (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border-t border-border"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <div className="flex justify-around">
+            {navItems.map((item) => {
+              const active = isActive(item.href);
+
+              // SOS — special center button
+              if (item.sos) {
+                return (
+                  <Link key={item.href} href={item.href}
+                    className="flex flex-col items-center justify-center py-2 px-3 -mt-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                      active
+                        ? 'bg-red-600 scale-110'
+                        : 'bg-red-500 hover:bg-red-600 hover:scale-105'
+                    }`}>
+                      <item.icon size={22} className="text-white" />
+                    </div>
+                    <span className="text-[9px] font-bold text-red-500 mt-0.5">SOS</span>
+                  </Link>
+                );
+              }
+
+              return (
+                <Link key={item.href} href={item.href}
+                  className={`flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 transition-colors ${
+                    active ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                  <div className={`relative p-1.5 rounded-xl transition-all ${active ? 'bg-primary/10' : ''}`}>
+                    <item.icon size={20} />
+                    {active && (
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                    )}
+                  </div>
+                  <span className={`text-[10px] mt-0.5 truncate max-w-[52px] text-center ${active ? 'font-bold' : 'font-medium'}`}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

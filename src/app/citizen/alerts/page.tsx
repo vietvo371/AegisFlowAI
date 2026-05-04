@@ -3,11 +3,12 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Bell, AlertTriangle, CheckCircle2, Clock, Megaphone } from 'lucide-react';
+import { RefreshCw, Bell, AlertTriangle, CheckCircle2, Clock, Megaphone, MapPin } from 'lucide-react';
 
 interface Alert {
   id: number;
@@ -49,7 +50,7 @@ export default function CitizenAlertsPage() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const params: any = { per_page: 30 };
+      const params: Record<string, unknown> = { per_page: 30 };
       if (filter === 'active') params.status = 'active';
       const res = await api.get('/alerts', { params });
       setAlerts(res.data?.data ?? []);
@@ -57,7 +58,7 @@ export default function CitizenAlertsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchAlerts(); }, [filter]);
+  useEffect(() => { fetchAlerts(); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = () => fetchAlerts();
@@ -90,9 +91,16 @@ export default function CitizenAlertsPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
         </div>
-        <Button variant="ghost" size="icon" onClick={fetchAlerts} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Link href="/citizen/map">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+              <MapPin size={13} /> Bản đồ
+            </Button>
+          </Link>
+          <Button variant="ghost" size="icon" onClick={fetchAlerts} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </Button>
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -150,13 +158,20 @@ export default function CitizenAlertsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1 border-t border-border/50">
-                    <span className="flex items-center gap-1">
-                      <Clock size={10} />
-                      {formatDate(alert.created_at || alert.effective_from)}
-                    </span>
-                    <span className="font-bold uppercase">{alert.alert_type_label || typeLabel}</span>
-                    <span className={`font-bold uppercase ${textClass}`}>{alert.severity_label || severityLabel}</span>
+                  <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/50">
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {formatDate(alert.created_at || alert.effective_from)}
+                      </span>
+                      <span className="font-bold uppercase">{alert.alert_type_label || typeLabel}</span>
+                      <span className={`font-bold uppercase ${textClass}`}>{alert.severity_label || severityLabel}</span>
+                    </div>
+                    <Link href={`/citizen/map?alert=${alert.id}`} className="shrink-0">
+                      <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] gap-1 ${textClass} hover:bg-current/10`}>
+                        <MapPin size={11} /> Bản đồ
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
