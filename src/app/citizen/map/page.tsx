@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  Home, AlertTriangle, MapPin, Building2, Bell, User
+  Home, MapPin, Building2, Bell, User, Plus
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -37,11 +37,11 @@ export default function CitizenMapPage() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const navItems = [
-    { href: '/citizen',          icon: Home,          label: t('common.dashboard') },
-    { href: '/citizen/sos',      icon: AlertTriangle, label: 'SOS' },
-    { href: '/citizen/map',      icon: MapPin,        label: t('citizen.map.title') },
-    { href: '/citizen/shelters', icon: Building2,     label: t('dashboard.pages.shelters') },
-    { href: '/citizen/profile',  icon: User,          label: t('citizen.profile.title') },
+    { href: '/citizen',          icon: Home,      label: t('common.dashboard'),          fab: false },
+    { href: '/citizen/map',      icon: MapPin,    label: t('citizen.map.title'),          fab: false },
+    { href: '/citizen/sos',      icon: Plus,      label: '',                              fab: true  },
+    { href: '/citizen/shelters', icon: Building2, label: t('dashboard.pages.shelters'),   fab: false },
+    { href: '/citizen/profile',  icon: User,      label: t('citizen.profile.title'),      fab: false },
   ];
 
   const isActive = (href: string) => {
@@ -52,25 +52,29 @@ export default function CitizenMapPage() {
   return (
     <div className="fixed inset-0 flex flex-col bg-background" style={{ zIndex: 9999 }}>
 
-      {/* Header — đồng bộ với layout */}
-      <header className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-b border-border shrink-0 z-10"
-        style={{ paddingTop: 'max(0px, env(safe-area-inset-top))' }}>
+      {/* Header — synced with layout */}
+      <header
+        className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg border-b border-border shrink-0 z-10"
+        style={{ paddingTop: 'max(0px, env(safe-area-inset-top))' }}
+      >
         <div className="px-4 h-14 flex items-center justify-between">
-          <Link href="/citizen" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Image src="/images/logo.png" alt="AegisFlow" width={20} height={20} className="w-5 h-5" />
+          <Link href="/citizen" className="flex items-center gap-2 group">
+            <div className="relative w-9 h-9 group-hover:scale-110 transition-transform flex items-center justify-center shrink-0">
+              <Image src="/images/logo.png" alt="AegisFlow AI Logo" width={512} height={512}
+                className="object-contain w-full h-full drop-shadow-sm" priority />
             </div>
-            <span className="text-base font-bold">AegisFlow</span>
-            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Citizen</span>
+            <span className="text-base font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+              AegisFlow <span className="text-primary">AI</span>
+            </span>
+            <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">Citizen</span>
           </Link>
 
           <div className="flex items-center gap-1">
-            {/* Notification Bell — functional */}
             <div className="relative">
-              <Button variant="ghost" size="icon" onClick={() => setShowNotifications(v => !v)}>
-                <Bell size={20} />
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setShowNotifications(v => !v)}>
+                <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -84,16 +88,16 @@ export default function CitizenMapPage() {
                 </>
               )}
             </div>
-
             <ThemeToggle />
             <LocaleToggle />
-
-            <Avatar className="h-8 w-8">
-              {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {user?.name?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Link href="/citizen/profile">
+              <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all">
+                {user?.avatar_url && <AvatarImage src={user.avatar_url} />}
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
           </div>
         </div>
       </header>
@@ -103,24 +107,40 @@ export default function CitizenMapPage() {
         <CitizenMap />
       </div>
 
-      {/* Bottom nav — đồng bộ với layout */}
-      <nav className="bg-white dark:bg-zinc-900 border-t border-border shrink-0 z-10"
-        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-        <div className="flex justify-around py-2">
+      {/* Bottom nav — synced with layout */}
+      <nav
+        className="bg-white dark:bg-zinc-900 border-t border-border shrink-0 z-10"
+        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex justify-around">
           {navItems.map((item) => {
             const active = isActive(item.href);
+
+            if (item.fab) {
+              return (
+                <Link key={item.href} href={item.href}
+                  className="flex flex-col items-center justify-center py-2 px-3 -mt-3">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:scale-105 transition-all">
+                    <item.icon size={28} strokeWidth={2.5} className="text-white" />
+                  </div>
+                </Link>
+              );
+            }
+
             return (
               <Link key={item.href} href={item.href}
-                className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${active ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
-                {active ? (
-                  <div className="relative">
-                    <item.icon size={20} className="text-primary" />
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                  </div>
-                ) : (
+                className={`flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 transition-colors ${
+                  active ? 'text-primary' : 'text-muted-foreground'
+                }`}>
+                <div className={`relative p-1.5 rounded-xl transition-all ${active ? 'bg-primary/10' : ''}`}>
                   <item.icon size={20} />
-                )}
-                <span className={`text-[10px] font-medium ${active ? 'font-bold' : ''}`}>{item.label}</span>
+                  {active && (
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                  )}
+                </div>
+                <span className={`text-[10px] mt-0.5 truncate max-w-[52px] text-center ${active ? 'font-bold' : 'font-medium'}`}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}

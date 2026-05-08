@@ -660,6 +660,7 @@
       "quickActions": "Quick Actions",
       "requestRescue": "Request Rescue",
       "requestRescueDesc": "Send emergency request",
+      "reportFlood": "Report Flood",
       "floodMap": "Flood Map",
       "floodMapDesc": "View danger zones",
       "activeAlerts": "Active Alerts",
@@ -941,6 +942,7 @@
     "firstNamePlaceholder": "Enter first name",
     "lastNamePlaceholder": "Enter last name",
     "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
     "phone": "Phone Number",
     "phonePlaceholder": "Enter phone number",
     "confirmPasswordPlaceholder": "Confirm your password",
@@ -961,6 +963,93 @@
     "newPassword": "New Password",
     "confirmPassword": "Confirm Password",
     "security": "Data encrypted with AES-256 · ISO 27001 standard"
+  },
+  "howItWorks": {
+    "title": "How does it work?",
+    "subtitle": "From sensor data to rescue action — in just minutes",
+    "step1Title": "Collect Data",
+    "step1Desc": "IoT sensors and meteorological data updated continuously every minute.",
+    "step2Title": "AI Analysis",
+    "step2Desc": "AI model predicts flood risk with over 94% accuracy.",
+    "step3Title": "Alert & Rescue",
+    "step3Desc": "Automatically sends alerts and dispatches rescue teams immediately."
+  },
+  "testimonials": {
+    "sectionTitle": "Trusted by experts",
+    "sectionSubtitle": "Feedback from those using AegisFlow AI",
+    "t1": {
+      "quote": "AegisFlow AI helped us reduce flood warning time from 2 hours to under 5 minutes. This is a breakthrough in disaster prevention.",
+      "name": "Assoc. Prof. Nguyen Van Minh",
+      "role": "Director, Central Region Disaster Prevention Center"
+    },
+    "t2": {
+      "quote": "The accurate prediction system enabled timely evacuation of over 2,000 households during October floods. AI technology truly makes a difference.",
+      "name": "Tran Thi Hong",
+      "role": "Vice Chairman, Hai Chau District People's Committee"
+    },
+    "t3": {
+      "quote": "Intuitive interface, continuously updated data. Our rescue team coordinates much more effectively thanks to AegisFlow.",
+      "name": "Captain Le Quoc Hung",
+      "role": "Head of Da Nang Fire & Rescue Team"
+    }
+  },
+  "newsletter": {
+    "title": "Get the earliest flood alerts",
+    "subtitle": "Subscribe to receive weather forecasts and disaster alerts directly to your email.",
+    "placeholder": "Enter your email...",
+    "subscribe": "Subscribe",
+    "success": "Successfully subscribed! You will receive the earliest alerts."
+  },
+  "about": {
+    "title": "About AegisFlow AI",
+    "subtitle": "A pioneering AI platform protecting communities from natural disasters in Southeast Asia",
+    "missionTitle": "Mission",
+    "missionDesc": "Leveraging Artificial Intelligence and Digital Twin technology to minimize disaster damage, protecting lives and assets of urban communities in Vietnam.",
+    "visionTitle": "Vision",
+    "visionDesc": "To become the leading disaster monitoring and response platform in Southeast Asia, where every city can predict and rapidly respond to natural disasters.",
+    "quote": "Every minute of early warning saves thousands of lives.",
+    "valuesTitle": "Core Values",
+    "valueSafety": "Safety First",
+    "valueSafetyDesc": "Every decision prioritizes community safety above all else.",
+    "valueInnovation": "Continuous Innovation",
+    "valueInnovationDesc": "Applying the latest AI and technology to enhance disaster response capabilities.",
+    "valueCommunity": "Community Service",
+    "valueCommunityDesc": "Building solutions for everyone, from authorities to citizens.",
+    "valueTransparency": "Data Transparency",
+    "valueTransparencyDesc": "Open data, clear processes, verifiable results.",
+    "teamTitle": "Development Team",
+    "teamSubtitle": "The people behind AegisFlow AI",
+    "techTitle": "Technology Stack",
+    "techSubtitle": "Modern, reliable technology foundation"
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: April 10, 2026",
+    "intro": "By using AegisFlow AI, you agree to comply with the following terms and conditions. Please read carefully before using the service.",
+    "usage": {
+      "title": "1. Terms of Use",
+      "content": "AegisFlow AI provides disaster monitoring and alert services. Users must be at least 16 years old and provide accurate information when registering. Using the service for illegal purposes or to harm the system is strictly prohibited."
+    },
+    "account": {
+      "title": "2. User Account",
+      "content": "You are responsible for securing your login credentials. All activities from your account are considered performed by you. Notify us immediately if you detect unauthorized access."
+    },
+    "data": {
+      "title": "3. Data and Content",
+      "content": "Sensor data, AI predictions, and alert information are provided \"as-is\". We strive for accuracy but are not responsible for decisions based solely on system data without confirmation from authorities."
+    },
+    "liability": {
+      "title": "4. Limitation of Liability",
+      "content": "AegisFlow AI is a support tool, not a replacement for disaster management authority decisions. We are not liable for damages arising from complete reliance on the system without following official guidance."
+    },
+    "changes": {
+      "title": "5. Changes to Terms",
+      "content": "We reserve the right to update terms at any time. Changes take effect immediately upon posting. Continued use of the service implies acceptance of changes."
+    },
+    "law": {
+      "title": "6. Governing Law",
+      "content": "These terms are governed by Vietnamese law. Any disputes will be resolved at the competent court in Da Nang City, Vietnam."
+    }
   },
   "contact": {
     "title": "Need help? Contact us",

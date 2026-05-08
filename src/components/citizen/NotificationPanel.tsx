@@ -63,9 +63,10 @@ export default function NotificationPanel({ onClose }: { onClose?: () => void })
   const handleNotificationClick = (notification: typeof notifications[0]) => {
     markAsRead(notification.id);
 
-    // Navigate to map with alert param if it's an alert notification
     if (notification.type === 'alert' && notification.data?.id) {
       router.push(`/citizen/map?alert=${notification.data.id}`);
+    } else if (notification.type === 'incident' && notification.data?.id) {
+      router.push(`/citizen/map?incident=${notification.data.id}`);
     } else if (notification.link) {
       router.push(notification.link);
     }

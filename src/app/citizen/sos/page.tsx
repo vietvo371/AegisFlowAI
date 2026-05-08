@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   AlertTriangle, MapPin, LocateFixed, RefreshCw,
-  Phone, Users, Waves, CheckCircle2
+  Phone, Users, Waves, CheckCircle2, Camera, X, ImagePlus
 } from 'lucide-react';
 
 const VULNERABLE_LABELS: Record<string, { vi: string; en: string }> = {
@@ -36,6 +36,12 @@ export default function CitizenSOSPage() {
   const [address, setAddress] = React.useState('');
   const [vulnerableGroups, setVulnerableGroups] = React.useState<string[]>([]);
   const [success, setSuccess] = React.useState(false);
+  const [photos, setPhotos] = React.useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = React.useState<string[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [suggestions, setSuggestions] = React.useState<{ display: string; lat: number; lng: number }[]>([]);
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>();
   
   const [form, setForm] = React.useState({
     title: '',
@@ -53,7 +59,6 @@ export default function CitizenSOSPage() {
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
 
-        // Reverse geocoding để lấy địa chỉ
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`
@@ -79,10 +84,97 @@ export default function CitizenSOSPage() {
     );
   };
 
+  // Auto-detect location on mount (silent — no error toast)
+  React.useEffect(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`
+          );
+          const data = await res.json();
+          const parts = [
+            data.address?.house_number,
+            data.address?.road,
+            data.address?.neighbourhood,
+            data.address?.suburb,
+            data.address?.city_district,
+            data.address?.city,
+          ].filter(Boolean);
+          setAddress(parts.length > 0 ? parts.join(', ') : `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } catch {
+          setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        }
+        setLocating(false);
+      },
+      () => { setLocating(false); },
+      { timeout: 10000 }
+    );
+  }, []);
+
   const toggleVulnerable = (id: string) => {
     setVulnerableGroups(prev =>
       prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
     );
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (photos.length + files.length > 5) {
+      toast.error('Tối đa 5 ảnh');
+      return;
+    }
+    const newPhotos = [...photos, ...files].slice(0, 5);
+    setPhotos(newPhotos);
+    setPhotoPreviews(newPhotos.map(f => URL.createObjectURL(f)));
+  };
+
+  const removePhoto = (idx: number) => {
+    URL.revokeObjectURL(photoPreviews[idx]);
+    setPhotos(prev => prev.filter((_, i) => i !== idx));
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const uploadPhotos = async (): Promise<string[]> => {
+    if (photos.length === 0) return [];
+    const formData = new FormData();
+    photos.forEach(f => formData.append('files[]', f));
+    const res = await api.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data?.data ?? [];
+  };
+
+  const handleAddressInput = (val: string) => {
+    setAddress(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&addressdetails=1&limit=5&countrycodes=vn&accept-language=vi`
+        );
+        const data = await res.json();
+        setSuggestions(data.map((d: any) => ({
+          display: d.display_name,
+          lat: parseFloat(d.lat),
+          lng: parseFloat(d.lon),
+        })));
+        setShowSuggestions(true);
+      } catch { setSuggestions([]); }
+    }, 400);
+  };
+
+  const selectSuggestion = (s: { display: string; lat: number; lng: number }) => {
+    setAddress(s.display);
+    setCoords({ lat: s.lat, lng: s.lng });
+    setShowSuggestions(false);
+    setSuggestions([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +192,9 @@ export default function CitizenSOSPage() {
     setSubmitting(true);
 
     try {
+      // Upload ảnh trước
+      const photoUrls = await uploadPhotos();
+
       // Tạo incident
       await api.post('/incidents', {
         title: form.title,
@@ -109,6 +204,7 @@ export default function CitizenSOSPage() {
         address: address || 'Đà Nẵng',
         latitude: coords.lat,
         longitude: coords.lng,
+        photo_urls: photoUrls,
       });
 
       // Tạo rescue request luôn
@@ -123,6 +219,7 @@ export default function CitizenSOSPage() {
         latitude: coords.lat,
         longitude: coords.lng,
         vulnerable_groups: vulnerableGroups,
+        photo_urls: photoUrls,
       });
 
       setSuccess(true);
@@ -260,8 +357,24 @@ export default function CitizenSOSPage() {
                 className="pl-8"
                 placeholder={t('fieldAddressPlaceholder')}
                 value={address}
-                onChange={e => setAddress(e.target.value)}
+                onChange={e => handleAddressInput(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-border rounded-xl shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onMouseDown={() => selectSuggestion(s)}
+                      className="w-full text-left px-3 py-2.5 text-xs hover:bg-muted/60 border-b border-border/30 last:border-0 transition-colors"
+                    >
+                      <span className="line-clamp-2">{s.display}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <Button type="button" variant="outline" size="icon" onClick={handleGetLocation} disabled={locating}>
               <LocateFixed size={16} className={locating ? 'animate-spin text-primary' : ''} />
@@ -289,6 +402,46 @@ export default function CitizenSOSPage() {
                 <span className="text-xs font-medium">{VULNERABLE_LABELS[id][locale]}</span>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Photos */}
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+            Hình ảnh hiện trường (tối đa 5)
+          </Label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            capture="environment"
+            className="hidden"
+            onChange={handlePhotoSelect}
+          />
+          <div className="flex flex-wrap gap-2">
+            {photoPreviews.map((url, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border group">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={12} className="text-white" />
+                </button>
+              </div>
+            ))}
+            {photos.length < 5 && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                <ImagePlus size={20} />
+                <span className="text-[9px] font-medium">Thêm ảnh</span>
+              </button>
+            )}
           </div>
         </div>
 

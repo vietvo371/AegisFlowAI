@@ -660,6 +660,7 @@
       "quickActions": "Thao tác nhanh",
       "requestRescue": "Yêu cầu cứu hộ",
       "requestRescueDesc": "Gửi yêu cầu khẩn cấp",
+      "reportFlood": "Báo cáo ngập",
       "floodMap": "Bản đồ ngập",
       "floodMapDesc": "Xem vùng nguy hiểm",
       "activeAlerts": "Cảnh báo đang hiệu lực",
@@ -941,6 +942,7 @@
     "firstNamePlaceholder": "Nhập họ",
     "lastNamePlaceholder": "Nhập tên",
     "fullName": "Họ và tên",
+    "fullNamePlaceholder": "Nhập họ và tên",
     "phone": "Số điện thoại",
     "phonePlaceholder": "Nhập số điện thoại",
     "confirmPasswordPlaceholder": "Xác nhận mật khẩu",
@@ -961,6 +963,93 @@
     "newPassword": "Mật khẩu mới",
     "confirmPassword": "Xác nhận mật khẩu",
     "security": "Dữ liệu được mã hóa AES-256 · Tiêu chuẩn ISO 27001"
+  },
+  "howItWorks": {
+    "title": "Hoạt động như thế nào?",
+    "subtitle": "Từ dữ liệu cảm biến đến hành động cứu hộ — chỉ trong vài phút",
+    "step1Title": "Thu thập dữ liệu",
+    "step1Desc": "Cảm biến IoT và dữ liệu khí tượng cập nhật liên tục mỗi phút.",
+    "step2Title": "Phân tích AI",
+    "step2Desc": "Mô hình AI dự báo nguy cơ ngập lụt với độ chính xác trên 94%.",
+    "step3Title": "Cảnh báo & Cứu hộ",
+    "step3Desc": "Tự động gửi cảnh báo và điều phối lực lượng cứu hộ ngay lập tức."
+  },
+  "testimonials": {
+    "sectionTitle": "Được tin tưởng bởi các chuyên gia",
+    "sectionSubtitle": "Phản hồi từ những người đang sử dụng AegisFlow AI",
+    "t1": {
+      "quote": "AegisFlow AI giúp chúng tôi rút ngắn thời gian cảnh báo ngập lụt từ 2 giờ xuống còn dưới 5 phút. Đây là bước đột phá trong công tác phòng chống thiên tai.",
+      "name": "PGS.TS Nguyễn Văn Minh",
+      "role": "Giám đốc Trung tâm PCTT Miền Trung"
+    },
+    "t2": {
+      "quote": "Hệ thống dự báo chính xác đã giúp sơ tán kịp thời hơn 2,000 hộ dân trong đợt lũ tháng 10. Công nghệ AI thực sự tạo ra sự khác biệt.",
+      "name": "Trần Thị Hồng",
+      "role": "Phó Chủ tịch UBND Q. Hải Châu"
+    },
+    "t3": {
+      "quote": "Giao diện trực quan, dữ liệu cập nhật liên tục. Đội cứu hộ chúng tôi phối hợp hiệu quả hơn rất nhiều nhờ AegisFlow.",
+      "name": "Đại úy Lê Quốc Hùng",
+      "role": "Đội trưởng PCCC & CNCH Đà Nẵng"
+    }
+  },
+  "newsletter": {
+    "title": "Nhận cảnh báo ngập lụt sớm nhất",
+    "subtitle": "Đăng ký để nhận thông báo dự báo thời tiết và cảnh báo thiên tai trực tiếp qua email.",
+    "placeholder": "Nhập địa chỉ email...",
+    "subscribe": "Đăng ký",
+    "success": "Đăng ký thành công! Bạn sẽ nhận được cảnh báo sớm nhất."
+  },
+  "about": {
+    "title": "Về AegisFlow AI",
+    "subtitle": "Nền tảng AI tiên phong bảo vệ cộng đồng trước thiên tai tại Đông Nam Á",
+    "missionTitle": "Sứ mệnh",
+    "missionDesc": "Ứng dụng Trí tuệ Nhân tạo và công nghệ Digital Twin để giảm thiểu thiệt hại do thiên tai, bảo vệ sinh mạng và tài sản của cộng đồng đô thị Việt Nam.",
+    "visionTitle": "Tầm nhìn",
+    "visionDesc": "Trở thành nền tảng giám sát và ứng phó thiên tai hàng đầu Đông Nam Á, nơi mọi thành phố đều có khả năng dự báo và phản ứng nhanh trước thảm họa tự nhiên.",
+    "quote": "Mỗi phút cảnh báo sớm hơn là hàng nghìn sinh mạng được bảo vệ.",
+    "valuesTitle": "Giá trị cốt lõi",
+    "valueSafety": "An toàn trên hết",
+    "valueSafetyDesc": "Mọi quyết định đều đặt sự an toàn của cộng đồng lên hàng đầu.",
+    "valueInnovation": "Đổi mới không ngừng",
+    "valueInnovationDesc": "Áp dụng AI và công nghệ mới nhất để nâng cao năng lực ứng phó thiên tai.",
+    "valueCommunity": "Phục vụ cộng đồng",
+    "valueCommunityDesc": "Xây dựng giải pháp dành cho mọi người, từ chính quyền đến người dân.",
+    "valueTransparency": "Minh bạch dữ liệu",
+    "valueTransparencyDesc": "Dữ liệu mở, quy trình rõ ràng, kết quả có thể kiểm chứng.",
+    "teamTitle": "Đội ngũ phát triển",
+    "teamSubtitle": "Những người đứng sau AegisFlow AI",
+    "techTitle": "Công nghệ sử dụng",
+    "techSubtitle": "Nền tảng công nghệ hiện đại, đáng tin cậy"
+  },
+  "terms": {
+    "title": "Điều khoản dịch vụ",
+    "lastUpdated": "Cập nhật lần cuối: 10 Tháng 4, 2026",
+    "intro": "Bằng việc sử dụng AegisFlow AI, bạn đồng ý tuân thủ các điều khoản và điều kiện sau đây. Vui lòng đọc kỹ trước khi sử dụng dịch vụ.",
+    "usage": {
+      "title": "1. Điều kiện sử dụng",
+      "content": "AegisFlow AI cung cấp dịch vụ giám sát và cảnh báo thiên tai. Người dùng phải từ 16 tuổi trở lên và cung cấp thông tin chính xác khi đăng ký tài khoản. Việc sử dụng dịch vụ cho mục đích bất hợp pháp hoặc gây hại đến hệ thống là nghiêm cấm."
+    },
+    "account": {
+      "title": "2. Tài khoản người dùng",
+      "content": "Bạn chịu trách nhiệm bảo mật thông tin đăng nhập. Mọi hoạt động từ tài khoản của bạn được coi là do bạn thực hiện. Thông báo ngay cho chúng tôi nếu phát hiện truy cập trái phép."
+    },
+    "data": {
+      "title": "3. Dữ liệu và nội dung",
+      "content": "Dữ liệu cảm biến, dự báo AI và thông tin cảnh báo được cung cấp \"nguyên trạng\". Chúng tôi nỗ lực đảm bảo độ chính xác nhưng không chịu trách nhiệm cho các quyết định dựa hoàn toàn trên dữ liệu hệ thống mà không có xác nhận từ cơ quan chức năng."
+    },
+    "liability": {
+      "title": "4. Giới hạn trách nhiệm",
+      "content": "AegisFlow AI là công cụ hỗ trợ, không thay thế cho các quyết định của cơ quan phòng chống thiên tai. Chúng tôi không chịu trách nhiệm cho thiệt hại phát sinh từ việc phụ thuộc hoàn toàn vào hệ thống mà không tuân theo hướng dẫn chính thức."
+    },
+    "changes": {
+      "title": "5. Thay đổi điều khoản",
+      "content": "Chúng tôi có quyền cập nhật điều khoản bất kỳ lúc nào. Thay đổi có hiệu lực ngay khi được đăng tải. Việc tiếp tục sử dụng dịch vụ đồng nghĩa với việc chấp nhận các thay đổi."
+    },
+    "law": {
+      "title": "6. Luật áp dụng",
+      "content": "Điều khoản này được điều chỉnh theo pháp luật Việt Nam. Mọi tranh chấp sẽ được giải quyết tại tòa án có thẩm quyền tại TP. Đà Nẵng, Việt Nam."
+    }
   },
   "contact": {
     "title": "Bạn cần hỗ trợ? Liên hệ ngay",

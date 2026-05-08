@@ -23,12 +23,18 @@ interface GeoJsonFeature {
   geometry: { type: string; coordinates: number[] | number[][] | number[][][] };
 }
 interface SelectedFeature {
-  kind: 'alert' | 'shelter' | 'flood_point';
+  kind: 'alert' | 'shelter' | 'flood_point' | 'incident';
   props: Record<string, unknown>;
   coords: [number, number];
 }
 
 type LayerKey = 'alerts' | 'shelters' | 'flood_zones' | 'flood_points' | 'flood_streets';
+
+function parseJsonProp(val: unknown): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') { try { const p = JSON.parse(val); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -322,13 +328,37 @@ export default function CitizenMap() {
 
     // Focus alert từ URL
     const alertId = searchParams.get('alert');
-    if (!alertId) return;
+    const incidentId = searchParams.get('incident');
+    if (!alertId && !incidentId) return;
+
     const features = dataRef.current.alerts?.features ?? [];
-    const found = features.find(f => String(f.id) === alertId || String(f.properties.id) === alertId);
+    const targetId = alertId || incidentId;
+    const found = features.find(f => String(f.id) === targetId || String(f.properties.id) === targetId);
     if (found) {
       const coords = (found.geometry as any).coordinates as [number, number];
       map.current.flyTo({ center: coords, zoom: 14, duration: 1200 });
       setSelected({ kind: 'alert', props: found.properties, coords });
+    } else if (incidentId) {
+      api.get(`/incidents/${incidentId}`).then(res => {
+        const inc = res.data?.data ?? res.data;
+        if (!inc) return;
+        const lat = inc.location?.lat ?? 16.0544;
+        const lng = inc.location?.lng ?? 108.2022;
+        const coords: [number, number] = [lng, lat];
+        map.current!.flyTo({ center: coords, zoom: 14, duration: 1200 });
+        setSelected({ kind: 'incident', props: inc, coords });
+      }).catch(() => {});
+    } else if (alertId) {
+      // Alert not in GeoJSON yet — fetch directly
+      api.get(`/alerts/${alertId}`).then(res => {
+        const alert = res.data?.data ?? res.data;
+        if (!alert) return;
+        const lat = alert.location?.lat ?? alert.geometry?.coordinates?.[1] ?? 16.0544;
+        const lng = alert.location?.lng ?? alert.geometry?.coordinates?.[0] ?? 108.2022;
+        const coords: [number, number] = [lng, lat];
+        map.current!.flyTo({ center: coords, zoom: 14, duration: 1200 });
+        setSelected({ kind: 'incident', props: alert, coords });
+      }).catch(() => {});
     }
   }, [mapReady, searchParams]);
 
@@ -499,26 +529,130 @@ export default function CitizenMap() {
 
       {/* Bottom card — Alert */}
       {selected?.kind === 'alert' && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border overflow-hidden z-30 animate-in slide-in-from-bottom-4 duration-200">
+        <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border overflow-hidden z-30 animate-in slide-in-from-bottom-4 duration-200 max-h-[60vh] overflow-y-auto">
           <div className="px-4 py-3 flex items-start justify-between gap-2"
             style={{ backgroundColor: (SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6') + '18', borderBottom: `2px solid ${SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6'}40` }}>
             <div className="flex items-start gap-2 min-w-0">
               <AlertTriangle size={16} style={{ color: SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6' }} className="mt-0.5 shrink-0" />
               <div className="min-w-0">
-                <p className="font-bold text-sm leading-snug truncate">{String(selected.props.title ?? '—')}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {selected.props.created_at ? new Date(String(selected.props.created_at)).toLocaleString('vi-VN') : ''}
-                </p>
+                <p className="font-bold text-sm leading-snug">{String(selected.props.title ?? '—')}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    selected.props.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                    selected.props.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                    selected.props.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {String(selected.props.severity_label || selected.props.severity || '').toUpperCase()}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selected.props.created_at ? new Date(String(selected.props.created_at)).toLocaleString('vi-VN') : ''}
+                  </span>
+                </div>
               </div>
             </div>
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-muted rounded shrink-0"><X size={14} /></button>
           </div>
-          {selected.props.description && (
-            <div className="px-4 py-2">
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{String(selected.props.description)}</p>
+
+          {selected.props.address && (
+            <div className="px-4 pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin size={12} className="shrink-0" />
+              <span>{String(selected.props.address)}</span>
             </div>
           )}
-          <div className="px-4 pb-4 pt-2 flex gap-2">
+
+          {selected.props.description && (
+            <div className="px-4 pt-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">{String(selected.props.description)}</p>
+            </div>
+          )}
+
+          {(() => { const urls = parseJsonProp(selected.props.photo_urls); return urls.length > 0 ? (
+            <div className="px-4 pt-3">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {urls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                    <img src={url} alt="" className="w-24 h-24 rounded-xl object-cover border border-border" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null; })()}
+
+          <div className="px-4 pb-4 pt-3 flex gap-2">
+            <Link href="/citizen/alerts" className="flex-1">
+              <Button size="sm" variant="outline" className="w-full text-xs h-9">
+                <AlertTriangle size={12} className="mr-1" /> {t('alerts')}
+              </Button>
+            </Link>
+            <a href="tel:113" className="flex-1">
+              <Button size="sm" className="w-full text-xs h-9 bg-red-600 hover:bg-red-700">
+                <Phone size={12} className="mr-1" /> {t('callEmergency')}
+              </Button>
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom card — Incident (from SOS/notification) */}
+      {selected?.kind === 'incident' && (
+        <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border overflow-hidden z-30 animate-in slide-in-from-bottom-4 duration-200 max-h-[60vh] overflow-y-auto">
+          <div className="px-4 py-3 flex items-start justify-between gap-2"
+            style={{ backgroundColor: (SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6') + '18', borderBottom: `2px solid ${SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6'}40` }}>
+            <div className="flex items-start gap-2 min-w-0">
+              <AlertTriangle size={16} style={{ color: SEVERITY_COLORS[String(selected.props.severity)] ?? '#3B82F6' }} className="mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-bold text-sm leading-snug">{String(selected.props.title ?? '—')}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    selected.props.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                    selected.props.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                    selected.props.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {String(selected.props.severity ?? '').toUpperCase()}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selected.props.created_at ? new Date(String(selected.props.created_at)).toLocaleString('vi-VN') : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setSelected(null)} className="p-1 hover:bg-muted rounded shrink-0"><X size={14} /></button>
+          </div>
+
+          {selected.props.address && (
+            <div className="px-4 pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin size={12} className="shrink-0" />
+              <span>{String(selected.props.address)}</span>
+            </div>
+          )}
+
+          {selected.props.description && (
+            <div className="px-4 pt-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">{String(selected.props.description)}</p>
+            </div>
+          )}
+
+          {(() => { const urls = parseJsonProp(selected.props.photo_urls); return urls.length > 0 ? (
+            <div className="px-4 pt-3">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {urls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                    <img src={url} alt="" className="w-24 h-24 rounded-xl object-cover border border-border" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null; })()}
+
+          {selected.props.reporter && (
+            <div className="px-4 pt-2 text-[11px] text-muted-foreground">
+              Báo cáo bởi: <span className="font-medium text-foreground">{String((selected.props.reporter as any)?.name ?? '—')}</span>
+            </div>
+          )}
+
+          <div className="px-4 pb-4 pt-3 flex gap-2">
             <Link href="/citizen/alerts" className="flex-1">
               <Button size="sm" variant="outline" className="w-full text-xs h-9">
                 <AlertTriangle size={12} className="mr-1" /> {t('alerts')}

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { Home, Bell, AlertTriangle, MapPin, Building2, User } from 'lucide-react';
+import { Home, Bell, Plus, MapPin, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
@@ -43,22 +43,24 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
   if (!user) { router.replace('/signin'); return null; }
 
   const navItems = [
-    { href: '/citizen',          icon: Home,          label: t('common.dashboard'),          sos: false },
-    { href: '/citizen/sos',      icon: AlertTriangle, label: 'SOS',                          sos: true  },
-    { href: '/citizen/map',      icon: MapPin,        label: t('citizen.map.title'),          sos: false },
-    { href: '/citizen/shelters', icon: Building2,     label: t('dashboard.pages.shelters'),   sos: false },
-    { href: '/citizen/profile',  icon: User,          label: t('citizen.profile.title'),      sos: false },
+    { href: '/citizen',          icon: Home,      label: t('common.dashboard'),          fab: false },
+    { href: '/citizen/map',      icon: MapPin,    label: t('citizen.map.title'),          fab: false },
+    { href: '/citizen/sos',      icon: Plus,      label: '',                              fab: true  },
+    { href: '/citizen/shelters', icon: Building2, label: t('dashboard.pages.shelters'),   fab: false },
+    { href: '/citizen/profile',  icon: User,      label: t('citizen.profile.title'),      fab: false },
   ];
 
   const isActive = (href: string) => href === '/citizen' ? pathname === '/citizen' : pathname.startsWith(href);
   const isMapPage = pathname === '/citizen/map';
+  const isHomePage = pathname === '/citizen';
+  const hideHeader = isMapPage || isHomePage;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ToasterProvider />
 
       {/* ── Header ── */}
-      {!isMapPage && (
+      {!hideHeader && (
         <header
           className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg border-b border-border shrink-0"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
@@ -127,19 +129,13 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
             {navItems.map((item) => {
               const active = isActive(item.href);
 
-              // SOS — special center button
-              if (item.sos) {
+              if (item.fab) {
                 return (
                   <Link key={item.href} href={item.href}
                     className="flex flex-col items-center justify-center py-2 px-3 -mt-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${
-                      active
-                        ? 'bg-red-600 scale-110'
-                        : 'bg-red-500 hover:bg-red-600 hover:scale-105'
-                    }`}>
-                      <item.icon size={22} className="text-white" />
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:scale-105 transition-all">
+                      <item.icon size={28} strokeWidth={2.5} className="text-white" />
                     </div>
-                    <span className="text-[9px] font-bold text-red-500 mt-0.5">SOS</span>
                   </Link>
                 );
               }
