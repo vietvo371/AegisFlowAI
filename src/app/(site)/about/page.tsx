@@ -17,6 +17,8 @@ import {
   Smartphone,
   Server,
   Wifi,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
@@ -31,10 +33,34 @@ export default function AboutPage() {
   ];
 
   const team = [
-    { name: 'Văn Việt', role: 'Full-stack Developer & AI Lead', initial: 'V' },
-    { name: 'Minh Tuấn', role: 'Backend Engineer', initial: 'T' },
-    { name: 'Thanh Hà', role: 'Frontend Developer', initial: 'H' },
-    { name: 'Quốc Bảo', role: 'IoT & Sensor Engineer', initial: 'B' },
+    {
+      name: 'Nguyễn Thị Xuân Nhi',
+      role: 'Team Leader',
+      initial: 'N',
+      email: 'nguyentxuannhi2@dtu.edu.vn',
+      phone: '0764619941',
+    },
+    {
+      name: 'Phạm Ngọc Hải',
+      role: 'Developer',
+      initial: 'H',
+      email: 'pnh02042006@gmail.com',
+      phone: '0785318586',
+    },
+    {
+      name: 'Nguyễn Thị Thanh Thủy',
+      role: 'Developer',
+      initial: 'T',
+      email: 'nttthuy1403@gmail.com',
+      phone: '0856578543',
+    },
+    {
+      name: 'Nguyễn Văn Nhân',
+      role: 'Developer',
+      initial: 'N',
+      email: 'vannhan130504@gmail.com',
+      phone: '0394425076',
+    },
   ];
 
   const techStack = [
@@ -107,25 +133,45 @@ export default function AboutPage() {
       <Separator className="bg-border/50" />
 
       {/* Team */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-24 bg-muted/50">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-5">
+              {t('teamBadge')}
+            </div>
             <h2 className="text-3xl md:text-5xl font-black mb-4">{t('teamTitle')}</h2>
             <p className="text-lg text-muted-foreground">{t('teamSubtitle')}</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {team.map((member, idx) => (
-              <div key={idx} className="flex flex-col items-center text-center group">
-                <Avatar className="h-20 w-20 mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl font-black">
+              <div key={idx} className="rounded-3xl border border-border bg-card p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col items-center text-center gap-4">
+                <Avatar className="h-16 w-16 shadow-md">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl font-black">
                     {member.initial}
                   </AvatarFallback>
                 </Avatar>
-                <h3 className="font-bold text-sm">{member.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{member.role}</p>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight">{member.name}</h3>
+                  <p className="text-xs text-primary font-semibold mt-0.5">{member.role}</p>
+                </div>
+                <div className="w-full space-y-2 pt-2 border-t border-border">
+                  <a href={`mailto:${member.email}`}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <Mail size={12} className="shrink-0" />
+                    <span className="truncate">{member.email}</span>
+                  </a>
+                  <a href={`tel:${member.phone}`}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <Phone size={12} className="shrink-0" />
+                    <span>{member.phone}</span>
+                  </a>
+                </div>
               </div>
             ))}
           </div>
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            {t('mentorLabel')}: <strong>Nguyễn Quốc Long</strong> — quoclongdng@gmail.com
+          </p>
         </div>
       </section>
 

@@ -2,18 +2,22 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { ThemeProvider } from 'next-themes';
-import { Inter, Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, Geist_Mono, Barlow_Condensed } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
-const inter = Inter({
-  variable: '--font-inter',
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: '--font-sans',
   subsets: ['latin', 'vietnamese'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  display: 'swap',
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: '--font-heading',
+const barlowCondensed = Barlow_Condensed({
+  variable: '--font-display',
   subsets: ['latin', 'vietnamese'],
+  weight: ['600', '700', '800', '900'],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
@@ -71,7 +75,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${plusJakartaSans.variable} ${geistMono.variable} min-h-screen bg-background font-inter antialiased`}
+        className={`${plusJakartaSans.variable} ${barlowCondensed.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider

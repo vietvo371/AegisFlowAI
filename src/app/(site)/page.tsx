@@ -30,19 +30,19 @@ import type { FC } from 'react';
 
 // ── Inline diagram components (slide-style) ──────────────────────────────────
 
-function AIEngineDiagram() {
+function AIEngineDiagram({ t }: { t: (key: string) => string }) {
   const inputs = [
-    { label: 'Mực nước', pct: '40%', y: 18 },
-    { label: 'Lượng mưa', pct: '30%', y: 42 },
-    { label: 'Thời gian mưa', pct: '15%', y: 66 },
-    { label: 'Mức thủy triều', pct: '10%', y: 90 },
-    { label: 'Lịch sử ngập', pct: '5%', y: 114 },
+    { label: t('landing.diagramAIInputWaterLevel'), pct: '40%', y: 18 },
+    { label: t('landing.diagramAIInputRainfall'), pct: '30%', y: 42 },
+    { label: t('landing.diagramAIInputRainDuration'), pct: '15%', y: 66 },
+    { label: t('landing.diagramAIInputTide'), pct: '10%', y: 90 },
+    { label: t('landing.diagramAIInputHistory'), pct: '5%', y: 114 },
   ];
   const risks = [
-    { label: 'THẤP', color: '#64748b', y: 20 },
-    { label: 'TRUNG BÌNH', color: '#0ea5e9', y: 50 },
-    { label: 'CAO', color: '#f59e0b', y: 80 },
-    { label: 'NGHIÊM TRỌNG', color: '#ef4444', y: 110 },
+    { label: t('landing.diagramAIRiskLow'), color: '#64748b', y: 20 },
+    { label: t('landing.diagramAIRiskMedium'), color: '#0ea5e9', y: 50 },
+    { label: t('landing.diagramAIRiskHigh'), color: '#f59e0b', y: 80 },
+    { label: t('landing.diagramAIRiskCritical'), color: '#ef4444', y: 110 },
   ];
   return (
     <svg viewBox="0 0 380 136" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
@@ -56,9 +56,9 @@ function AIEngineDiagram() {
       ))}
       {/* RandomForest box */}
       <rect x="176" y="30" width="88" height="76" rx="8" fill="#1e3a5f" stroke="#4ade80" strokeWidth="1.5" />
-      <text x="220" y="58" fill="white" fontSize="9" fontWeight="700" textAnchor="middle">Random</text>
-      <text x="220" y="71" fill="white" fontSize="9" fontWeight="700" textAnchor="middle">Forest</text>
-      <text x="220" y="87" fill="#4ade80" fontSize="8" textAnchor="middle">200 cây quyết định</text>
+      <text x="220" y="58" fill="white" fontSize="9" fontWeight="700" textAnchor="middle">{t('landing.diagramAIModelName').split(' ')[0]}</text>
+      <text x="220" y="71" fill="white" fontSize="9" fontWeight="700" textAnchor="middle">{t('landing.diagramAIModelName').split(' ')[1]}</text>
+      <text x="220" y="87" fill="#4ade80" fontSize="8" textAnchor="middle">{t('landing.diagramAIModelSub')}</text>
       {/* connector */}
       <line x1="264" y1="68" x2="286" y2="68" stroke="#4ade80" strokeWidth="1.5" />
       <polygon points="286,68 281,65 281,71" fill="#4ade80" />
@@ -73,13 +73,13 @@ function AIEngineDiagram() {
   );
 }
 
-function EcosystemLoop() {
+function EcosystemLoop({ t }: { t: (key: string) => string }) {
   const nodes = [
-    { label: 'Thu thập', sub: 'IoT & Weather', x: 200, y: 24, color: '#0ea5e9' },
-    { label: 'Dự báo', sub: 'AI Engine', x: 342, y: 90, color: '#6366f1' },
-    { label: 'Cảnh báo', sub: 'Auto Dispatch', x: 288, y: 200, color: '#ef4444' },
-    { label: 'Hành động', sub: 'Citizen App', x: 112, y: 200, color: '#f59e0b' },
-    { label: 'Thực thi', sub: 'Rescue Teams', x: 58, y: 90, color: '#22c55e' },
+    { label: t('landing.diagramEcoCollect'), sub: t('landing.diagramEcoCollectSub'), x: 200, y: 24, color: '#0ea5e9' },
+    { label: t('landing.diagramEcoPredict'), sub: t('landing.diagramEcoPredictSub'), x: 342, y: 90, color: '#6366f1' },
+    { label: t('landing.diagramEcoAlert'), sub: t('landing.diagramEcoAlertSub'), x: 288, y: 200, color: '#ef4444' },
+    { label: t('landing.diagramEcoAction'), sub: t('landing.diagramEcoActionSub'), x: 112, y: 200, color: '#f59e0b' },
+    { label: t('landing.diagramEcoExecute'), sub: t('landing.diagramEcoExecuteSub'), x: 58, y: 90, color: '#22c55e' },
   ];
   // simple circle path between nodes
   const cx = 200, cy = 120, r = 88;
@@ -125,7 +125,7 @@ function EcosystemLoop() {
   );
 }
 
-function EvacuationDiagram() {
+function EvacuationDiagram({ t }: { t: (key: string) => string }) {
   return (
     <svg viewBox="0 0 360 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
       {/* Background grid */}
@@ -133,45 +133,45 @@ function EvacuationDiagram() {
       {[60, 120, 180, 240, 300].map(x => <line key={x} x1={x} y1="20" x2={x} y2="160" stroke="#e2e8f0" strokeWidth="0.5" />)}
       {/* Flood zone polygon */}
       <polygon points="120,60 200,50 230,90 210,130 140,135 100,100" fill="#ef444420" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="5 3" />
-      <text x="160" y="98" fill="#ef4444" fontSize="9" fontWeight="700" textAnchor="middle">VÙNG NGẬP</text>
+      <text x="160" y="98" fill="#ef4444" fontSize="9" fontWeight="700" textAnchor="middle">{t('landing.diagramEvacFloodZone')}</text>
       {/* Safe zone */}
       <rect x="280" y="55" width="60" height="60" rx="6" fill="#22c55e18" stroke="#22c55e" strokeWidth="1.5" />
-      <text x="310" y="82" fill="#22c55e" fontSize="8" fontWeight="700" textAnchor="middle">AN</text>
-      <text x="310" y="94" fill="#22c55e" fontSize="8" fontWeight="700" textAnchor="middle">TOÀN</text>
+      <text x="310" y="82" fill="#22c55e" fontSize="8" fontWeight="700" textAnchor="middle">{t('landing.diagramEvacSafe1')}</text>
+      <text x="310" y="94" fill="#22c55e" fontSize="8" fontWeight="700" textAnchor="middle">{t('landing.diagramEvacSafe2')}</text>
       {/* Safe route arc */}
       <path d="M100,85 Q120,30 200,28 Q270,26 295,70" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" fill="none" strokeDasharray="8 4">
         <animate attributeName="stroke-dashoffset" from="48" to="0" dur="2s" repeatCount="indefinite" />
       </path>
-      <text x="170" y="18" fill="#22c55e" fontSize="7.5" textAnchor="middle">Tuyến vòng cung an toàn (+4km)</text>
+      <text x="170" y="18" fill="#22c55e" fontSize="7.5" textAnchor="middle">{t('landing.diagramEvacSafeRoute')}</text>
       {/* Danger route crossed */}
       <line x1="100" y1="85" x2="295" y2="85" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />
       <line x1="185" y1="75" x2="205" y2="95" stroke="#ef4444" strokeWidth="2" />
       <line x1="205" y1="75" x2="185" y2="95" stroke="#ef4444" strokeWidth="2" />
-      <text x="194" y="110" fill="#ef4444" fontSize="7" textAnchor="middle">Tuyến ngắn nhất</text>
-      <text x="194" y="120" fill="#ef4444" fontSize="7" textAnchor="middle">(+30% phạt khoảng cách)</text>
+      <text x="194" y="110" fill="#ef4444" fontSize="7" textAnchor="middle">{t('landing.diagramEvacShortRoute')}</text>
+      <text x="194" y="120" fill="#ef4444" fontSize="7" textAnchor="middle">{t('landing.diagramEvacPenalty')}</text>
       {/* People dots */}
       {[[52, 80], [60, 96], [44, 102]].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="5" fill="#1e3a5f" />
       ))}
-      <text x="52" y="120" fill="#64748b" fontSize="7.5" textAnchor="middle">Cư dân</text>
+      <text x="52" y="120" fill="#64748b" fontSize="7.5" textAnchor="middle">{t('landing.diagramEvacResidents')}</text>
       {/* Arrow at end */}
       <polygon points="295,70 287,62 287,78" fill="#22c55e" />
       {/* Legend */}
       <circle cx="28" cy="155" r="4" fill="#22c55e" />
-      <text x="36" y="158" fill="#64748b" fontSize="7.5">Tuyến an toàn (4km/h)</text>
+      <text x="36" y="158" fill="#64748b" fontSize="7.5">{t('landing.diagramEvacLegendSafe')}</text>
       <circle cx="160" cy="155" r="4" fill="#ef4444" />
-      <text x="168" y="158" fill="#64748b" fontSize="7.5">Tuyến tránh ngập</text>
+      <text x="168" y="158" fill="#64748b" fontSize="7.5">{t('landing.diagramEvacLegendAvoid')}</text>
     </svg>
   );
 }
 
-function AutomationTimeline() {
+function AutomationTimeline({ t }: { t: (key: string) => string }) {
   const steps: { t: string; Icon: FC<LucideProps>; title: string; desc: string; color: string }[] = [
-    { t: 'T=0.00s', Icon: Wifi,          title: 'IoT báo động',     desc: 'Nước dâng 1.5m',              color: '#64748b' },
-    { t: 'T=0.15s', Icon: AlertTriangle, title: 'Tự tạo Sự cố',    desc: 'FloodAutoDetector',            color: '#0ea5e9' },
-    { t: 'T=0.40s', Icon: Brain,         title: 'AI đánh giá',      desc: 'Rủi ro 85% — Nghiêm trọng',  color: '#ef4444' },
-    { t: 'T=0.65s', Icon: Navigation,    title: 'Tính tuyến đường', desc: 'RecommendationGenerator',     color: '#6366f1' },
-    { t: 'T=0.95s', Icon: Send,          title: 'Gửi thông báo',    desc: 'FCM + WebSocket',             color: '#22c55e' },
+    { t: t('landing.timelineStep1T'), Icon: Wifi,          title: t('landing.timelineStep1Title'),     desc: t('landing.timelineStep1Desc'),              color: '#64748b' },
+    { t: t('landing.timelineStep2T'), Icon: AlertTriangle, title: t('landing.timelineStep2Title'),    desc: t('landing.timelineStep2Desc'),            color: '#0ea5e9' },
+    { t: t('landing.timelineStep3T'), Icon: Brain,         title: t('landing.timelineStep3Title'),      desc: t('landing.timelineStep3Desc'),  color: '#ef4444' },
+    { t: t('landing.timelineStep4T'), Icon: Navigation,    title: t('landing.timelineStep4Title'), desc: t('landing.timelineStep4Desc'),     color: '#6366f1' },
+    { t: t('landing.timelineStep5T'), Icon: Send,          title: t('landing.timelineStep5Title'),    desc: t('landing.timelineStep5Desc'),             color: '#22c55e' },
   ];
   return (
     <div className="w-full overflow-x-auto">
@@ -197,7 +197,7 @@ function AutomationTimeline() {
           ))}
         </div>
         <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
-          Con người chuyển từ &ldquo;Thực thi thủ công&rdquo; sang &ldquo;Giám sát &amp; Phê duyệt&rdquo;
+          {t('landing.timelineFooter')}
         </p>
       </div>
     </div>
@@ -301,35 +301,35 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-bold mb-5">
-              Vấn đề thực tế
+              {t('landing.problemBadge')}
             </div>
             <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
-              Tại sao hệ thống hiện tại{' '}
-              <span className="text-red-500">chưa đủ?</span>
+              {t('landing.problemTitle')}{' '}
+              <span className="text-red-500">{t('landing.problemTitleHighlight')}</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              3 khoảng trống chết người trong 120 phút &ldquo;cửa sổ vàng&rdquo; đầu tiên sau khi bão đổ bộ
+              {t('landing.problemSubtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {([
               {
-                tag: 'Cảnh báo sớm',
+                tag: t('landing.gap1Tag'),
                 Icon: AlarmClock,
-                problem: 'Cảnh báo muộn (<30 phút)',
-                desc: 'Người dân hoàn toàn bị động, không kịp di dời tài sản hay sơ tán.',
+                problem: t('landing.gap1Problem'),
+                desc: t('landing.gap1Desc'),
               },
               {
-                tag: 'Phối hợp',
+                tag: t('landing.gap2Tag'),
                 Icon: RadioTower,
-                problem: 'Điều phối thủ công',
-                desc: 'Thời gian phản ứng chậm, không xác định được ai cần cứu trước giữa hàng ngàn yêu cầu.',
+                problem: t('landing.gap2Problem'),
+                desc: t('landing.gap2Desc'),
               },
               {
-                tag: 'Thông tin',
+                tag: t('landing.gap3Tag'),
                 Icon: EyeOff,
-                problem: 'Điểm mù sơ tán',
-                desc: 'Người dân có thể di chuyển nhầm vào vùng nước sâu nguy hiểm.',
+                problem: t('landing.gap3Problem'),
+                desc: t('landing.gap3Desc'),
               },
             ] as { tag: string; Icon: FC<LucideProps>; problem: string; desc: string }[]).map((card, i) => (
               <div key={i} className="rounded-3xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
@@ -340,7 +340,7 @@ export default function LandingPage() {
                       <card.Icon size={20} />
                     </div>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                      Khoảng trống {card.tag}
+                      {t('landing.gapLabel', { tag: card.tag })}
                     </span>
                   </div>
                   <h3 className="text-red-500 text-xl font-black leading-tight">{card.problem}</h3>
@@ -351,7 +351,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-12 flex items-center justify-center gap-3 text-sm text-muted-foreground">
             <div className="h-px w-16 bg-border" />
-            <span className="font-semibold">AegisFlow AI giải quyết cả 3 khoảng trống này</span>
+            <span className="font-semibold">{t('landing.gapFooter')}</span>
             <div className="h-px w-16 bg-border" />
           </div>
         </div>
@@ -366,18 +366,17 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 text-xs font-bold">
-                  <span>01</span> — Dự báo AI
+                  {t('landing.feat1Badge')}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black text-foreground leading-tight">
-                  Cỗ máy AI phân tích<br />
-                  <span className="text-blue-500">rủi ro 98.8% chính xác</span>
+                  {t('landing.feat1Title')}<br />
+                  <span className="text-blue-500">{t('landing.feat1TitleHighlight')}</span>
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Thuật toán RandomForest Classifier huấn luyện trên 3.000 mẫu, xử lý qua 200 cây quyết định.
-                  Phân loại 4 mức rủi ro từ Thấp đến Nghiêm trọng trong vòng <strong>0.40 giây</strong>.
+                  {t('landing.feat1Desc')}
                 </p>
                 <ul className="space-y-2">
-                  {['Quét tự động mỗi 15 phút', 'Tầm nhìn linh hoạt: 15 phút → 24 giờ', 'Chiến lược Dual AI — 100% uptime'].map((item, i) => (
+                  {[t('landing.feat1Bullet1'), t('landing.feat1Bullet2'), t('landing.feat1Bullet3')].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                       {item}
@@ -387,9 +386,9 @@ export default function LandingPage() {
               </div>
               <div className="rounded-2xl border border-border bg-slate-50 dark:bg-slate-900/50 p-6">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">
-                  Cỗ máy AI — Phân tích Rủi ro
+                  {t('landing.feat1DiagramTitle')}
                 </p>
-                <AIEngineDiagram />
+                <AIEngineDiagram t={t} />
               </div>
             </div>
           </div>
@@ -401,24 +400,23 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="order-2 lg:order-1 rounded-2xl border border-border bg-white dark:bg-slate-900/50 p-6">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">
-                  Thông minh Không gian — Cứu hộ &amp; Sơ tán
+                  {t('landing.feat2DiagramTitle')}
                 </p>
-                <EvacuationDiagram />
+                <EvacuationDiagram t={t} />
               </div>
               <div className="order-1 lg:order-2 space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold">
-                  <span>02</span> — Tuyến sơ tán
+                  {t('landing.feat2Badge')}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black text-foreground leading-tight">
-                  Tuyến đường tối ưu,<br />
-                  <span className="text-emerald-500">tránh vùng nước sâu</span>
+                  {t('landing.feat2Title')}<br />
+                  <span className="text-emerald-500">{t('landing.feat2TitleHighlight')}</span>
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Hệ thống tính toán &ldquo;tuyến vòng cung an toàn&rdquo; thay vì tuyến ngắn nhất — ưu tiên
-                  độ an toàn với vận tốc đi bộ 4km/h, tránh hoàn toàn vùng ngập dự báo.
+                  {t('landing.feat2Desc')}
                 </p>
                 <ul className="space-y-2">
-                  {['Cập nhật tuyến đường real-time', 'Ưu tiên người già, trẻ em (điểm ≥80)', 'Hiển thị bản đồ né ngập trên App'].map((item, i) => (
+                  {[t('landing.feat2Bullet1'), t('landing.feat2Bullet2'), t('landing.feat2Bullet3')].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                       {item}
@@ -435,19 +433,18 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 text-xs font-bold mb-4">
-                <span>03</span> — Tự động hóa Toàn trình
+                {t('landing.feat3Badge')}
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-foreground leading-tight mb-4">
-                Từ cảm biến đến thông báo<br />
-                <span className="text-indigo-500">trong vòng 0.95 giây</span>
+                {t('landing.feat3Title')}<br />
+                <span className="text-indigo-500">{t('landing.feat3TitleHighlight')}</span>
               </h2>
               <p className="text-muted-foreground">
-                Khi cảm biến ghi nhận nước dâng 1.5m, AegisFlow kích hoạt toàn bộ chuỗi phản ứng tự động —
-                không cần can thiệp thủ công.
+                {t('landing.feat3Desc')}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-white dark:bg-slate-900/50 p-6 md:p-8">
-              <AutomationTimeline />
+              <AutomationTimeline t={t} />
             </div>
           </div>
         </div>
@@ -458,36 +455,36 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-5">
-              So sánh
+              {t('landing.compareBadge')}
             </div>
-            <h2 className="text-3xl md:text-5xl font-black mb-4">Bước ngoặt trong Quản lý Thiên tai</h2>
-            <p className="text-lg text-muted-foreground">So sánh hệ thống truyền thống và AegisFlow AI</p>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">{t('landing.compareTitle')}</h2>
+            <p className="text-lg text-muted-foreground">{t('landing.compareSubtitle')}</p>
           </div>
           <div className="rounded-2xl border border-border overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left p-5 font-bold text-foreground w-[30%]">Tiêu chí</th>
-                  <th className="p-5 font-bold text-muted-foreground text-center">Truyền thống</th>
-                  <th className="p-5 font-bold text-emerald-600 text-center bg-emerald-50 dark:bg-emerald-900/20">AegisFlow AI</th>
+                  <th className="text-left p-5 font-bold text-foreground w-[30%]">{t('landing.compareColCriteria')}</th>
+                  <th className="p-5 font-bold text-muted-foreground text-center">{t('landing.compareColTraditional')}</th>
+                  <th className="p-5 font-bold text-emerald-600 text-center bg-emerald-50 dark:bg-emerald-900/20">{t('landing.compareColAegis')}</th>
                 </tr>
               </thead>
               <tbody>
                 {[
                   {
-                    criteria: 'Dự báo (Prediction)',
-                    traditional: 'Cảnh báo chung chung, chu kỳ dài',
-                    aegis: 'AI quét tự động mỗi 15 phút. Tầm nhìn linh hoạt 15p – 24h.',
+                    criteria: t('landing.compareRow1Criteria'),
+                    traditional: t('landing.compareRow1Traditional'),
+                    aegis: t('landing.compareRow1Aegis'),
                   },
                   {
-                    criteria: 'Phối hợp (Coordination)',
-                    traditional: 'Điều phối thủ công qua bộ đàm, dễ quá tải',
-                    aegis: 'Thuật toán ưu tiên tự động + Định tuyến đô thị tối ưu.',
+                    criteria: t('landing.compareRow2Criteria'),
+                    traditional: t('landing.compareRow2Traditional'),
+                    aegis: t('landing.compareRow2Aegis'),
                   },
                   {
-                    criteria: 'Thông tin (Information)',
-                    traditional: 'Truyền thông một chiều, chậm trễ',
-                    aegis: 'Tương tác 2 chiều Real-time trên App + Trợ lý AI (RAG).',
+                    criteria: t('landing.compareRow3Criteria'),
+                    traditional: t('landing.compareRow3Traditional'),
+                    aegis: t('landing.compareRow3Aegis'),
                   },
                 ].map((row, i) => (
                   <tr key={i} className={`border-b border-border last:border-0 ${i % 2 === 0 ? '' : 'bg-muted/30'}`}>
@@ -509,22 +506,22 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-5">
-              Cách hoạt động
+              {t('landing.ecosystemBadge')}
             </div>
-            <h2 className="text-3xl md:text-5xl font-black mb-4">Vòng lặp Hệ sinh thái AegisFlow</h2>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">{t('landing.ecosystemTitle')}</h2>
             <p className="text-lg text-muted-foreground">
-              5 giai đoạn khép kín — từ dữ liệu thô đến hành động cứu người
+              {t('landing.ecosystemSubtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <EcosystemLoop />
+            <EcosystemLoop t={t} />
             <div className="space-y-3">
               {[
-                { num: '01', title: 'Thu thập', desc: 'Cảm biến IoT đo mực nước, lượng mưa + dữ liệu OpenWeatherMap theo thời gian thực.', color: 'text-sky-500', border: 'border-sky-200 dark:border-sky-800', dot: 'bg-sky-500' },
-                { num: '02', title: 'Dự báo (AI Engine)', desc: 'RandomForest Classifier đánh giá rủi ro 4 mức. Dual AI đảm bảo 100% uptime.', color: 'text-indigo-500', border: 'border-indigo-200 dark:border-indigo-800', dot: 'bg-indigo-500' },
-                { num: '03', title: 'Cảnh báo & Điều phối', desc: 'Hệ thống tự động tạo sự cố, phân công đội cứu hộ theo thuật toán ưu tiên.', color: 'text-red-500', border: 'border-red-200 dark:border-red-800', dot: 'bg-red-500' },
-                { num: '04', title: 'Hành động (Citizen App)', desc: 'Gửi thông báo đẩy FCM, hiển thị bản đồ né ngập và tuyến sơ tán an toàn.', color: 'text-amber-500', border: 'border-amber-200 dark:border-amber-800', dot: 'bg-amber-500' },
-                { num: '05', title: 'Thực thi (Rescue Teams)', desc: 'Đội cứu hộ nhận lệnh qua Web UI, tiếp cận theo tuyến an toàn đã tính sẵn.', color: 'text-emerald-500', border: 'border-emerald-200 dark:border-emerald-800', dot: 'bg-emerald-500' },
+                { num: t('landing.ecoStep1Num'), title: t('landing.ecoStep1Title'), desc: t('landing.ecoStep1Desc'), color: 'text-sky-500', border: 'border-sky-200 dark:border-sky-800', dot: 'bg-sky-500' },
+                { num: t('landing.ecoStep2Num'), title: t('landing.ecoStep2Title'), desc: t('landing.ecoStep2Desc'), color: 'text-indigo-500', border: 'border-indigo-200 dark:border-indigo-800', dot: 'bg-indigo-500' },
+                { num: t('landing.ecoStep3Num'), title: t('landing.ecoStep3Title'), desc: t('landing.ecoStep3Desc'), color: 'text-red-500', border: 'border-red-200 dark:border-red-800', dot: 'bg-red-500' },
+                { num: t('landing.ecoStep4Num'), title: t('landing.ecoStep4Title'), desc: t('landing.ecoStep4Desc'), color: 'text-amber-500', border: 'border-amber-200 dark:border-amber-800', dot: 'bg-amber-500' },
+                { num: t('landing.ecoStep5Num'), title: t('landing.ecoStep5Title'), desc: t('landing.ecoStep5Desc'), color: 'text-emerald-500', border: 'border-emerald-200 dark:border-emerald-800', dot: 'bg-emerald-500' },
               ].map((step) => (
                 <div key={step.num} className={`flex gap-4 p-5 rounded-3xl border ${step.border} bg-card shadow-sm hover:shadow-md transition-all`}>
                   <div className={`w-6 h-6 rounded-full ${step.dot} text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5`}>
@@ -546,31 +543,31 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-5">
-              Tầm nhìn
+              {t('landing.aseanBadge')}
             </div>
-            <h2 className="text-3xl md:text-5xl font-black mb-4">Tác động Xã hội &amp; Khả năng Mở rộng toàn ASEAN</h2>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">{t('landing.aseanTitle')}</h2>
             <p className="text-lg text-muted-foreground">
-              Thí điểm tại Đà Nẵng — thiết kế sẵn sàng triển khai cho toàn khu vực
+              {t('landing.aseanSubtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {([
               {
                 Icon: Heart,
-                title: 'Bảo vệ Người Yếu thế',
-                desc: 'Thuật toán đạo đức đảm bảo phản ứng công bằng, ưu tiên cứu hộ sinh mạng dễ bị tổn thương nhất (người già, trẻ em).',
+                title: t('landing.aseanCard1Title'),
+                desc: t('landing.aseanCard1Desc'),
                 iconColor: 'bg-emerald-500/10 text-emerald-600',
               },
               {
                 Icon: Settings2,
-                title: 'Sẵn sàng Nhân bản',
-                desc: 'Thiết kế linh hoạt — tọa độ và ngưỡng cảnh báo cấu hình được. Hỗ trợ tiêu chuẩn mở: OpenWeatherMap, GeoJSON.',
+                title: t('landing.aseanCard2Title'),
+                desc: t('landing.aseanCard2Desc'),
                 iconColor: 'bg-blue-500/10 text-blue-600',
               },
               {
                 Icon: Languages,
-                title: 'Đa ngôn ngữ',
-                desc: 'Hỗ trợ Tiếng Việt & Tiếng Anh. Sẵn sàng tích hợp ngôn ngữ khu vực Đông Nam Á (Thai, Bahasa, Tagalog).',
+                title: t('landing.aseanCard3Title'),
+                desc: t('landing.aseanCard3Desc'),
                 iconColor: 'bg-indigo-500/10 text-indigo-600',
               },
             ] as { Icon: FC<LucideProps>; title: string; desc: string; iconColor: string }[]).map((card, i) => (
@@ -590,7 +587,7 @@ export default function LandingPage() {
       <section className="py-16 border-y border-border overflow-hidden">
         <div className="container px-4 md:px-6 mx-auto">
           <p className="text-center text-sm font-bold text-muted-foreground uppercase tracking-widest mb-10">
-            Được tin dùng bởi các đơn vị
+            {t('landing.trustedBy')}
           </p>
           <div className="flex items-center justify-center gap-12 md:gap-16 flex-wrap opacity-50">
             {['UBND TP. Đà Nẵng', 'Sở TN&MT', 'PCTT Miền Trung', 'ĐH Bách Khoa', 'VNPT IoT'].map((name) => (
@@ -647,27 +644,27 @@ export default function LandingPage() {
               SYSTEM STATUS<br /><span className="text-emerald-400 font-bold">[ONLINE]</span><br />DATA FLOW: OPTIMAL
             </div>
             <h2 className="text-4xl md:text-6xl font-black mb-4 relative z-10 leading-tight">
-              Tư duy bằng Dữ liệu.<br />
-              <span className="text-primary">Hành động bằng Trái tim.</span>
+              {t('landing.ctaTitle1')}<br />
+              <span className="text-primary">{t('landing.ctaTitle2')}</span>
             </h2>
             <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto font-medium relative z-10">
-              Khai phóng sức mạnh AI để không một ai bị bỏ lại phía sau trong dòng nước lũ.
+              {t('landing.ctaSubtitle')}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
               <Link href="/register" className="w-full sm:w-auto">
                 <Button size="lg" className="w-full h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-lg shadow-xl">
-                  Bắt đầu ngay
+                  {t('landing.ctaPrimary')}
                   <ArrowRight size={20} className="ml-2" />
                 </Button>
               </Link>
               <Link href="/dashboard" className="w-full sm:w-auto">
                 <Button variant="ghost" size="lg" className="w-full h-14 px-10 rounded-2xl border border-white/20 text-white font-bold text-lg hover:bg-white/10">
-                  Xem Dashboard
+                  {t('landing.ctaSecondary')}
                 </Button>
               </Link>
             </div>
             <p className="text-xs text-slate-600 mt-8 font-mono relative z-10">
-              AegisFlow AI. Nền tảng Sẵn sàng cho Tương lai ASEAN.
+              {t('landing.ctaFooter')}
             </p>
           </div>
         </div>
