@@ -41,7 +41,7 @@ export default function CitizenSOSPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = React.useState<{ display: string; lat: number; lng: number }[]>([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(null);
   
   const [form, setForm] = React.useState({
     title: '',

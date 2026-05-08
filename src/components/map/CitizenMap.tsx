@@ -554,14 +554,14 @@ export default function CitizenMap() {
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-muted rounded shrink-0"><X size={14} /></button>
           </div>
 
-          {selected.props.address && (
+          {!!selected.props.address && (
             <div className="px-4 pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <MapPin size={12} className="shrink-0" />
               <span>{String(selected.props.address)}</span>
             </div>
           )}
 
-          {selected.props.description && (
+          {!!selected.props.description && (
             <div className="px-4 pt-2">
               <p className="text-xs text-muted-foreground leading-relaxed">{String(selected.props.description)}</p>
             </div>
@@ -621,14 +621,14 @@ export default function CitizenMap() {
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-muted rounded shrink-0"><X size={14} /></button>
           </div>
 
-          {selected.props.address && (
+          {!!selected.props.address && (
             <div className="px-4 pt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <MapPin size={12} className="shrink-0" />
               <span>{String(selected.props.address)}</span>
             </div>
           )}
 
-          {selected.props.description && (
+          {!!selected.props.description && (
             <div className="px-4 pt-2">
               <p className="text-xs text-muted-foreground leading-relaxed">{String(selected.props.description)}</p>
             </div>
@@ -646,7 +646,7 @@ export default function CitizenMap() {
             </div>
           ) : null; })()}
 
-          {selected.props.reporter && (
+          {!!selected.props.reporter && (
             <div className="px-4 pt-2 text-[11px] text-muted-foreground">
               Báo cáo bởi: <span className="font-medium text-foreground">{String((selected.props.reporter as any)?.name ?? '—')}</span>
             </div>
@@ -689,7 +689,7 @@ export default function CitizenMap() {
               <p className="text-sm font-bold text-green-600">{String(selected.props.available_beds ?? '—')}</p>
               <p className="text-[10px] text-muted-foreground">{t('available')}</p>
             </div>
-            {selected.props.is_flood_safe && (
+            {!!selected.props.is_flood_safe && (
               <span className="self-center text-[10px] text-green-600 border border-green-300 rounded-full px-2 py-0.5">{t('floodSafe')}</span>
             )}
           </div>
