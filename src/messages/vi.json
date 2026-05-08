@@ -962,7 +962,22 @@
     "rememberedPassword": "Nhớ mật khẩu rồi?",
     "newPassword": "Mật khẩu mới",
     "confirmPassword": "Xác nhận mật khẩu",
-    "security": "Dữ liệu được mã hóa AES-256 · Tiêu chuẩn ISO 27001"
+    "security": "Dữ liệu được mã hóa AES-256 · Tiêu chuẩn ISO 27001",
+    "loginSuccess": "Đăng nhập thành công!",
+    "loginError": "Đăng nhập thất bại. Vui lòng kiểm tra lại.",
+    "loginValidationError": "Vui lòng kiểm tra lại",
+    "signupSuccess": "Đăng ký thành công! Chuyển hướng...",
+    "signupError": "Đăng ký thất bại. Vui lòng thử lại.",
+    "signupValidationError": "Vui lòng kiểm tra lại các trường",
+    "creating": "Đang tạo...",
+    "homePage": "Trang chủ",
+    "layoutTitle": "Bảo vệ cộng đồng",
+    "layoutTitleAccent": "với Trí tuệ Nhân tạo",
+    "layoutDesc": "Hệ thống dự báo lũ lụt và điều phối cứu hộ thời gian thực cho Đà Nẵng và các đô thị ASEAN.",
+    "layoutFeat1": "Cảnh báo lũ sớm theo thời gian thực",
+    "layoutFeat2": "Điều phối cứu hộ thông minh bằng AI",
+    "layoutFeat3": "Tuyến sơ tán tối ưu trên bản đồ",
+    "layoutFeat4": "Human-in-the-loop, minh bạch & an toàn"
   },
   "howItWorks": {
     "title": "Hoạt động như thế nào?",

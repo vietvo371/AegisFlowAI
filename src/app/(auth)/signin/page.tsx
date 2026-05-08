@@ -8,8 +8,7 @@ import { signInSchema, type SignInInput } from '@/lib/validations/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ROLE_ROUTES: Record<string, string> = {
@@ -58,7 +57,7 @@ export default function SignInPage() {
         document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
 
         const role: string = userData?.role ?? 'citizen';
-        toast.success('Đăng nhập thành công!');
+        toast.success(t('loginSuccess'));
 
         await new Promise(r => setTimeout(r, 100));
         window.location.replace(ROLE_ROUTES[role] ?? '/dashboard');
@@ -71,11 +70,11 @@ export default function SignInPage() {
           if (fieldName) fieldErrors[fieldName] = err.message;
         });
         setErrors(fieldErrors);
-        toast.error('Vui lòng kiểm tra lại');
+        toast.error(t('loginValidationError'));
       } else if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
-        // Ignore abort errors
+        // Ignore
       } else {
-        toast.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
+        toast.error(error.response?.data?.message || t('loginError'));
       }
     } finally {
       setIsLoading(false);
@@ -83,27 +82,34 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Decorative Icon */}
+      <div className="flex justify-center">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-primary/20 to-indigo-500/20 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
+          <ShieldCheck size={28} className="text-primary" />
+        </div>
+      </div>
+
       {/* Heading */}
-      <div className="space-y-1.5">
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{t('welcomeBack')}</h2>
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-black tracking-tight">{t('welcomeBack')}</h2>
         <p className="text-sm text-muted-foreground">{t('signInDesc')}</p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email Field */}
-        <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Email */}
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
             {t('email')}
           </Label>
           <div className="relative">
-            <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
             <Input
               id="email" name="email" type="email"
               placeholder={t('emailPlaceholder')}
-              className={`h-11 rounded-xl bg-muted/30 pl-9 ${
-                errors.email ? 'border-red-500 focus:border-red-500' : ''
+              className={`h-12 rounded-2xl bg-muted/40 pl-10 border-border/50 focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all ${
+                errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''
               }`}
               autoComplete="email"
               required
@@ -113,30 +119,23 @@ export default function SignInPage() {
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
-              <span>⚠</span> {errors.email}
-            </p>
+            <p className="text-xs text-red-500 pl-1">{errors.email}</p>
           )}
         </div>
 
-        {/* Password Field */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t('password')}
-            </Label>
-            <Link href="/reset-password" className="text-xs font-bold text-primary hover:underline underline-offset-4">
-              {t('forgotPassword')}
-            </Link>
-          </div>
+        {/* Password */}
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
+            {t('password')}
+          </Label>
           <div className="relative">
-            <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
             <Input
               id="password" name="password"
               type={showPassword ? 'text' : 'password'}
               placeholder={t('passwordPlaceholder')}
-              className={`h-11 rounded-xl bg-muted/30 pl-9 pr-10 ${
-                errors.password ? 'border-red-500 focus:border-red-500' : ''
+              className={`h-12 rounded-2xl bg-muted/40 pl-10 pr-11 border-border/50 focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all ${
+                errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''
               }`}
               autoComplete="current-password"
               required
@@ -147,58 +146,48 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
               disabled={isLoading}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           {errors.password && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
-              <span>⚠</span> {errors.password}
-            </p>
+            <p className="text-xs text-red-500 pl-1">{errors.password}</p>
           )}
         </div>
 
+        {/* Remember + Forgot */}
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20" />
+            <span className="text-xs text-muted-foreground font-medium">{t('rememberMe')}</span>
+          </label>
+          <Link href="/reset-password" className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors">
+            {t('forgotPassword')}
+          </Link>
+        </div>
+
+        {/* Submit */}
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full h-11 font-bold rounded-xl shadow-lg shadow-primary/20"
+          className="w-full h-12 font-bold rounded-2xl text-base shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
         >
           {isLoading
-            ? <><Loader2 size={16} className="animate-spin mr-2" />{t('signingIn')}</>
+            ? <><Loader2 size={18} className="animate-spin mr-2" />{t('signingIn')}</>
             : t('signIn')
           }
         </Button>
       </form>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-background px-3 text-[11px] font-medium text-muted-foreground">
-            Chưa có tài khoản?
-          </span>
-        </div>
-      </div>
-
-      <Link href="/signup" className="w-full">
-        <Button variant="outline" className="w-full h-11 rounded-xl font-bold">
+      {/* Signup link */}
+      <p className="text-center text-sm text-muted-foreground">
+        {t('noAccount')}{' '}
+        <Link href="/signup" className="font-bold text-primary hover:text-primary/80 transition-colors">
           {t('signUpFree')}
-        </Button>
-      </Link>
-
-      {/* Trust */}
-      <div className="flex items-center justify-center gap-3 pt-2">
-        {['AES-256 SSL', 'ISO 27001', 'GDPR'].map((badge, i) => (
-          <React.Fragment key={badge}>
-            {i > 0 && <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />}
-            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{badge}</span>
-          </React.Fragment>
-        ))}
-      </div>
+        </Link>
+      </p>
     </div>
   );
 }
