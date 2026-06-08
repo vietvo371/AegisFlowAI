@@ -6,7 +6,7 @@ const protectedPaths = ['/dashboard'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('aegisflow_token')?.value;
+  const token = request.cookies.get('aegisflow_token_dashboard')?.value;
 
   const isProtected = protectedPaths.some(p => pathname.startsWith(p));
 

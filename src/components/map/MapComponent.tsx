@@ -7,6 +7,7 @@ import maplibregl from '@openmapvn/openmapvn-gl';
 import '@openmapvn/openmapvn-gl/dist/maplibre-gl.css';
 import api from '@/lib/api';
 import { decodePolyline, type EvacuationRoute } from '@/lib/openmap';
+import { useFeatureStateAnimation } from '@/hooks/useFeatureStateAnimation';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 import { Layers, RefreshCw, MapPin, Waves, Droplets, Radio, AlertTriangle, Home, Users, X } from 'lucide-react';
@@ -27,6 +28,8 @@ interface GeoJsonFeature {
     coordinates: number[] | number[][] | number[][][];
   };
 }
+
+type LngLatPair = [number, number];
 
 type LayerKey =
   | 'flood_streets' | 'flood_points'
@@ -52,6 +55,19 @@ interface LayerGroup {
 interface Props {
   evacuationRoute?: EvacuationRoute | null;
   focusTeam?: { id: number; name: string; latitude?: number; longitude?: number } | null;
+  focusPoint?: {
+    id?: number;
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    type?: 'incident' | 'team' | 'shelter' | 'flood_zone' | 'rescue_request';
+    subtitle?: string;
+    status?: string;
+    riskLevel?: string;
+    waterLevel?: string;
+    capacity?: string;
+    severity?: string;
+  } | null;
   floodZones?: GeoJsonFeatureCollection | null;
   shelters?: any[];
   center?: [number, number];
@@ -82,6 +98,13 @@ const LAYER_MAP: Record<LayerKey, string[]> = {
 };
 
 const OPENMAP_STYLE = `https://tiles.openmap.vn/styles/day-v1/style.json?apikey=${process.env.NEXT_PUBLIC_OPENMAP_API_KEY}`;
+
+type MapStyleJson = {
+  terrain?: unknown;
+  sources?: Record<string, { type?: string }>;
+  layers?: Array<{ type?: string; source?: string }>;
+  [key: string]: unknown;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,9 +137,105 @@ function formatTime(iso: string | null | undefined): string {
   } catch { return iso; }
 }
 
+function collectLngLatPairs(input: unknown): LngLatPair[] {
+  if (!Array.isArray(input)) return [];
+
+  if (
+    input.length >= 2
+    && typeof input[0] === 'number'
+    && typeof input[1] === 'number'
+    && Number.isFinite(input[0])
+    && Number.isFinite(input[1])
+  ) {
+    return [[input[0], input[1]]];
+  }
+
+  return input.flatMap(collectLngLatPairs);
+}
+
+function getFeatureBounds(feature: GeoJsonFeature): maplibregl.LngLatBounds | null {
+  const pairs = collectLngLatPairs(feature.geometry?.coordinates);
+  if (!pairs.length) return null;
+
+  const bounds = new maplibregl.LngLatBounds(pairs[0], pairs[0]);
+  pairs.slice(1).forEach(pair => bounds.extend(pair));
+  return bounds;
+}
+
+function findFloodZoneFeature(
+  collection: GeoJsonFeatureCollection | undefined,
+  focusPoint: Props['focusPoint'],
+): GeoJsonFeature | null {
+  if (!collection?.features?.length || !focusPoint) return null;
+
+  const targetId = focusPoint.id == null ? null : String(focusPoint.id);
+  const targetName = focusPoint.name?.trim().toLowerCase();
+
+  return collection.features.find(feature => {
+    const featureId = feature.id ?? feature.properties?.id;
+    const featureName = String(feature.properties?.name ?? '').trim().toLowerCase();
+
+    return (
+      (targetId != null && String(featureId) === targetId)
+      || (!!targetName && featureName === targetName)
+    );
+  }) ?? null;
+}
+
+function createFallbackFloodZoneFrame(focusPoint: NonNullable<Props['focusPoint']>, lng: number, lat: number): GeoJsonFeature {
+  const latDelta = 0.012;
+  const lngDelta = latDelta / Math.max(Math.cos(lat * Math.PI / 180), 0.35);
+  const ring: LngLatPair[] = [
+    [lng - lngDelta, lat - latDelta],
+    [lng + lngDelta, lat - latDelta],
+    [lng + lngDelta, lat + latDelta],
+    [lng - lngDelta, lat + latDelta],
+    [lng - lngDelta, lat - latDelta],
+  ];
+
+  return {
+    type: 'Feature',
+    id: focusPoint.id,
+    properties: {
+      id: focusPoint.id,
+      name: focusPoint.name,
+      risk_level: focusPoint.riskLevel,
+      status: focusPoint.status,
+      color: '#DC2626',
+    },
+    geometry: { type: 'Polygon', coordinates: [ring] },
+  };
+}
+
+async function loadOpenMapStyle(): Promise<string | MapStyleJson> {
+  try {
+    const response = await fetch(OPENMAP_STYLE);
+    if (!response.ok) return OPENMAP_STYLE;
+
+    const style = await response.json() as MapStyleJson;
+    delete style.terrain;
+
+    const removedSources = new Set<string>();
+    for (const [sourceId, source] of Object.entries(style.sources ?? {})) {
+      if (source.type === 'raster-dem') {
+        removedSources.add(sourceId);
+        delete style.sources?.[sourceId];
+      }
+    }
+
+    style.layers = (style.layers ?? []).filter((layer) => (
+      layer.type !== 'hillshade' && (!layer.source || !removedSources.has(layer.source))
+    ));
+
+    return style;
+  } catch {
+    return OPENMAP_STYLE;
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function MapComponent({ evacuationRoute, focusTeam, floodZones, shelters, center, zoom }: Props) {
+export default function MapComponent({ evacuationRoute, focusTeam, focusPoint, floodZones, shelters, center, zoom }: Props) {
   const t = useTranslations('dashboard');
   const tMap = useTranslations('dashboard.mapLayers');
   const tPopup = useTranslations('dashboard.mapPopup');
@@ -125,6 +244,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const focusTeamMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // ── Layer configs with i18n labels ───────────────────────────────────────
   const layerGroups = [
@@ -152,7 +272,32 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
   );
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  // ── Feature animation hook ────────────────────────────────────────────────
+  const { highlightFeature } = useFeatureStateAnimation({
+    map,
+    sourceId: 'flood_reports',
+    animationDuration: 1000,
+  });
+
+  // Listen for real-time flood telemetry updates from simulator
+  useEffect(() => {
+    const handleFloodTelemetry = (event: CustomEvent) => {
+      const { feature_id, zone_id, water_level, severity } = event.detail || {};
+      const id = feature_id || zone_id;
+      if (id) {
+        highlightFeature(id, { water_level, severity });
+      }
+    };
+
+    window.addEventListener('aegis:flood_telemetry', handleFloodTelemetry as EventListener);
+    return () => {
+      window.removeEventListener('aegis:flood_telemetry', handleFloodTelemetry as EventListener);
+    };
+  }, [highlightFeature]);
 
   // ── Data refs (avoid re-render on fetch) ──────────────────────────────────
   const dataRef = useRef<Record<string, GeoJsonFeatureCollection>>({});
@@ -161,27 +306,67 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: OPENMAP_STYLE,
-      center: center ?? DA_NANG_CENTER,
-      zoom: zoom ?? DEFAULT_ZOOM,
-      attributionControl: false,
-    });
+    let cancelled = false;
+    let ro: ResizeObserver | null = null;
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
-    map.current.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+    const handleMissingStyleImage = (event: { id?: string }) => {
+      const m = map.current;
+      const id = event.id;
+      if (!m || !id || m.hasImage(id)) return;
 
-    // mapReady sẽ được set sau khi icons load xong trong useEffect tiếp theo
+      const canvas = document.createElement('canvas');
+      canvas.width = 24;
+      canvas.height = 24;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // Resize map when container size changes (e.g. sidebar toggle)
-    const ro = new ResizeObserver(() => map.current?.resize());
-    ro.observe(mapContainer.current);
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.roundRect(4, 7, 16, 10, 3);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(8, 12);
+      ctx.lineTo(16, 12);
+      ctx.stroke();
+
+      m.addImage(id, ctx.getImageData(0, 0, canvas.width, canvas.height));
+    };
+
+    const initMap = async () => {
+      const style = await loadOpenMapStyle();
+      if (cancelled || !mapContainer.current || map.current) return;
+
+      map.current = new maplibregl.Map({
+        container: mapContainer.current,
+        style: style as any,
+        center: center ?? DA_NANG_CENTER,
+        zoom: zoom ?? DEFAULT_ZOOM,
+        attributionControl: false,
+      });
+
+      map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+      map.current.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+      map.current.on('styleimagemissing', handleMissingStyleImage);
+
+      // mapReady sẽ được set sau khi icons load xong trong useEffect tiếp theo
+
+      // Resize map when container size changes (e.g. sidebar toggle)
+      ro = new ResizeObserver(() => map.current?.resize());
+      ro.observe(mapContainer.current);
+      setMapInitialized(true);
+    };
+
+    void initMap();
 
     return () => {
-      ro.disconnect();
+      cancelled = true;
+      ro?.disconnect();
+      map.current?.off('styleimagemissing', handleMissingStyleImage);
       map.current?.remove();
       map.current = null;
+      setMapInitialized(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -189,7 +374,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
   // ── Load SVG icons vào map — chờ load xong rồi mới set mapReady ─────────────
   useEffect(() => {
     const m = map.current;
-    if (!m) return;
+    if (!m || !mapInitialized) return;
 
     const onMapLoad = async () => {
       const icons: Array<{ id: string; svg: string }> = [
@@ -268,13 +453,24 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
       await Promise.all(
         icons.map(({ id, svg }) => {
           return new Promise<void>((resolve) => {
-            if (m.hasImage(id)) {
+            if (!map.current || map.current !== m) return resolve();
+            try {
+              if (m.hasImage(id)) {
+                resolve();
+                return;
+              }
+            } catch {
               resolve();
               return;
             }
             const img = new Image(30, 34);
             img.onload = () => {
-              if (!m.hasImage(id)) m.addImage(id, img);
+              if (!map.current || map.current !== m) return resolve();
+              try {
+                if (!m.hasImage(id)) m.addImage(id, img);
+              } catch {
+                // Map can be removed while icons are still loading during route changes.
+              }
               resolve();
             };
             img.onerror = () => resolve(); // Nếu lỗi thì vẫn resolve để không block
@@ -292,7 +488,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
     return () => {
       m.off('load', onMapLoad);
     };
-  }, []);
+  }, [mapInitialized]);
   const fetchData = useCallback(async () => {
     if (!mapReady) return;
     setLoading(true);
@@ -322,6 +518,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
         shelters:        extract(fetchedShelters),
         rescue_teams:    extract(rescueTeams),
       };
+      setDataVersion(v => v + 1);
 
       renderLayers();
     } finally {
@@ -352,8 +549,21 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
         },
         paint: {
           'line-color': ['coalesce', ['get', 'color'], '#3B82F6'],
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 4],
-          'line-opacity': 0.85,
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10,
+            ['case', ['boolean', ['feature-state', 'updated'], false], 6, 2],
+            15,
+            ['case', ['boolean', ['feature-state', 'updated'], false], 6, 4],
+          ],
+          'line-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            1.0,
+            0.85,
+          ],
         },
       } as AnyData);
     }
@@ -366,11 +576,39 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
         source: 'flood_reports',
         filter: ['==', ['geometry-type'], 'Point'],
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 15, 12],
-          'circle-color': ['coalesce', ['get', 'color'], '#3B82F6'],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 1,
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10,
+            ['case', ['boolean', ['feature-state', 'updated'], false], 14, 6],
+            15,
+            ['case', ['boolean', ['feature-state', 'updated'], false], 14, 12],
+          ],
+          'circle-color': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            '#F97316', // orange khi animate
+            ['coalesce', ['get', 'color'], '#3B82F6'],
+          ],
+          'circle-stroke-width': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            4,
+            2,
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            '#FCD34D',
+            '#fff',
+          ],
+          'circle-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            1.0,
+            1,
+          ],
         },
       } as AnyData);
     }
@@ -433,7 +671,12 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
             'medium',   '#EAB308',
             '#3B82F6',
           ],
-          'fill-opacity': 0.12,
+          'fill-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            0.35,
+            0.12,
+          ],
         },
       });
     }
@@ -444,9 +687,50 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
         source: 'flood_zones',
         paint: {
           'line-color': ['match', ['get', 'risk_level'], 'critical', '#EF4444', 'high', '#F97316', '#3B82F6'],
-          'line-width': 2,
-          'line-opacity': 0.8,
+          'line-width': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            4,
+            2,
+          ],
+          'line-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            1.0,
+            0.8,
+          ],
           'line-dasharray': [3, 2],
+        },
+      });
+    }
+
+    // Vùng ngập đang được focus từ panel/list: vẽ riêng để luôn thấy rõ khung khu vực.
+    if (!m.getSource('selected_flood_zone')) {
+      m.addSource('selected_flood_zone', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      } as AnyData);
+    }
+    if (!m.getLayer('layer-selected-flood-zone-fill')) {
+      m.addLayer({
+        id: 'layer-selected-flood-zone-fill',
+        type: 'fill',
+        source: 'selected_flood_zone',
+        paint: {
+          'fill-color': ['coalesce', ['get', 'color'], '#EF4444'],
+          'fill-opacity': 0.22,
+        },
+      });
+    }
+    if (!m.getLayer('layer-selected-flood-zone-outline')) {
+      m.addLayer({
+        id: 'layer-selected-flood-zone-outline',
+        type: 'line',
+        source: 'selected_flood_zone',
+        paint: {
+          'line-color': ['coalesce', ['get', 'color'], '#DC2626'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3, 15, 6],
+          'line-opacity': 1,
         },
       });
     }
@@ -541,7 +825,13 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
   // ── Focus on team ─────────────────────────────────────────────────────────
   useEffect(() => {
     const m = map.current;
-    if (!m || !mapReady || !focusTeam) return;
+    if (!m || !mapReady) return;
+
+    if (!focusTeam) {
+      focusTeamMarkerRef.current?.remove();
+      focusTeamMarkerRef.current = null;
+      return;
+    }
 
     // Ensure rescue_teams layer is visible
     setActiveLayers(prev => {
@@ -551,25 +841,34 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
     });
 
     // Fly to team location if coordinates available
-    if (focusTeam.latitude && focusTeam.longitude) {
+    const lat = Number(focusTeam.latitude);
+    const lng = Number(focusTeam.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
       m.flyTo({
-        center: [focusTeam.longitude, focusTeam.latitude],
+        center: [lng, lat],
         zoom: 15,
         duration: 1000,
       });
 
-      // Open popup for the team marker
-      const features = m.querySourceFeatures('rescue_teams', {
-        filter: ['==', ['get', 'id'], focusTeam.id],
-      });
-      if (features.length > 0) {
-        const feature = features[0];
-        const geom = feature.geometry as { coordinates: number[] };
-        if (geom.coordinates) {
-          popupRef.current?.remove();
-          popupRef.current = new maplibregl.Popup({ offset: 15, closeButton: true, maxWidth: '300px' })
-            .setLngLat([geom.coordinates[0], geom.coordinates[1]])
-            .setHTML(`
+      const markerEl = document.createElement('div');
+      markerEl.style.cssText = `
+        width:36px;height:36px;border-radius:50%;
+        background:#EA580C;border:3px solid white;
+        box-shadow:0 4px 14px rgba(0,0,0,.28);
+        display:flex;align-items:center;justify-content:center;
+        font-size:17px;
+      `;
+      markerEl.textContent = '🚒';
+
+      focusTeamMarkerRef.current?.remove();
+      focusTeamMarkerRef.current = new maplibregl.Marker({ element: markerEl, anchor: 'center' })
+        .setLngLat([lng, lat])
+        .addTo(m);
+
+      popupRef.current?.remove();
+      popupRef.current = new maplibregl.Popup({ offset: 22, closeButton: true, maxWidth: '300px' })
+        .setLngLat([lng, lat])
+        .setHTML(`
 <div style="font-family:system-ui,sans-serif;min-width:220px">
   <div style="font-size:10px;font-weight:700;color:#EA580C;letter-spacing:.08em;margin-bottom:4px">🚒 ĐỘI CỨU HỘ</div>
   <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:12px">${focusTeam.name}</div>
@@ -577,11 +876,151 @@ export default function MapComponent({ evacuationRoute, focusTeam, floodZones, s
     <span style="color:#6B7280;font-size:12px">📍 Đã di chuyển đến vị trí đội</span>
   </div>
 </div>`)
-            .addTo(m);
-        }
-      }
+        .addTo(m);
     }
   }, [focusTeam, mapReady]);
+
+  // ── Focus on a generic point from dashboard deep links ───────────────────
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady) return;
+
+    const clearSelectedFloodZone = () => {
+      const empty: GeoJsonFeatureCollection = { type: 'FeatureCollection', features: [] };
+      upsertSource(m, 'selected_flood_zone', empty);
+    };
+
+    if (!focusPoint) {
+      clearSelectedFloodZone();
+      return;
+    }
+
+    const lat = Number(focusPoint.latitude);
+    const lng = Number(focusPoint.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    if (focusPoint.type === 'incident') {
+      clearSelectedFloodZone();
+      setActiveLayers(prev => {
+        const next = new Set(prev);
+        next.add('incidents');
+        next.add('flood_points');
+        return next;
+      });
+    } else if (focusPoint.type === 'flood_zone') {
+      setActiveLayers(prev => {
+        const next = new Set(prev);
+        next.add('flood_zones');
+        return next;
+      });
+    } else {
+      clearSelectedFloodZone();
+    }
+
+    if (focusPoint.type === 'flood_zone') {
+      const matchedFeature = findFloodZoneFeature(dataRef.current.flood_zones, focusPoint);
+      const zoneFeature = matchedFeature && getFeatureBounds(matchedFeature)
+        ? matchedFeature
+        : createFallbackFloodZoneFrame(focusPoint, lng, lat);
+
+      upsertSource(m, 'selected_flood_zone', {
+        type: 'FeatureCollection',
+        features: [zoneFeature],
+      });
+
+      const bounds = getFeatureBounds(zoneFeature);
+      if (bounds) {
+        m.fitBounds(bounds, {
+          padding: { top: 92, right: 92, bottom: 92, left: 92 },
+          maxZoom: 15,
+          duration: 1000,
+        });
+      } else {
+        m.flyTo({ center: [lng, lat], zoom: 15, duration: 1000 });
+      }
+    } else {
+      m.flyTo({
+        center: [lng, lat],
+        zoom: 15,
+        duration: 1000,
+      });
+    }
+
+    const label = focusPoint.type === 'incident'
+      ? '⚠️ SỰ CỐ'
+      : focusPoint.type === 'shelter'
+        ? '🏠 ĐIỂM SƠ TÁN'
+        : focusPoint.type === 'flood_zone'
+          ? '🌊 VÙNG NGẬP'
+          : focusPoint.type === 'rescue_request'
+            ? '🆘 YÊU CẦU CỨU HỘ'
+            : '📍 VỊ TRÍ';
+
+    const detailRows = focusPoint.type === 'flood_zone'
+      ? `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+    <div style="background:#F9FAFB;border-radius:8px;padding:9px;border:1px solid #E5E7EB">
+      <div style="color:#6B7280;font-size:10px;font-weight:700;text-transform:uppercase">Mực nước</div>
+      <div style="font-size:14px;font-weight:800;color:#111827">${focusPoint.waterLevel || '—'}</div>
+    </div>
+    <div style="background:#F9FAFB;border-radius:8px;padding:9px;border:1px solid #E5E7EB">
+      <div style="color:#6B7280;font-size:10px;font-weight:700;text-transform:uppercase">Rủi ro</div>
+      <div style="font-size:14px;font-weight:800;color:#DC2626">${focusPoint.riskLevel || '—'}</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;color:#6B7280;font-size:12px">Trạng thái: <b style="color:#111827">${focusPoint.status || 'Theo dõi'}</b></div>`
+      : focusPoint.type === 'shelter'
+        ? `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+    <div style="background:#F9FAFB;border-radius:8px;padding:9px;border:1px solid #E5E7EB">
+      <div style="color:#6B7280;font-size:10px;font-weight:700;text-transform:uppercase">Sức chứa</div>
+      <div style="font-size:14px;font-weight:800;color:#111827">${focusPoint.capacity || '—'}</div>
+    </div>
+    <div style="background:#F9FAFB;border-radius:8px;padding:9px;border:1px solid #E5E7EB">
+      <div style="color:#6B7280;font-size:10px;font-weight:700;text-transform:uppercase">Trạng thái</div>
+      <div style="font-size:14px;font-weight:800;color:#16A34A">${focusPoint.status || '—'}</div>
+    </div>
+  </div>`
+        : focusPoint.type === 'rescue_request'
+          ? `
+  <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;margin-top:10px">
+    <span style="color:#6B7280;font-size:12px">Trạng thái: <b style="color:#111827">${focusPoint.status || '—'}</b></span>
+  </div>`
+        : focusPoint.type === 'incident'
+          ? `
+  <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;margin-top:10px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr>
+        <td style="color:#6B7280;padding:4px 0;width:42%">Mức độ</td>
+        <td style="text-align:right;padding:4px 0"><b style="color:#DC2626">${focusPoint.severity || '—'}</b></td>
+      </tr>
+      <tr style="border-top:1px solid #E5E7EB">
+        <td style="color:#6B7280;padding:4px 0">Trạng thái</td>
+        <td style="text-align:right;padding:4px 0"><b style="color:#111827">${focusPoint.status || '—'}</b></td>
+      </tr>
+      <tr style="border-top:1px solid #E5E7EB">
+        <td style="color:#6B7280;padding:4px 0;vertical-align:top">Địa điểm</td>
+        <td style="text-align:right;color:#374151;padding:4px 0;word-break:break-word">${focusPoint.subtitle || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}</td>
+      </tr>
+    </table>
+  </div>`
+      : `
+  <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;text-align:center">
+    <span style="color:#6B7280;font-size:12px">📍 Vị trí đang được chọn trên OpenMap</span>
+  </div>`;
+
+    popupRef.current?.remove();
+    popupRef.current = new maplibregl.Popup({ offset: 15, closeButton: true, maxWidth: '320px' })
+      .setLngLat([lng, lat])
+      .setHTML(`
+<div style="font-family:system-ui,sans-serif;min-width:220px">
+  <div style="font-size:10px;font-weight:700;color:#DC2626;letter-spacing:.08em;margin-bottom:4px">${label}</div>
+  <div style="font-size:15px;font-weight:700;color:#111827">${focusPoint.name}</div>
+  ${focusPoint.subtitle ? `<div style="color:#6B7280;font-size:12px;margin-top:2px">${focusPoint.subtitle}</div>` : ''}
+  ${detailRows}
+</div>`)
+      .addTo(m);
+  }, [focusPoint, mapReady, dataVersion]);
 
   // ── Popup handlers — attach ONCE after map ready ──────────────────────────
   useEffect(() => {

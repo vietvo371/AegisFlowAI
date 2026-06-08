@@ -1,7 +1,16 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import api from '@/lib/api';
+import {
+  clearPortalToken,
+  getPortalForPath,
+  getPortalForRole,
+  migrateLegacyToken,
+  PORTAL_SIGNIN_PATH,
+  setPortalToken,
+} from '@/lib/auth-sessions';
 
 /**
  * Interface cho đối tượng Người dùng (User)
@@ -20,11 +29,20 @@ export interface User {
   status: 'active' | 'inactive' | 'suspended';
 }
 
+type RawUser = Partial<User> & {
+  roles?: string[];
+  status?: User['status'];
+};
+
+type ApiError = {
+  name?: string;
+  code?: string;
+};
+
 /**
  * Hàm chuẩn hóa dữ liệu người dùng từ Backend sang định dạng Frontend mong đợi
  */
-const normalizeUser = (data: any): User => {
-  if (!data) return data;
+const normalizeUser = (data: RawUser): User => {
   
   return {
     ...data,
@@ -36,7 +54,7 @@ const normalizeUser = (data: any): User => {
     status: data.status || (data.is_active ? 'active' : 'inactive'),
     // Đảm bảo permissions luôn là mảng
     permissions: data.permissions || [],
-  };
+  } as User;
 };
 
 /**
@@ -46,7 +64,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  register: (data: unknown) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -59,11 +77,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const portal = getPortalForPath(pathname);
 
   // Khởi tạo Auth khi ứng dụng được tải
   useEffect(() => {
     const initAuth = async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('aegisflow_token') : null;
+      setLoading(true);
+      const token = migrateLegacyToken(portal);
       
       if (token) {
         try {
@@ -75,22 +96,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             throw new Error('Không thể tải thông tin người dùng');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Ignore abort errors (user navigated away)
-          if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+          if ((error as ApiError)?.name === 'AbortError' || (error as ApiError)?.code === 'ERR_CANCELED') {
             return;
           }
           console.error('Auth initialization error:', error);
-          localStorage.removeItem('aegisflow_token');
-          document.cookie = 'aegisflow_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          clearPortalToken(portal);
           setUser(null);
         }
+      } else {
+        setUser(null);
       }
       setLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [portal]);
 
   /**
    * Đăng nhập người dùng
@@ -101,9 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
-        localStorage.setItem('aegisflow_token', token);
-        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
-        setUser(normalizeUser(userData));
+        const normalizedUser = normalizeUser(userData);
+        setPortalToken(getPortalForRole(normalizedUser.role), token);
+        if (!portal || getPortalForRole(normalizedUser.role) === portal) {
+          setUser(normalizedUser);
+        }
       }
     } catch (error) {
       // Lỗi đã được xử lý bởi interceptor trong api.ts (hiển thị toast)
@@ -114,15 +138,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Đăng ký người dùng mới
    */
-  const register = async (data: any) => {
+  const register = async (data: unknown) => {
     try {
       const res = await api.post('/auth/register', data);
       
       if (res.data?.success) {
         const { token, user: userData } = res.data.data;
-        localStorage.setItem('aegisflow_token', token);
-        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
-        setUser(normalizeUser(userData));
+        const normalizedUser = normalizeUser(userData);
+        setPortalToken(getPortalForRole(normalizedUser.role), token);
+        if (!portal || getPortalForRole(normalizedUser.role) === portal) {
+          setUser(normalizedUser);
+        }
       }
     } catch (error) {
       throw error;
@@ -136,11 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/auth/logout').catch(() => {});
     } finally {
-      localStorage.removeItem('aegisflow_token');
-      document.cookie = 'aegisflow_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      clearPortalToken(portal);
       setUser(null);
       if (typeof window !== 'undefined') {
-        window.location.href = '/signin';
+        window.location.href = portal ? PORTAL_SIGNIN_PATH[portal] : '/signin';
       }
     }
   };
@@ -155,9 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = res.data.data?.user ?? res.data.data;
         setUser(normalizeUser(userData));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignore abort errors (user navigated away)
-      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+      if ((error as ApiError)?.name === 'AbortError' || (error as ApiError)?.code === 'ERR_CANCELED') {
         return;
       }
       console.error('Refresh user error:', error);

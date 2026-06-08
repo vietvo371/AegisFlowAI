@@ -52,6 +52,11 @@ export function RealtimeListener() {
   const seededRef = useRef(false);
 
   const userRole = user?.role || user?.roles?.[0];
+  const userRoleRef = useRef(userRole);
+
+  useEffect(() => {
+    userRoleRef.current = userRole;
+  }, [userRole]);
 
   // Seed notifications from API when user loads
   useEffect(() => {
@@ -120,7 +125,7 @@ export function RealtimeListener() {
           console.log('[RealtimeListener] 🔔 IncidentCreated received:', data);
         }
 
-        const link = getLinkByRole('incident', data, userRole);
+        const link = getLinkByRole('incident', data, userRoleRef.current);
         addNotification({
           title: `Sự cố mới: ${data.title}`,
           message: data.address || 'Không có địa chỉ',
@@ -160,7 +165,7 @@ export function RealtimeListener() {
           console.log('[RealtimeListener] 🔔 AlertCreated received:', data);
         }
 
-        const link = getLinkByRole('alert', data, userRole);
+        const link = getLinkByRole('alert', data, userRoleRef.current);
         addNotification({
           title: `Cảnh báo: ${data.title}`,
           message: data.description || 'Không có mô tả',
@@ -187,13 +192,29 @@ export function RealtimeListener() {
         }
       });
 
-      // 4. Listen RescueRequestCreated
+      // 4. Listen AlertUpdated
+      channel.listen('.AlertUpdated', (data: any) => {
+        if (isDev) {
+          console.log('[RealtimeListener] 🔔 AlertUpdated:', data);
+        }
+        window.dispatchEvent(new CustomEvent('aegis:alert:updated', { detail: data }));
+      });
+
+      // 5. Listen AlertResolved
+      channel.listen('.AlertResolved', (data: any) => {
+        if (isDev) {
+          console.log('[RealtimeListener] ✅ AlertResolved:', data);
+        }
+        window.dispatchEvent(new CustomEvent('aegis:alert:resolved', { detail: data }));
+      });
+
+      // 6. Listen RescueRequestCreated
       channel.listen('.RescueRequestCreated', (data: any) => {
         if (isDev) {
           console.log('[RealtimeListener] 🔔 RescueRequestCreated:', data);
         }
 
-        const link = getLinkByRole('rescue', data, userRole);
+        const link = getLinkByRole('rescue', data, userRoleRef.current);
         addNotification({
           title: 'Yêu cầu cứu hộ mới',
           message: `${data.address} - Cần ${data.people_count} người`,
@@ -205,7 +226,7 @@ export function RealtimeListener() {
         window.dispatchEvent(new CustomEvent('aegis:rescue_request:created', { detail: data }));
       });
 
-      // 5. Listen RescueRequestUpdated
+      // 7. Listen RescueRequestUpdated
       channel.listen('.RescueRequestUpdated', (data: any) => {
         if (isDev) {
           console.log('[RealtimeListener] 🔔 RescueRequestUpdated:', data);
@@ -213,13 +234,13 @@ export function RealtimeListener() {
         window.dispatchEvent(new CustomEvent('aegis:rescue_request:updated', { detail: data }));
       });
 
-      // 6. Listen PredictionReceived
+      // 8. Listen PredictionReceived
       channel.listen('.PredictionReceived', (data: any) => {
         if (isDev) {
           console.log('[RealtimeListener] 🧠 PredictionReceived:', data);
         }
 
-        const link = getLinkByRole('prediction', data, userRole);
+        const link = getLinkByRole('prediction', data, userRoleRef.current);
         addNotification({
           title: 'AI dự báo mới',
           message: `Độ tin cậy: ${Math.round((data.confidence || 0) * 100)}%`,
@@ -231,7 +252,7 @@ export function RealtimeListener() {
         window.dispatchEvent(new CustomEvent('aegis:prediction:received', { detail: data }));
       });
 
-      // 7. Listen SensorReadingReceived
+      // 9. Listen SensorReadingReceived
       channel.listen('.SensorReadingReceived', (data: any) => {
         if (isDev) {
           console.log('[RealtimeListener] 📡 SensorReadingReceived:', data);
@@ -249,6 +270,8 @@ export function RealtimeListener() {
           channelRef.current.stopListening('.IncidentCreated');
           channelRef.current.stopListening('.IncidentResolved');
           channelRef.current.stopListening('.AlertCreated');
+          channelRef.current.stopListening('.AlertUpdated');
+          channelRef.current.stopListening('.AlertResolved');
           channelRef.current.stopListening('.RescueRequestCreated');
           channelRef.current.stopListening('.RescueRequestUpdated');
           channelRef.current.stopListening('.PredictionReceived');

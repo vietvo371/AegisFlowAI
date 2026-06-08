@@ -58,7 +58,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
         const echo = getEcho();
         channel = echo.channel('flood');
 
-        channel.listen('.incident.created', (data: any) => {
+        channel.listen('.IncidentCreated', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -67,7 +67,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           }));
         });
 
-        channel.listen('.alert.created', (data: any) => {
+        channel.listen('.AlertCreated', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -77,7 +77,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           window.dispatchEvent(new CustomEvent('aegis:alert:created', { detail: data }));
         });
 
-        channel.listen('.alert.updated', (data: any) => {
+        channel.listen('.AlertUpdated', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -86,7 +86,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           window.dispatchEvent(new CustomEvent('aegis:alert:updated', { detail: data }));
         });
 
-        channel.listen('.alert.resolved', (data: any) => {
+        channel.listen('.AlertResolved', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -95,7 +95,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           window.dispatchEvent(new CustomEvent('aegis:alert:resolved', { detail: data }));
         });
 
-        channel.listen('.rescue_request.created', (data: any) => {
+        channel.listen('.RescueRequestCreated', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -104,7 +104,7 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
           }));
         });
 
-        channel.listen('.sensor.reading', (data: any) => {
+        channel.listen('.SensorReadingReceived', (data: any) => {
           setState(prev => ({
             ...prev,
             connected: true,
@@ -141,12 +141,12 @@ export function RealtimeProvider({ children, token }: { children: ReactNode; tok
     return () => {
       if (channel) {
         try {
-          channel.stopListening('.incident.created');
-          channel.stopListening('.alert.created');
-          channel.stopListening('.alert.updated');
-          channel.stopListening('.alert.resolved');
-          channel.stopListening('.rescue_request.created');
-          channel.stopListening('.sensor.reading');
+          channel.stopListening('.IncidentCreated');
+          channel.stopListening('.AlertCreated');
+          channel.stopListening('.AlertUpdated');
+          channel.stopListening('.AlertResolved');
+          channel.stopListening('.RescueRequestCreated');
+          channel.stopListening('.SensorReadingReceived');
           channel.leave();
         } catch (err) {
           console.warn('[RealtimeProvider] ⚠️ Cleanup error:', err);

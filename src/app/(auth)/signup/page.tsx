@@ -5,11 +5,22 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { signUpSchema, type SignUpInput } from '@/lib/validations/auth';
+import { setPortalToken } from '@/lib/auth-sessions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2, Mail, Lock, User, Phone, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+
+type ApiError = {
+  name?: string;
+  code?: string;
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
 
 function PasswordStrength({ password }: { password: string }) {
   const strength = React.useMemo(() => {
@@ -76,13 +87,12 @@ export default function SignUpPage() {
 
       if (res.data?.success) {
         const { token } = res.data.data;
-        localStorage.setItem('aegisflow_token', token);
-        document.cookie = `aegisflow_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+        setPortalToken('citizen', token);
 
         toast.success(t('signupSuccess'));
         window.location.href = '/citizen';
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof SignUpInput, string>> = {};
         error.issues.forEach(err => {
@@ -91,10 +101,10 @@ export default function SignUpPage() {
         });
         setErrors(fieldErrors);
         toast.error(t('signupValidationError'));
-      } else if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') {
+      } else if ((error as ApiError)?.name === 'AbortError' || (error as ApiError)?.code === 'ERR_CANCELED') {
         // Ignore
       } else {
-        toast.error(error.response?.data?.message || t('signupError'));
+        toast.error((error as ApiError)?.response?.data?.message || t('signupError'));
       }
     } finally {
       setIsLoading(false);

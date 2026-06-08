@@ -1,13 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
-  BrainCircuit, TrendingUp, Droplets, AlertTriangle, MapPin,
-  Clock, RefreshCw, Calendar, Filter, Star
+  BrainCircuit, TrendingUp, AlertTriangle, MapPin,
+  RefreshCw, Star
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,17 +17,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+type PredictionType = 'flood' | 'rainfall' | 'water_level';
+type PredictionSeverity = 'low' | 'medium' | 'high' | 'critical';
+type HorizonMinutes = 30 | 60;
+
+interface PredictionInputTarget {
+  current_water_level_m?: number | string | null;
+  weather?: {
+    rainfall_mm?: number | string | null;
+  } | null;
+}
+
+interface ApiPrediction {
+  id: number;
+  prediction_type?: string | null;
+  flood_zone?: { id: number; name: string } | null;
+  district?: { id: number; name: string } | null;
+  prediction_for?: string | null;
+  issued_at?: string | null;
+  predicted_value?: number | string | null;
+  confidence?: number | string | null;
+  probability?: number | string | null;
+  severity?: string | null;
+  horizon_minutes?: number | null;
+  input_data?: PredictionInputTarget[] | Record<string, unknown> | null;
+  recommendations?: string[] | null;
+  affected_zones?: string[] | null;
+  created_at?: string | null;
+}
 
 interface Prediction {
   id: number;
-  type: 'flood' | 'rainfall' | 'water_level';
+  prediction_type?: string;
+  flood_zone?: { id: number; name: string } | null;
+  type: PredictionType;
   area: string;
   latitude?: number;
   longitude?: number;
   predicted_at: string;
   time_range: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: PredictionSeverity;
   confidence: number;
+  probability: number;
   water_level_prediction?: number;
   rainfall_prediction?: number;
   affected_zones: string[];
@@ -36,37 +68,131 @@ interface Prediction {
   created_at: string;
 }
 
+function toNumber(value: unknown): number | undefined {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function normalizeType(type?: string | null): PredictionType {
+  if (type === 'rainfall' || type === 'water_level') return type;
+  return 'flood';
+}
+
+function normalizeSeverity(severity?: string | null): PredictionSeverity {
+  if (severity === 'low' || severity === 'medium' || severity === 'high' || severity === 'critical') {
+    return severity;
+  }
+  return 'medium';
+}
+
+function firstInputTarget(inputData: ApiPrediction['input_data']): PredictionInputTarget | null {
+  return Array.isArray(inputData) ? inputData[0] ?? null : null;
+}
+
+function formatHorizon(minutes?: number): string {
+  if (!minutes) return 'Không xác định';
+  if (minutes < 60) return `${minutes} phút tới`;
+  if (minutes % 60 === 0) return `${minutes / 60} giờ tới`;
+  return `${Math.round((minutes / 60) * 10) / 10} giờ tới`;
+}
+
+function formatMeasurement(value?: number, suffix = ''): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  const decimals = Math.abs(numeric) >= 10 ? 1 : 2;
+  return `${numeric.toFixed(decimals).replace(/\.?0+$/, '')}${suffix}`;
+}
+
+function predictionKey(prediction: Prediction): string {
+  return [
+    prediction.type,
+    prediction.flood_zone?.id ?? prediction.area,
+    prediction.time_range,
+  ].join(':');
+}
+
+function latestPerArea(items: Prediction[]): Prediction[] {
+  const seen = new Set<string>();
+  return items.filter((prediction) => {
+    const key = predictionKey(prediction);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mapPrediction(p: ApiPrediction): Prediction {
+  const input = firstInputTarget(p.input_data);
+  const probability = toNumber(p.probability) ?? 0;
+
+  return {
+    ...p,
+    prediction_type: p.prediction_type ?? undefined,
+    type: normalizeType(p.prediction_type === 'flood_risk' ? 'flood' : p.prediction_type),
+    area: p.flood_zone?.name || p.district?.name || 'Khu vực chung',
+    predicted_at: p.prediction_for || p.issued_at || p.created_at || new Date().toISOString(),
+    time_range: formatHorizon(p.horizon_minutes ?? undefined),
+    water_level_prediction: toNumber(p.predicted_value) ?? toNumber(input?.current_water_level_m),
+    rainfall_prediction: toNumber(input?.weather?.rainfall_mm),
+    recommendations: p.recommendations || [],
+    affected_zones: p.affected_zones || (p.flood_zone ? [p.flood_zone.name] : []),
+    severity: normalizeSeverity(p.severity),
+    confidence: toNumber(p.confidence) ?? 0,
+    probability,
+    created_at: p.created_at || new Date().toISOString(),
+  };
+}
+
 export default function PredictionsPage() {
-  const t = useTranslations('dashboard');
   const [predictions, setPredictions] = React.useState<Prediction[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [timeFilter, setTimeFilter] = React.useState('all');
+  const [horizon, setHorizon] = React.useState<HorizonMinutes>(60);
+
+  const fetchPredictions = React.useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      const params: Record<string, string> = {};
+      if (timeFilter !== 'all') params.period = timeFilter;
+      const res = await api.get('/predictions', { params });
+      const mappedPredictions = ((res.data?.data ?? []) as ApiPrediction[]).map(mapPrediction);
+      setPredictions(latestPerArea(mappedPredictions));
+    } catch (e) {
+      console.error(e);
+      toast.error('Không tải được danh sách dự báo');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, [timeFilter]);
 
   React.useEffect(() => {
-    const fetchPredictions = async () => {
-      setLoading(true);
-      try {
-        const api = (await import('@/lib/api')).default;
-        const params: any = {};
-        if (timeFilter !== 'all') params.period = timeFilter;
-        const res = await api.get('/predictions', { params });
-        setPredictions(res.data?.data ?? []);
-      } catch (e) {
-        // silent
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPredictions();
 
     const handler = (e: CustomEvent) => {
-      const data = e.detail;
-      setPredictions(prev => [{ ...data, created_at: new Date().toISOString() }, ...prev]);
+      const mapped = mapPrediction(e.detail as ApiPrediction);
+      setPredictions(prev => latestPerArea([mapped, ...prev]));
     };
     window.addEventListener('aegis:prediction:received', handler as EventListener);
     return () => window.removeEventListener('aegis:prediction:received', handler as EventListener);
-  }, [timeFilter]);
+  }, [fetchPredictions]);
+
+  const handleRefreshPredictions = async () => {
+    setRefreshing(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      await api.post('/predictions/trigger', { horizon_minutes: horizon, sync: true });
+      await fetchPredictions(false);
+      toast.success(`Đã chạy dự báo ${horizon} phút`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Không chạy được dự báo AI');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
@@ -112,10 +238,21 @@ export default function PredictionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Dự báo AI</h1>
           <p className="text-sm text-muted-foreground">Phân tích và dự báo bằng trí tuệ nhân tạo</p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <RefreshCw size={16} />
-          Làm mới dự báo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={String(horizon)} onValueChange={(value) => setHorizon(Number(value) as HorizonMinutes)}>
+            <SelectTrigger className="w-[132px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30 phút</SelectItem>
+              <SelectItem value="60">60 phút</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="gap-2" onClick={handleRefreshPredictions} disabled={loading || refreshing}>
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Đang chạy...' : 'Chạy dự báo'}
+          </Button>
+        </div>
       </div>
 
       {/* AI Model Status */}
@@ -256,19 +393,22 @@ export default function PredictionsPage() {
                     <Badge variant="outline" className={getConfidenceColor(prediction.confidence)}>
                       {Math.round(prediction.confidence * 100)}% độ chính
                     </Badge>
+                    <Badge variant="outline">
+                      Nguy cơ {Math.round(prediction.probability * 100)}%
+                    </Badge>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                     {prediction.water_level_prediction !== undefined && (
                       <div className="p-2 bg-blue-50 rounded-lg">
                         <p className="text-[10px] text-muted-foreground">Mực nước dự báo</p>
-                        <p className="font-bold">{prediction.water_level_prediction}m</p>
+                        <p className="font-bold">{formatMeasurement(prediction.water_level_prediction, 'm')}</p>
                       </div>
                     )}
                     {prediction.rainfall_prediction !== undefined && (
                       <div className="p-2 bg-cyan-50 rounded-lg">
                         <p className="text-[10px] text-muted-foreground">Lượng mưa</p>
-                        <p className="font-bold">{prediction.rainfall_prediction}mm</p>
+                        <p className="font-bold">{formatMeasurement(prediction.rainfall_prediction, 'mm')}</p>
                       </div>
                     )}
                     <div className="p-2 bg-purple-50 rounded-lg">
@@ -283,11 +423,11 @@ export default function PredictionsPage() {
                     </div>
                   </div>
 
-                  {prediction.recommendations.length > 0 && (
+                  {prediction.recommendations?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground">Khuyến nghị:</p>
                       <div className="flex flex-wrap gap-2">
-                        {prediction.recommendations.slice(0, 3).map((rec, i) => (
+                        {prediction.recommendations.slice(0, 3).map((rec: string, i: number) => (
                           <span key={i} className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-full">
                             {rec}
                           </span>
@@ -296,7 +436,7 @@ export default function PredictionsPage() {
                     </div>
                   )}
 
-                  {prediction.affected_zones.length > 0 && (
+                  {prediction.affected_zones?.length > 0 && (
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <MapPin size={12} />
                       <span>Vùng ảnh hưởng: {prediction.affected_zones.slice(0, 3).join(', ')}
@@ -306,10 +446,10 @@ export default function PredictionsPage() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground shrink-0">
-                  {new Date(prediction.created_at).toLocaleString('vi-VN', {
+                  {prediction.created_at ? new Date(prediction.created_at).toLocaleString('vi-VN', {
                     hour: '2-digit',
                     minute: '2-digit'
-                  })}
+                  }) : ''}
                 </div>
               </div>
             </CardContent>

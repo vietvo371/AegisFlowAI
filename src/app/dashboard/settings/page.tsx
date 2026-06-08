@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { motion } from 'framer-motion';
 import {
   Settings, User, Bell, Shield, Palette, Globe, Key,
-  Mail, Phone, MapPin, Save, Camera, CheckCircle
+  Mail, Phone, MapPin, Save, Camera, CheckCircle, AlertTriangle, Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,19 +28,22 @@ export default function SettingsPage() {
   const t = useTranslations('dashboard');
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = React.useState(false);
+  const [savingNotifications, setSavingNotifications] = React.useState(false);
+  const [deletingAccount, setDeletingAccount] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const [profile, setProfile] = React.useState({
     name: user?.name ?? '',
     email: user?.email ?? '',
     phone: user?.phone ?? '',
   });
 
-  const [notifications, setNotifications] = React.useState({
-    email: true,
-    push: true,
-    sms: false,
-    alerts: true,
-    rescue_requests: true,
-    predictions: false,
+  const [notifications, setNotifications] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem('notification_preferences');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { email: true, push: true, sms: false, alerts: true, rescue_requests: true, predictions: false };
   });
 
   const [preferences, setPreferences] = React.useState({
@@ -53,13 +56,57 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       const api = (await import('@/lib/api')).default;
-      await api.patch('/users/profile', profile);
+      await api.put('/auth/profile', { name: profile.name, phone: profile.phone });
       await refreshUser();
       toast.success('Cập nhật hồ sơ thành công!');
     } catch (e) {
       toast.error('Không thể cập nhật hồ sơ');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('Ảnh tối đa 2MB'); return; }
+    setLoading(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      const formData = new FormData();
+      formData.append('avatar', file);
+      await api.post('/auth/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await refreshUser();
+      toast.success('Cập nhật ảnh đại diện thành công!');
+    } catch {
+      toast.error('Không thể cập nhật ảnh đại diện');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNotificationsSave = async () => {
+    setSavingNotifications(true);
+    try {
+      localStorage.setItem('notification_preferences', JSON.stringify(notifications));
+      toast.success('Cập nhật thông báo thành công!');
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      await api.delete('/auth/account');
+      toast.success('Tài khoản đã được xóa');
+      window.location.href = '/login';
+    } catch {
+      toast.error('Không thể xóa tài khoản');
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -126,7 +173,20 @@ export default function SettingsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={loading}
+                      onClick={() => avatarInputRef.current?.click()}
+                    >
                       <Camera size={14} />
                       Đổi ảnh
                     </Button>
@@ -273,7 +333,7 @@ export default function SettingsPage() {
                     <Switch
                       checked={notifications[item.key as keyof typeof notifications]}
                       onCheckedChange={(checked) =>
-                        setNotifications(n => ({ ...n, [item.key]: checked }))
+                        setNotifications((n: typeof notifications) => ({ ...n, [item.key]: checked }))
                       }
                     />
                   </div>
@@ -292,11 +352,21 @@ export default function SettingsPage() {
                     <Switch
                       checked={notifications[item.key as keyof typeof notifications]}
                       onCheckedChange={(checked) =>
-                        setNotifications(n => ({ ...n, [item.key]: checked }))
+                        setNotifications((n: typeof notifications) => ({ ...n, [item.key]: checked }))
                       }
                     />
                   </div>
                 ))}
+
+                <Button
+                  size="sm"
+                  className="w-full gap-2 mt-2"
+                  onClick={handleNotificationsSave}
+                  disabled={savingNotifications}
+                >
+                  {savingNotifications ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Lưu cài đặt thông báo
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -395,10 +465,44 @@ export default function SettingsPage() {
                       Xóa vĩnh viễn tài khoản và dữ liệu
                     </p>
                   </div>
-                  <Button variant="destructive" size="sm">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
                     Xóa
                   </Button>
                 </div>
+                {showDeleteConfirm && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={16} className="text-red-600 mt-0.5 shrink-0" />
+                      <p className="text-sm text-red-700 font-medium">
+                        Bạn chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDeleteAccount}
+                        disabled={deletingAccount}
+                        className="gap-1"
+                      >
+                        {deletingAccount && <Loader2 size={12} className="animate-spin" />}
+                        Xác nhận xóa
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={deletingAccount}
+                      >
+                        Hủy
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

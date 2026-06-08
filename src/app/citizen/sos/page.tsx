@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,7 +29,7 @@ export default function CitizenSOSPage() {
   const { user } = useAuth();
   const t = useTranslations('dashboard.sos');
   const tCitizen = useTranslations('citizen');
-  const locale = 'vi'; // TODO: get from context
+  const locale = useLocale() as 'vi' | 'en';
   const [submitting, setSubmitting] = React.useState(false);
   const [locating, setLocating] = React.useState(false);
   const [coords, setCoords] = React.useState({ lat: 16.0544, lng: 108.2022 });

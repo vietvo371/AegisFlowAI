@@ -1,16 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useAuth } from '@/lib/auth-context';
-import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Loader2, MapPin, Phone, Users, Clock, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Loader2, MapPin, Phone, Users, Clock, CheckCircle, AlertTriangle, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MapComponent = dynamic(() => import('@/components/map/MapComponent'));
@@ -20,44 +19,125 @@ interface RescueRequest {
   address: string;
   people_count: number;
   urgency: 'low' | 'medium' | 'high' | 'critical';
-  status: 'pending' | 'assigned' | 'in_progress' | 'resolved';
+  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'resolved';
   created_at: string;
   caller_name?: string;
   caller_phone?: string;
   latitude?: number;
   longitude?: number;
+  location?: {
+    lat?: number | string | null;
+    lng?: number | string | null;
+  } | null;
   description?: string;
 }
 
+function getResponseList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload;
+
+  const root = payload as { data?: unknown } | null | undefined;
+  if (Array.isArray(root?.data)) return root.data as T[];
+
+  const nested = root?.data as { data?: unknown } | null | undefined;
+  if (Array.isArray(nested?.data)) return nested.data as T[];
+
+  return [];
+}
+
+function getResponseItem<T>(payload: unknown): T | null {
+  const root = payload as { data?: unknown } | null | undefined;
+  const nested = root?.data as { data?: unknown } | null | undefined;
+
+  if (nested?.data && !Array.isArray(nested.data)) return nested.data as T;
+  if (root?.data && !Array.isArray(root.data)) return root.data as T;
+
+  return null;
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (typeof error !== 'object' || error === null) return fallback;
+
+  const response = (error as { response?: { data?: { message?: unknown } } }).response;
+  return typeof response?.data?.message === 'string' ? response.data.message : fallback;
+}
+
+function getRequestCoordinates(request?: RescueRequest | null): { lat: number; lng: number } | null {
+  const lat = Number(request?.location?.lat ?? request?.latitude);
+  const lng = Number(request?.location?.lng ?? request?.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: 'Chờ tiếp nhận',
+    assigned: 'Đã tiếp nhận',
+    in_progress: 'Đang thực hiện',
+    completed: 'Hoàn thành',
+    resolved: 'Hoàn thành',
+    cancelled: 'Đã hủy',
+  };
+
+  return labels[status] || status;
+}
+
 export default function TeamMapPage() {
-  const t = useTranslations('team');
-  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const requestId = Number(searchParams.get('requestId'));
+  const rawLat = searchParams.get('lat');
+  const rawLng = searchParams.get('lng');
+  const fallbackLat = rawLat !== null ? Number(rawLat) : NaN;
+  const fallbackLng = rawLng !== null ? Number(rawLng) : NaN;
   const [rescueRequests, setRescueRequests] = useState<RescueRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RescueRequest | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
 
   // Fetch rescue requests
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/rescue-requests', {
-        params: { status: 'pending,assigned', per_page: 100 }
-      });
+      const res = await api.get('/rescue-requests', { params: { per_page: 100 } });
+      const allRequests = getResponseList<RescueRequest>(res.data);
+      const activeStatuses = new Set(['pending', 'assigned', 'in_progress']);
+      const activeRequests = allRequests.filter((request) => activeStatuses.has(request.status));
 
-      const requests = res.data?.data ?? [];
-      setRescueRequests(requests);
+      let linkedRequest: RescueRequest | null = null;
+      if (Number.isFinite(requestId) && requestId > 0) {
+        linkedRequest = activeRequests.find((request) => request.id === requestId) ?? null;
+
+        if (!linkedRequest) {
+          try {
+            const detailRes = await api.get(`/rescue-requests/${requestId}`);
+            linkedRequest = getResponseItem<RescueRequest>(detailRes.data);
+          } catch (detailError) {
+            console.error('Failed to fetch linked rescue request', detailError);
+          }
+        }
+      }
+
+      const nextRequests = linkedRequest && activeStatuses.has(linkedRequest.status)
+        ? [linkedRequest, ...activeRequests.filter((request) => request.id !== linkedRequest?.id)]
+        : activeRequests;
+
+      setRescueRequests(nextRequests);
+      if (linkedRequest) setSelectedRequest(linkedRequest);
     } catch (e) {
       console.error('Failed to fetch rescue requests', e);
       toast.error('Lỗi khi tải danh sách yêu cầu cứu hộ');
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
 
   // Initial load and real-time updates
   useEffect(() => {
-    fetchRequests();
+    const load = async () => {
+      await fetchRequests();
+    };
+
+    void load();
 
     const handler = () => fetchRequests();
     window.addEventListener('aegis:rescue_request:created', handler);
@@ -67,7 +147,28 @@ export default function TeamMapPage() {
       window.removeEventListener('aegis:rescue_request:created', handler);
       window.removeEventListener('aegis:rescue_request:updated', handler);
     };
-  }, []);
+  }, [fetchRequests]);
+
+  const selectedCoordinates = getRequestCoordinates(selectedRequest);
+  const focusPoint = useMemo(() => {
+    const latCandidate = selectedCoordinates?.lat ?? (Number.isFinite(fallbackLat) ? fallbackLat : undefined);
+    const lngCandidate = selectedCoordinates?.lng ?? (Number.isFinite(fallbackLng) ? fallbackLng : undefined);
+
+    if (typeof latCandidate !== 'number' || typeof lngCandidate !== 'number') return null;
+    if (!Number.isFinite(latCandidate) || !Number.isFinite(lngCandidate)) return null;
+
+    return {
+      id: selectedRequest?.id ?? requestId,
+      name: selectedRequest?.caller_name || selectedRequest?.address || 'Yêu cầu cứu hộ',
+      latitude: latCandidate,
+      longitude: lngCandidate,
+      type: 'rescue_request' as const,
+      subtitle: selectedRequest
+        ? `${getStatusLabel(selectedRequest.status)} • ${selectedRequest.people_count} người cần hỗ trợ`
+        : 'Vị trí yêu cầu cứu hộ',
+      status: selectedRequest?.status,
+    };
+  }, [fallbackLat, fallbackLng, requestId, selectedCoordinates?.lat, selectedCoordinates?.lng, selectedRequest]);
 
   // Handle accept request
   const handleAcceptRequest = async (request: RescueRequest) => {
@@ -75,18 +176,29 @@ export default function TeamMapPage() {
 
     setIsAccepting(true);
     try {
-      const res = await api.patch(`/rescue-requests/${request.id}`, {
-        status: 'in_progress',
-        assigned_team_id: user?.id,
-      });
+      if (request.status === 'pending') {
+        const teamsRes = await api.get('/rescue-teams');
+        const teams = getResponseList<{ id: number; status?: string }>(teamsRes.data);
+        const availableTeam = teams.find((team) => team.status === 'available') ?? teams[0];
 
-      if (res.data?.success) {
-        toast.success(`Đã tiếp nhận yêu cầu từ ${request.caller_name || 'người dùng'}`);
-        setSelectedRequest(null);
-        await fetchRequests();
+        if (!availableTeam) {
+          toast.error('Không tìm thấy đội cứu hộ khả dụng');
+          return;
+        }
+
+        await api.put(`/rescue-requests/${request.id}/assign`, { team_id: availableTeam.id });
+        toast.success(`Đã tiếp nhận yêu cầu từ ${request.caller_name || 'người dân'}`);
+      } else if (request.status === 'assigned') {
+        await api.put(`/rescue-requests/${request.id}/status`, { status: 'in_progress' });
+        toast.success('Đã bắt đầu xử lý yêu cầu');
+      } else if (request.status === 'in_progress') {
+        await api.put(`/rescue-requests/${request.id}/status`, { status: 'completed' });
+        toast.success('Đã hoàn thành yêu cầu');
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Lỗi khi tiếp nhận yêu cầu');
+
+      await fetchRequests();
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, 'Không cập nhật được yêu cầu'));
       console.error(e);
     } finally {
       setIsAccepting(false);
@@ -112,24 +224,27 @@ export default function TeamMapPage() {
     return labels[urgency] || urgency;
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'pending': 'Chờ tiếp nhận',
-      'assigned': 'Đã tiếp nhận',
-      'in_progress': 'Đang thực hiện',
-      'resolved': 'Hoàn thành'
-    };
-    return labels[status] || status;
+  const getPrimaryActionLabel = (status: RescueRequest['status']) => {
+    if (status === 'pending') return 'Tiếp nhận yêu cầu';
+    if (status === 'assigned') return 'Bắt đầu xử lý';
+    if (status === 'in_progress') return 'Hoàn thành';
+    return null;
   };
+
+  const actionLabel = selectedRequest ? getPrimaryActionLabel(selectedRequest.status) : null;
 
   return (
     <div className="relative w-full h-[calc(100vh-7rem)]">
       {/* Map */}
-      <MapComponent />
+      <MapComponent
+        focusPoint={focusPoint}
+        center={focusPoint ? [focusPoint.longitude, focusPoint.latitude] : undefined}
+        zoom={focusPoint ? 14 : undefined}
+      />
 
       {/* Sidebar - Rescue Requests List */}
-      <div className="absolute bottom-6 left-6 w-96 max-h-[70vh] bg-white rounded-lg shadow-2xl border border-border overflow-hidden flex flex-col z-10">
-        <CardHeader className="pb-3 bg-primary/5 border-b">
+      <div className="absolute bottom-6 left-6 w-96 max-h-[70vh] bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 overflow-hidden flex flex-col z-10">
+        <CardHeader className="pb-3 bg-transparent border-b border-white/20">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <MapPin size={18} className="text-primary" />
@@ -138,7 +253,7 @@ export default function TeamMapPage() {
             {loading && <Loader2 size={16} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {rescueRequests.length} yêu cầu đang chờ hoặc đã tiếp nhận
+            {rescueRequests.length} yêu cầu đang chờ hoặc đang xử lý
           </p>
         </CardHeader>
 
@@ -155,146 +270,40 @@ export default function TeamMapPage() {
           ) : (
             <div className="space-y-2 p-3">
               {rescueRequests.map((request) => (
-                <Sheet key={request.id} open={selectedRequest?.id === request.id} onOpenChange={(open) => {
-                  if (!open) setSelectedRequest(null);
-                }}>
-                  <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setSelectedRequest(request)}
-                  >
-                    <CardContent className="pt-3 pb-3">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold flex items-center gap-2">
-                              {request.caller_name || 'Người dùng'}
-                              <Badge variant="outline" className={`text-white ${getUrgencyColor(request.urgency)}`}>
-                                {getUrgencyLabel(request.urgency)}
-                              </Badge>
-                            </p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin size={12} /> {request.address}
-                            </p>
-                          </div>
-                          <ChevronRight size={16} className="text-muted-foreground" />
+                <Card
+                  key={request.id}
+                  className={`cursor-pointer shadow-sm hover:shadow-md transition-all duration-300 border-white/40 border rounded-xl ${selectedRequest?.id === request.id ? 'bg-white ring-2 ring-primary/50' : 'bg-white/60 hover:bg-white'}`}
+                  onClick={() => setSelectedRequest(request)}
+                >
+                  <CardContent className="pt-3 pb-3">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold flex items-center gap-2">
+                            {request.caller_name || 'Người dùng'}
+                            <Badge variant="outline" className={`text-white ${getUrgencyColor(request.urgency)}`}>
+                              {getUrgencyLabel(request.urgency)}
+                            </Badge>
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <MapPin size={12} /> {request.address}
+                          </p>
                         </div>
-
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Users size={12} /> {request.people_count} người
-                          {request.caller_phone && (
-                            <>
-                              <span>•</span>
-                              <Phone size={12} /> {request.caller_phone}
-                            </>
-                          )}
-                        </div>
+                        <ChevronRight size={16} className="text-muted-foreground" />
                       </div>
-                    </CardContent>
-                  </Card>
 
-                  {/* Detail Sheet */}
-                  <SheetContent side="right" className="w-full sm:w-96">
-                    <SheetHeader>
-                      <SheetTitle className="flex items-center gap-2">
-                        <AlertTriangle size={18} className="text-orange-500" />
-                        Chi tiết yêu cầu
-                      </SheetTitle>
-                    </SheetHeader>
-
-                    {selectedRequest && (
-                      <div className="space-y-4 mt-6">
-                        {/* Header */}
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-bold">{selectedRequest.caller_name || 'Người dùng'}</h3>
-                          <div className="flex gap-2">
-                            <Badge className={`text-white ${getUrgencyColor(selectedRequest.urgency)}`}>
-                              {getUrgencyLabel(selectedRequest.urgency)}
-                            </Badge>
-                            <Badge variant="outline">
-                              {getStatusLabel(selectedRequest.status)}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {/* Details */}
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-3">
-                            <MapPin size={16} className="text-primary mt-0.5" />
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground">Địa điểm</p>
-                              <p className="text-sm">{selectedRequest.address}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-3">
-                            <Phone size={16} className="text-primary mt-0.5" />
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground">Liên hệ</p>
-                              <p className="text-sm">{selectedRequest.caller_phone || 'N/A'}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-3">
-                            <Users size={16} className="text-primary mt-0.5" />
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground">Số người</p>
-                              <p className="text-sm">{selectedRequest.people_count}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-3">
-                            <Clock size={16} className="text-primary mt-0.5" />
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground">Thời gian</p>
-                              <p className="text-sm">
-                                {new Date(selectedRequest.created_at).toLocaleString('vi-VN')}
-                              </p>
-                            </div>
-                          </div>
-
-                          {selectedRequest.description && (
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle size={16} className="text-primary mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground">Ghi chú</p>
-                                <p className="text-sm">{selectedRequest.description}</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action Button */}
-                        {selectedRequest.status === 'pending' && (
-                          <Button
-                            className="w-full mt-6"
-                            onClick={() => handleAcceptRequest(selectedRequest)}
-                            disabled={isAccepting}
-                          >
-                            {isAccepting ? (
-                              <>
-                                <Loader2 size={16} className="mr-2 animate-spin" />
-                                Đang tiếp nhận...
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle size={16} className="mr-2" />
-                                Tiếp nhận yêu cầu
-                              </>
-                            )}
-                          </Button>
-                        )}
-
-                        {selectedRequest.status !== 'pending' && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-6">
-                            <p className="text-xs text-blue-700">
-                              ✓ Yêu cầu này đã được {getStatusLabel(selectedRequest.status).toLowerCase()}
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Users size={12} /> {request.people_count} người
+                        {request.caller_phone && (
+                          <>
+                            <span>•</span>
+                            <Phone size={12} /> {request.caller_phone}
+                          </>
                         )}
                       </div>
-                    )}
-                  </SheetContent>
-                </Sheet>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
@@ -303,7 +312,7 @@ export default function TeamMapPage() {
 
       {/* Map overlay info */}
       <div className="absolute top-6 left-6 z-10">
-        <Card className="bg-white/95 backdrop-blur-sm">
+        <Card className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-sm rounded-xl">
           <CardContent className="pt-3 pb-3 text-xs text-muted-foreground">
             {rescueRequests.length > 0 && (
               <p>👉 Click các yêu cầu để xem chi tiết</p>
@@ -311,6 +320,114 @@ export default function TeamMapPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Floating Detail Card (Right Side) */}
+      {selectedRequest && (
+        <div className="absolute right-6 top-6 bottom-6 w-[400px] bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 flex flex-col z-20 overflow-hidden animate-in slide-in-from-right-8 duration-300 fade-in">
+          <div className="bg-transparent border-b border-white/20 p-4 flex justify-between items-center shrink-0">
+            <h2 className="font-bold text-lg flex items-center gap-2">
+              <AlertTriangle size={18} className="text-orange-500" />
+              Chi tiết yêu cầu
+            </h2>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/5" onClick={() => setSelectedRequest(null)}>
+              <X size={16} />
+            </Button>
+          </div>
+          
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+            {/* Header */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold">{selectedRequest.caller_name || 'Người dùng'}</h3>
+              <div className="flex gap-2">
+                <Badge className={`text-white ${getUrgencyColor(selectedRequest.urgency)}`}>
+                  {getUrgencyLabel(selectedRequest.urgency)}
+                </Badge>
+                <Badge variant="outline" className="bg-white/50">
+                  {getStatusLabel(selectedRequest.status)}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <MapPin size={16} className="text-primary mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">Địa điểm</p>
+                  <p className="text-sm font-medium">{selectedRequest.address}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Phone size={16} className="text-primary mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">Liên hệ</p>
+                  <p className="text-sm font-medium">{selectedRequest.caller_phone || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Users size={16} className="text-primary mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">Số người</p>
+                  <p className="text-sm font-medium">{selectedRequest.people_count}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Clock size={16} className="text-primary mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">Thời gian</p>
+                  <p className="text-sm font-medium">
+                    {new Date(selectedRequest.created_at).toLocaleString('vi-VN')}
+                  </p>
+                </div>
+              </div>
+
+              {selectedRequest.description && (
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-primary mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">Ghi chú</p>
+                    <p className="text-sm font-medium">{selectedRequest.description}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Button */}
+            {actionLabel && (
+              <Button
+                className="w-full mt-2 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5"
+                size="lg"
+                onClick={() => handleAcceptRequest(selectedRequest)}
+                disabled={isAccepting}
+              >
+                {isAccepting ? (
+                  <>
+                    <Loader2 size={18} className="mr-2 animate-spin" />
+                    Đang cập nhật...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} className="mr-2" />
+                    {actionLabel}
+                  </>
+                )}
+              </Button>
+            )}
+
+            {!actionLabel && (
+              <div className="bg-emerald-50/80 backdrop-blur-sm border border-emerald-200 rounded-xl p-3 mt-2">
+                <p className="text-xs text-emerald-700 font-medium flex items-center">
+                  <CheckCircle size={14} className="mr-1.5" />
+                  Yêu cầu này đã được {getStatusLabel(selectedRequest.status).toLowerCase()}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

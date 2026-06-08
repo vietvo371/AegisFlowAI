@@ -4,9 +4,9 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
-  HeartPulse, Clock, Users, MapPin, Phone, CheckCircle,
-  XCircle, Search, Filter, ChevronRight, AlertTriangle
+  AlertTriangle, Clock, Filter, HeartPulse, Search, Users, XCircle, CheckCircle, MapPin, Phone
 } from 'lucide-react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,16 +22,21 @@ import {
 
 interface RescueRequest {
   id: number;
-  address: string;
+  request_number: string;
+  address: string | null;
   people_count: number;
   urgency: 'low' | 'medium' | 'high' | 'critical';
-  status: 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'cancelled';
+  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
   description?: string;
-  contact_name?: string;
-  contact_phone?: string;
-  assigned_team?: string;
+  caller_name?: string;
+  caller_phone?: string;
+  assigned_team?: {
+    id: number;
+    name: string;
+  };
   created_at: string;
   updated_at: string;
+  location?: { lat: number; lng: number } | null;
 }
 
 export default function RescueRequestsPage() {
@@ -69,11 +74,11 @@ export default function RescueRequestsPage() {
     setActionLoading(id);
     try {
       const api = (await import('@/lib/api')).default;
-      await api.post(`/rescue-requests/${id}/assign`);
+      await api.put(`/rescue-requests/${id}/status`, { status: 'assigned' });
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'assigned' } : r));
       toast.success('Đã tiếp nhận yêu cầu');
     } catch (e) {
-      toast.error('Không thể tiếp nhận yêu cầu');
+      // toast is handled by interceptor, so no need for toast.error here
     } finally {
       setActionLoading(null);
     }
@@ -83,11 +88,11 @@ export default function RescueRequestsPage() {
     setActionLoading(id);
     try {
       const api = (await import('@/lib/api')).default;
-      await api.post(`/rescue-requests/${id}/resolve`);
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' } : r));
+      await api.put(`/rescue-requests/${id}/status`, { status: 'completed' });
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' } : r));
       toast.success('Đã hoàn thành yêu cầu');
     } catch (e) {
-      toast.error('Không thể hoàn thành yêu cầu');
+      // toast is handled by interceptor
     } finally {
       setActionLoading(null);
     }
@@ -107,22 +112,22 @@ export default function RescueRequestsPage() {
       case 'pending': return { variant: 'secondary' as const, label: 'Chờ tiếp nhận', icon: Clock };
       case 'assigned': return { variant: 'default' as const, label: 'Đã tiếp nhận', icon: CheckCircle };
       case 'in_progress': return { variant: 'default' as const, label: 'Đang thực hiện', icon: HeartPulse };
-      case 'resolved': return { variant: 'outline' as const, label: 'Hoàn thành', icon: CheckCircle };
+      case 'completed': return { variant: 'outline' as const, label: 'Hoàn thành', icon: CheckCircle };
       case 'cancelled': return { variant: 'destructive' as const, label: 'Đã hủy', icon: XCircle };
       default: return { variant: 'secondary' as const, label: status, icon: Clock };
     }
   };
 
   const filteredRequests = requests.filter(r =>
-    r.address.toLowerCase().includes(search.toLowerCase()) ||
-    r.contact_name?.toLowerCase().includes(search.toLowerCase())
+    (r.address || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.caller_name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const stats = {
     total: requests.length,
     pending: requests.filter(r => r.status === 'pending').length,
     inProgress: requests.filter(r => r.status === 'in_progress').length,
-    resolved: requests.filter(r => r.status === 'resolved').length,
+    resolved: requests.filter(r => r.status === 'completed').length,
   };
 
   return (
@@ -178,7 +183,7 @@ export default function RescueRequestsPage() {
             <SelectItem value="pending">Chờ tiếp nhận</SelectItem>
             <SelectItem value="assigned">Đã tiếp nhận</SelectItem>
             <SelectItem value="in_progress">Đang thực hiện</SelectItem>
-            <SelectItem value="resolved">Hoàn thành</SelectItem>
+            <SelectItem value="completed">Hoàn thành</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -231,20 +236,20 @@ export default function RescueRequestsPage() {
                             <Users size={14} />
                             <span>{request.people_count} người</span>
                           </div>
-                          {request.contact_name && (
+                          {request.caller_name && (
                             <div className="flex items-center gap-1 text-muted-foreground">
-                              <span>{request.contact_name}</span>
+                              <span>{request.caller_name}</span>
                             </div>
                           )}
-                          {request.contact_phone && (
-                            <a href={`tel:${request.contact_phone}`} className="flex items-center gap-1 text-primary">
+                          {request.caller_phone && (
+                            <a href={`tel:${request.caller_phone}`} className="flex items-center gap-1 text-primary">
                               <Phone size={14} />
-                              <span>{request.contact_phone}</span>
+                              <span>{request.caller_phone}</span>
                             </a>
                           )}
                           {request.assigned_team && (
                             <div className="flex items-center gap-1 text-muted-foreground">
-                              <span>Đội: {request.assigned_team}</span>
+                              <span>Đội: {request.assigned_team.name}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-1 text-muted-foreground ml-auto">
@@ -274,10 +279,19 @@ export default function RescueRequestsPage() {
                             {actionLoading === request.id ? 'Đang xử lý...' : 'Hoàn thành'}
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="gap-1">
-                          <MapPin size={14} />
-                          Bản đồ
-                        </Button>
+                        {request.location ? (
+                          <Button variant="ghost" size="sm" className="gap-1" asChild>
+                            <Link href={`/dashboard?lat=${request.location.lat}&lng=${request.location.lng}&requestId=${request.id}&requestTitle=Yêu cầu ${request.request_number}&requestStatus=${encodeURIComponent(getStatusConfig(request.status).label)}`}>
+                              <MapPin size={14} />
+                              Bản đồ
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="gap-1 opacity-50 cursor-not-allowed" title="Chưa có thông tin tọa độ GPS">
+                            <MapPin size={14} />
+                            Bản đồ
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>

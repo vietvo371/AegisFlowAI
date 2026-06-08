@@ -5,6 +5,17 @@
 
 const BASE_URL = 'https://mapapis.openmap.vn/v1';
 const API_KEY = process.env.NEXT_PUBLIC_OPENMAP_API_KEY || '';
+const API_ROOT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BE_URL = API_ROOT.replace(/\/api\/?$/, '');
+
+export const NDA_API_KEY = API_KEY;
+export const NDA_MAP_STYLE = `https://tiles.openmap.vn/styles/day-v1/style.json`;
+
+export const ndaGeocodeForward = (query: string) =>
+  `${BE_URL}/api/map/geocode/forward?text=${encodeURIComponent(query)}`;
+
+export const ndaGeocodeReverse = (lat: number, lng: number) =>
+  `${BE_URL}/api/map/geocode/reverse?lat=${lat}&lng=${lng}`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,13 +146,7 @@ export async function fetchNearbyEvacuationPoints(
  */
 export async function reverseGeocode(location: LatLng): Promise<GeocodedAddress | null> {
   try {
-    // Correct endpoint per docs: GET /geocode/reverse?latlng=lat,lng&apikey=...
-    const params = new URLSearchParams({
-      latlng: `${location.lat},${location.lng}`,
-      apikey: API_KEY,
-    });
-
-    const res = await fetch(`${BASE_URL}/geocode/reverse?${params}`);
+    const res = await fetch(ndaGeocodeReverse(location.lat, location.lng));
     if (!res.ok) throw new Error(`Reverse geocode error: ${res.status}`);
 
     const data = await res.json();

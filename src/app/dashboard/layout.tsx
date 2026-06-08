@@ -10,15 +10,23 @@ import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu,
   BarChart3, AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, 
-  Megaphone, BrainCircuit, Users, CheckCircle2, Waves
+  Megaphone, BrainCircuit, Users, CheckCircle2, Waves, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LocaleToggle } from '@/components/theme/locale-toggle';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { RealtimeListener } from '@/components/realtime/RealtimeListener';
 import { PageTransition } from '@/components/ui/page-transition';
 import { NotificationBell } from '@/components/notification/NotificationBell';
 import { ToasterProvider } from '@/components/ui/toaster-provider';
@@ -71,7 +79,6 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-muted/20">
       <ToasterProvider />
-      <RealtimeListener />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card">
         <div className="p-6">
@@ -112,7 +119,7 @@ export default function DashboardLayout({
                 <div className={`transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className="text-sm tracking-tight">{tDash(item.labelKey as any)}</span>
+                <span className="text-sm tracking-tight">{tDash(item.labelKey)}</span>
                 {isActive && (
                    <motion.div 
                      layoutId="active-nav-indicator" 
@@ -139,7 +146,7 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-card border-b border-border z-10 shrink-0">
+        <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-card border-b border-border z-40 shrink-0">
           <div className="flex items-center gap-4 flex-1">
             {/* Mobile Menu Trigger */}
             <Sheet>
@@ -200,15 +207,49 @@ export default function DashboardLayout({
 
             <NotificationBell />
 
-            <Avatar className="h-9 w-9 border border-border mt-1">
-              {user?.avatar_url ? <AvatarImage src={user.avatar_url} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary font-bold">{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1 rounded-full outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary/30">
+                <Avatar className="h-9 w-9 border border-border">
+                  {user?.avatar_url ? <AvatarImage src={user.avatar_url} /> : null}
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <ChevronDown size={14} className="mr-1 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col gap-1 py-1">
+                      <p className="text-sm font-bold text-foreground">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+                  <User size={14} />
+                  Hồ sơ tài khoản
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+                  <Settings size={14} />
+                  {t('common.settings')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logout()}
+                  className="text-red-500 focus:text-red-500 focus:bg-red-50"
+                >
+                  <LogOut size={14} />
+                  {t('common.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-hidden relative min-h-0">
+        <main className="flex-1 overflow-y-auto relative min-h-0 custom-scroll overscroll-contain">
           <PageTransition>
             {children}
           </PageTransition>

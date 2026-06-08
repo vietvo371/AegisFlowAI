@@ -1,10 +1,11 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
+import { clearPortalToken, getPortalForPath, getPortalToken, PORTAL_SIGNIN_PATH } from '@/lib/auth-sessions';
 
 /**
  * Cấu trúc chuẩn của API Response từ AegisFlow AI Backend
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data: T;
@@ -40,8 +41,8 @@ const api = axios.create({
  */
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
-    // Lấy token từ localStorage (hoặc cookie nếu dùng SSR)
-    const token = localStorage.getItem('aegisflow_token');
+    const portal = getPortalForPath(window.location.pathname);
+    const token = getPortalToken(portal);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -80,17 +81,19 @@ api.interceptors.response.use(
     }
 
     const { status, data } = error.response;
-    const message = data?.message || 'Đã xảy ra lỗi hệ thống.';
+    const firstValidationMessage = data?.errors ? Object.values(data.errors).flat()[0] : undefined;
+    const message = firstValidationMessage || data?.message || 'Đã xảy ra lỗi hệ thống.';
 
     switch (status) {
       case 401:
         // Chưa đăng nhập hoặc token hết hạn
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('aegisflow_token');
+          const portal = getPortalForPath(window.location.pathname);
+          clearPortalToken(portal);
           // Không văng toast lỗi nếu đang ở trang chủ hoặc login để tránh spam
           if (!['/', '/signin'].includes(window.location.pathname)) {
             toast.error(message);
-            window.location.href = '/signin';
+            window.location.href = portal ? PORTAL_SIGNIN_PATH[portal] : '/signin';
           }
         }
         break;

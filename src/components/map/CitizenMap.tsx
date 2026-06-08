@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from '@openmapvn/openmapvn-gl';
 import '@openmapvn/openmapvn-gl/dist/maplibre-gl.css';
 import api from '@/lib/api';
+import { useFeatureStateAnimation } from '@/hooks/useFeatureStateAnimation';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -101,6 +102,28 @@ export default function CitizenMap() {
     { key: 'shelters',      label: t('shelters'),      icon: <Building2 size={14} className="text-green-600" />, color: '#16A34A' },
   ];
 
+  // ── Feature animation hook ────────────────────────────────────────────────
+  const { highlightFeature, clearHighlight } = useFeatureStateAnimation({
+    map,
+    sourceId: 'flood_zones',
+    animationDuration: 1000,
+  });
+
+  // Listen for real-time flood telemetry updates from simulator
+  useEffect(() => {
+    const handleFloodTelemetry = (event: CustomEvent) => {
+      const { zone_id, water_level, severity } = event.detail || {};
+      if (zone_id) {
+        highlightFeature(zone_id, { water_level, severity });
+      }
+    };
+
+    window.addEventListener('aegis:flood_telemetry', handleFloodTelemetry as EventListener);
+    return () => {
+      window.removeEventListener('aegis:flood_telemetry', handleFloodTelemetry as EventListener);
+    };
+  }, [highlightFeature]);
+
   const LAYER_MAP: Record<LayerKey, string[]> = {
     flood_zones:   ['layer-flood-zones-fill', 'layer-flood-zones-outline'],
     flood_streets: ['layer-flood-streets'],
@@ -179,11 +202,34 @@ export default function CitizenMap() {
     upsertSource(m, 'flood_zones', dataRef.current.flood_zones ?? { type: 'FeatureCollection', features: [] });
     if (!m.getLayer('layer-flood-zones-fill')) {
       m.addLayer({ id: 'layer-flood-zones-fill', type: 'fill', source: 'flood_zones',
-        paint: { 'fill-color': ['match', ['get', 'risk_level'], 'critical', '#EF4444', 'high', '#F97316', 'medium', '#EAB308', '#3B82F6'], 'fill-opacity': 0.15 } });
+        paint: {
+          'fill-color': ['match', ['get', 'risk_level'], 'critical', '#EF4444', 'high', '#F97316', 'medium', '#EAB308', '#3B82F6'],
+          'fill-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            0.35, // animate khi updated
+            0.15, // bình thường
+          ],
+        } });
     }
     if (!m.getLayer('layer-flood-zones-outline')) {
       m.addLayer({ id: 'layer-flood-zones-outline', type: 'line', source: 'flood_zones',
-        paint: { 'line-color': ['match', ['get', 'risk_level'], 'critical', '#EF4444', 'high', '#F97316', '#3B82F6'], 'line-width': 2, 'line-opacity': 0.8, 'line-dasharray': [3, 2] } });
+        paint: {
+          'line-color': ['match', ['get', 'risk_level'], 'critical', '#EF4444', 'high', '#F97316', '#3B82F6'],
+          'line-width': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            4,   // animate khi updated
+            2,   // bình thường
+          ],
+          'line-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            1.0,
+            0.8,
+          ],
+          'line-dasharray': [3, 2],
+        } });
     }
 
     // Flood reports source (shared for streets + points)
@@ -209,8 +255,30 @@ export default function CitizenMap() {
         filter: ['==', ['geometry-type'], 'Point'],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 15, 10],
-          'circle-color': ['coalesce', ['get', 'color'], '#3B82F6'],
-          'circle-stroke-width': 2, 'circle-stroke-color': '#fff', 'circle-opacity': 0.9,
+          'circle-color': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            '#F97316', // orange khi animate
+            ['coalesce', ['get', 'color'], '#3B82F6'],
+          ],
+          'circle-stroke-width': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            4,   // animate khi updated
+            2,   // bình thường
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            '#FCD34D',
+            '#fff',
+          ],
+          'circle-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'updated'], false],
+            1.0,
+            0.9,
+          ],
         },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);

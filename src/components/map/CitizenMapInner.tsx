@@ -39,6 +39,41 @@ const TYPE_ICONS: Record<string, string> = {
   weather: '🌤️',
 };
 
+const DISTRICT_FALLBACKS: Record<number, { lat: number; lng: number }> = {
+  1: { lat: 16.0712, lng: 108.1498 },
+  2: { lat: 16.0102, lng: 108.1893 },
+  3: { lat: 15.9756, lng: 108.1234 },
+  4: { lat: 16.0678, lng: 108.2208 },
+  5: { lat: 16.0589, lng: 108.1934 },
+  6: { lat: 16.0867, lng: 108.2410 },
+  7: { lat: 16.0039, lng: 108.2062 },
+};
+
+function stableOffset(seed: number, axis: 'lat' | 'lng'): number {
+  const n = Math.sin(seed * (axis === 'lat' ? 12.9898 : 78.233)) * 43758.5453;
+  return (n - Math.floor(n) - 0.5) * 0.008;
+}
+
+function getAlertPosition(alert: MapAlert): [number, number] {
+  const coords = alert.geometry?.coordinates;
+  if (
+    Array.isArray(coords)
+    && coords.length >= 2
+    && Number.isFinite(Number(coords[0]))
+    && Number.isFinite(Number(coords[1]))
+  ) {
+    return [Number(coords[1]), Number(coords[0])];
+  }
+
+  const districtId = Number(alert.affected_districts?.[0]);
+  const base = DISTRICT_FALLBACKS[districtId] ?? { lat: 16.0544, lng: 108.2022 };
+
+  return [
+    base.lat + stableOffset(alert.id, 'lat'),
+    base.lng + stableOffset(alert.id, 'lng'),
+  ];
+}
+
 interface MapAlert {
   id: number;
   title: string;
@@ -83,15 +118,7 @@ function FlyToAlert({ selectedAlert }: { selectedAlert: MapAlert | null }) {
   const map = useMap();
   useEffect(() => {
     if (!selectedAlert) return;
-    // Try to get coords from geometry or use Danang center
-    const coords = selectedAlert.geometry?.coordinates;
-    if (coords && Array.isArray(coords)) {
-      const [lng, lat] = coords;
-      map.flyTo([lat, lng], 14, { duration: 1.2 });
-    } else {
-      // Fly to Danang center if no geometry
-      map.flyTo([16.0544, 108.2022], 13, { duration: 1.2 });
-    }
+    map.flyTo(getAlertPosition(selectedAlert), 14, { duration: 1.2 });
   }, [selectedAlert, map]);
   return null;
 }
@@ -280,10 +307,11 @@ export default function CitizenMapInner() {
         {activeLayers.alerts && alerts.map(alert => {
           const color = SEVERITY_COLORS[alert.severity] ?? '#3b82f6';
           const isSelected = selectedAlert?.id === alert.id;
+          const position = getAlertPosition(alert);
           return (
             <CircleMarker
               key={`alert-${alert.id}`}
-              center={[16.0544 + (Math.random() - 0.5) * 0.02, 108.2022 + (Math.random() - 0.5) * 0.03]}
+              center={position}
               radius={isSelected ? 18 : alert.severity === 'critical' ? 16 : alert.severity === 'high' ? 13 : 10}
               pathOptions={{
                 color,

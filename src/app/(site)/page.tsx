@@ -27,6 +27,7 @@ import {
   type LucideProps,
 } from 'lucide-react';
 import type { FC } from 'react';
+import { TechMarquee } from '@/components/landing/TechMarquee';
 
 // ── Inline diagram components (slide-style) ──────────────────────────────────
 
@@ -220,53 +221,78 @@ export default function LandingPage() {
     <div className="flex flex-col overflow-hidden">
 
       {/* ── Hero ── */}
-      <section className="relative pt-10 pb-20 lg:pt-20 lg:pb-32">
-        <div className="absolute inset-0 pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full opacity-50" />
-          <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-indigo-500/10 blur-[120px] rounded-full opacity-50" />
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20 pb-32">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="aurora-bg"></div>
         </div>
-        <div className="container px-4 md:px-6 mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-8">
-            <ShieldCheck size={14} />
+        <div className="absolute inset-0 pointer-events-none" style={{ transform: 'none' }}>
+          <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[70vw] h-[70vw] lg:w-[40vw] lg:h-[40vw] bg-emerald-500/10 rounded-full blur-[120px] dark:mix-blend-screen" />
+          <div className="absolute top-[40%] left-[30%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[100px] dark:mix-blend-screen" />
+          <div className="absolute top-[10%] right-[20%] w-[40vw] h-[40vw] bg-purple-500/10 rounded-full blur-[100px] dark:mix-blend-screen" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+        </div>
+        <div className="relative z-10 container max-w-6xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-8 uppercase tracking-widest backdrop-blur-md animate-glow-pulse">
+            <Zap size={16} className="text-emerald-400" />
             <span>{t('hero.badge')}</span>
           </div>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6">
-            {t('hero.title1')} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600">
+          <h1 className="text-5xl md:text-7xl lg:text-[84px] font-extrabold tracking-tight font-heading leading-tight md:leading-[1.1] animate-fade-in-up">
+            <span className="text-foreground block mb-2">{t('hero.title1')}</span>
+            <span className="text-gradient-animated">
               {t('hero.title2')}
             </span>
           </h1>
-          <p className="max-w-2xl mx-auto text-lg text-muted-foreground mb-10 leading-relaxed">
+          <p className="mt-8 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground font-medium leading-relaxed animate-fade-in-up delay-1">
             {t('hero.subtitle')}
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-lg shadow-xl shadow-primary/20 group">
-                {t('hero.ctaPrimary')}
-                <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link href="#features" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full h-14 px-10 rounded-2xl font-bold text-lg">
-                {t('hero.ctaSecondary')}
-              </Button>
-            </Link>
-          </div>
-          <div className="relative max-w-5xl mx-auto">
-            <div className="relative rounded-3xl overflow-hidden border-8 border-background/50 shadow-2xl shadow-primary/10 bg-muted">
-              <div className="aspect-[16/9] relative">
-                <Image src="/dashboard-preview.png" alt="AegisFlow Dashboard Preview" fill className="object-cover" sizes="(max-width: 1024px) 100vw, 1024px" priority />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5 animate-fade-in-up delay-2">
+            <div className="magnetic-btn">
+              <Link href="/dashboard">
+                <Button type="button" className="shimmer-btn group inline-flex shrink-0 items-center justify-center gap-1.5 h-14 px-10 text-base font-bold bg-foreground text-background border-none hover:opacity-90 transition-all rounded-full shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] animate-glow-pulse cursor-pointer">
+                  {t('hero.ctaPrimary')}
+                  <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </div>
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-card rounded-3xl border border-border p-6 shadow-2xl hidden lg:flex flex-col justify-between items-start animate-float">
+            <div className="magnetic-btn">
+              <Link href="#features">
+                <Button variant="outline" className="w-full sm:w-auto px-10 h-14 rounded-full bg-secondary/50 hover:bg-secondary border border-border font-bold tracking-wide transition-all backdrop-blur-md flex items-center justify-center gap-2 cursor-pointer text-base">
+                  {t('hero.ctaSecondary')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+          
+          {/* Dashboard Preview 3D */}
+          <div className="mt-24 mb-16 relative max-w-5xl mx-auto group animate-fade-in-up delay-3 [perspective:2000px] z-20">
+            <div className="relative rounded-3xl overflow-hidden border border-border shadow-[0_0_100px_-20px_rgba(59,130,246,0.3)] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] [transform:rotateX(12deg)_scale(0.95)] group-hover:[transform:rotateX(0deg)_scale(1)] bg-slate-900/50">
+              <div className="aspect-[1904/849] relative">
+                <Image 
+                  src="/dashboard-preview.png" 
+                  alt="AegisFlow Dashboard Preview" 
+                  fill 
+                  className="object-cover transition-opacity" 
+                  sizes="(max-width: 1024px) 100vw, 1024px" 
+                  priority 
+                  quality={100}
+                  unoptimized={true}
+                />
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-none" />
+            </div>
+            
+            {/* Glow cast shadow under the dashboard */}
+            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[80%] h-20 bg-primary/40 blur-[100px] rounded-[100%] opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+            
+            {/* Floating UI Elements */}
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-card/80 backdrop-blur-xl rounded-3xl border border-border p-6 shadow-2xl hidden lg:flex flex-col justify-between items-start animate-float transform transition-transform duration-700 group-hover:scale-110">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Zap size={20} /></div>
               <div>
                 <div className="text-[10px] font-bold text-muted-foreground uppercase">SYSTEM STATUS</div>
-                <div className="text-sm font-black text-emerald-500">[ONLINE]</div>
+                <div className="text-sm font-black text-emerald-500 animate-pulse">[ONLINE]</div>
               </div>
             </div>
-            <div className="absolute -bottom-8 -left-8 w-52 h-24 bg-card rounded-2xl border border-border p-5 shadow-2xl hidden lg:flex items-center gap-4 animate-float" style={{ animationDelay: '1.5s' }}>
+            <div className="absolute -bottom-8 -left-8 w-52 h-24 bg-card/80 backdrop-blur-xl rounded-2xl border border-border p-5 shadow-2xl hidden lg:flex items-center gap-4 animate-float transform transition-transform duration-700 group-hover:scale-110" style={{ animationDelay: '1.5s' }}>
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600"><Globe size={24} /></div>
               <div>
                 <div className="text-[10px] font-bold text-muted-foreground uppercase">DATA FLOW</div>
@@ -275,37 +301,38 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Stats ── */}
-      <section className="py-20 bg-muted/50">
-        <div className="container px-4 md:px-6 mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="flex flex-col items-center text-center p-6 rounded-3xl bg-background border border-border shadow-sm hover:shadow-md transition-all group">
-                <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
-                  <stat.icon size={24} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto animate-fade-in-up delay-3">
+            {[
+              { val: stats[0].value, label: stats[0].label, color: 'text-blue-400' },
+              { val: stats[1].value, label: stats[1].label, color: 'text-emerald-400' },
+              { val: stats[2].value, label: stats[2].label, color: 'text-purple-400' },
+              { val: stats[3].value, label: stats[3].label, color: 'text-amber-400' },
+            ].map((s, i) => (
+              <div key={i} className="text-center p-4 rounded-2xl bg-secondary/30 border border-border/50 hover:border-border transition-all hover:shadow-lg cursor-default">
+                <div className={`text-3xl md:text-4xl font-black font-heading ${s.color}`}>
+                  {s.val}
                 </div>
-                <div className="text-3xl font-black mb-1">{stat.value}</div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-tight">{stat.label}</div>
-                {stat.sub && <div className="text-[10px] text-muted-foreground/60 mt-1 font-mono">{stat.sub}</div>}
+                <div className="text-xs text-muted-foreground mt-1 font-medium uppercase tracking-wider">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      <TechMarquee />
+
       {/* ── 3 Khoảng Trống (Problem Gaps) ── */}
-      <section className="py-24 bg-muted/50">
-        <div className="container px-4 md:px-6 mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-bold mb-5">
+      <section className="py-24 relative overflow-hidden bg-background">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="container px-4 md:px-6 mx-auto relative z-10">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold mb-5 backdrop-blur-md">
               {t('landing.problemBadge')}
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-foreground mb-4">
+            <h2 className="text-4xl md:text-5xl font-black text-foreground mb-6 font-heading">
               {t('landing.problemTitle')}{' '}
-              <span className="text-red-500">{t('landing.problemTitleHighlight')}</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">{t('landing.problemTitleHighlight')}</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               {t('landing.problemSubtitle')}
@@ -332,24 +359,24 @@ export default function LandingPage() {
                 desc: t('landing.gap3Desc'),
               },
             ] as { tag: string; Icon: FC<LucideProps>; problem: string; desc: string }[]).map((card, i) => (
-              <div key={i} className="rounded-3xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
-                <div className="h-1 bg-red-500" />
-                <div className="p-8 space-y-4">
+              <div key={i} className="group relative rounded-3xl border border-red-500/20 hover:border-red-500/50 overflow-hidden bg-card/40 backdrop-blur-xl transition-all duration-500 hover:shadow-2xl hover:shadow-red-500/20">
+                <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="p-8 space-y-5 relative z-10">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
-                      <card.Icon size={20} />
+                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20">
+                      <card.Icon size={24} />
                     </div>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       {t('landing.gapLabel', { tag: card.tag })}
                     </span>
                   </div>
-                  <h3 className="text-red-500 text-xl font-black leading-tight">{card.problem}</h3>
+                  <h3 className="text-red-400 text-xl font-black leading-tight font-heading">{card.problem}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{card.desc}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-12 flex items-center justify-center gap-3 text-sm text-muted-foreground">
+          <div className="mt-12 flex items-center justify-center gap-3 text-sm text-muted-foreground relative z-10">
             <div className="h-px w-16 bg-border" />
             <span className="font-semibold">{t('landing.gapFooter')}</span>
             <div className="h-px w-16 bg-border" />
@@ -384,11 +411,16 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <div className="rounded-2xl border border-border bg-slate-50 dark:bg-slate-900/50 p-6">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">
-                  {t('landing.feat1DiagramTitle')}
-                </p>
-                <AIEngineDiagram t={t} />
+              <div className="glowing-border-wrapper group">
+                <div className="glowing-inner p-8 bg-card/60 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-6 relative z-10">
+                    {t('landing.feat1DiagramTitle')}
+                  </p>
+                  <div className="relative z-10">
+                    <AIEngineDiagram t={t} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -398,11 +430,16 @@ export default function LandingPage() {
         <div className="py-20 border-b border-border bg-muted/20">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="order-2 lg:order-1 rounded-2xl border border-border bg-white dark:bg-slate-900/50 p-6">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">
-                  {t('landing.feat2DiagramTitle')}
-                </p>
-                <EvacuationDiagram t={t} />
+              <div className="order-2 lg:order-1 glowing-border-wrapper glowing-border-wrapper-emerald group">
+                <div className="glowing-inner p-8 bg-card/60 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-6 relative z-10">
+                    {t('landing.feat2DiagramTitle')}
+                  </p>
+                  <div className="relative z-10">
+                    <EvacuationDiagram t={t} />
+                  </div>
+                </div>
               </div>
               <div className="order-1 lg:order-2 space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold">
@@ -443,8 +480,13 @@ export default function LandingPage() {
                 {t('landing.feat3Desc')}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-white dark:bg-slate-900/50 p-6 md:p-8">
-              <AutomationTimeline t={t} />
+            <div className="glowing-border-wrapper glowing-border-wrapper-indigo group">
+              <div className="glowing-inner p-6 md:p-10 bg-card/60 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                <div className="relative z-10">
+                  <AutomationTimeline t={t} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -460,43 +502,60 @@ export default function LandingPage() {
             <h2 className="text-3xl md:text-5xl font-black mb-4">{t('landing.compareTitle')}</h2>
             <p className="text-lg text-muted-foreground">{t('landing.compareSubtitle')}</p>
           </div>
-          <div className="rounded-2xl border border-border overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-5 font-bold text-foreground w-[30%]">{t('landing.compareColCriteria')}</th>
-                  <th className="p-5 font-bold text-muted-foreground text-center">{t('landing.compareColTraditional')}</th>
-                  <th className="p-5 font-bold text-emerald-600 text-center bg-emerald-50 dark:bg-emerald-900/20">{t('landing.compareColAegis')}</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Traditional Column */}
+            <div className="rounded-3xl border border-border/50 bg-background/60 backdrop-blur-xl p-8 flex flex-col gap-6 opacity-70 scale-95 transition-all duration-500 hover:opacity-100 hover:scale-100 hover:shadow-xl hover:border-border/80">
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-bold text-muted-foreground">{t('landing.compareColTraditional')}</h3>
+              </div>
+              <ul className="space-y-6">
                 {[
-                  {
-                    criteria: t('landing.compareRow1Criteria'),
-                    traditional: t('landing.compareRow1Traditional'),
-                    aegis: t('landing.compareRow1Aegis'),
-                  },
-                  {
-                    criteria: t('landing.compareRow2Criteria'),
-                    traditional: t('landing.compareRow2Traditional'),
-                    aegis: t('landing.compareRow2Aegis'),
-                  },
-                  {
-                    criteria: t('landing.compareRow3Criteria'),
-                    traditional: t('landing.compareRow3Traditional'),
-                    aegis: t('landing.compareRow3Aegis'),
-                  },
-                ].map((row, i) => (
-                  <tr key={i} className={`border-b border-border last:border-0 ${i % 2 === 0 ? '' : 'bg-muted/30'}`}>
-                    <td className="p-5 font-semibold text-foreground">{row.criteria}</td>
-                    <td className="p-5 text-muted-foreground text-center">{row.traditional}</td>
-                    <td className="p-5 text-emerald-600 font-semibold text-center bg-emerald-50/50 dark:bg-emerald-900/10">
-                      {row.aegis}
-                    </td>
-                  </tr>
+                  { criteria: t('landing.compareRow1Criteria'), desc: t('landing.compareRow1Traditional') },
+                  { criteria: t('landing.compareRow2Criteria'), desc: t('landing.compareRow2Traditional') },
+                  { criteria: t('landing.compareRow3Criteria'), desc: t('landing.compareRow3Traditional') },
+                ].map((item, i) => (
+                  <li key={i} className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{item.criteria}</span>
+                    <span className="text-sm text-muted-foreground flex items-start gap-2">
+                      <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                      {item.desc}
+                    </span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            </div>
+            
+            {/* AegisFlow Column */}
+            <div className="group relative z-10 scale-105">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-black px-5 py-1.5 rounded-full uppercase tracking-widest shadow-[0_0_20px_-2px_rgba(16,185,129,0.5)] z-20">
+                AegisFlow AI
+              </div>
+              <div className="glowing-border-wrapper glowing-border-wrapper-emerald h-full shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]">
+                <div className="glowing-inner bg-slate-900 p-8 flex flex-col gap-6 backdrop-blur-2xl h-full">
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="text-center mb-4 relative z-10">
+                  <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{t('landing.compareColAegis')}</h3>
+                </div>
+                <ul className="space-y-6 relative z-10">
+                  {[
+                    { criteria: t('landing.compareRow1Criteria'), desc: t('landing.compareRow1Aegis') },
+                    { criteria: t('landing.compareRow2Criteria'), desc: t('landing.compareRow2Aegis') },
+                    { criteria: t('landing.compareRow3Criteria'), desc: t('landing.compareRow3Aegis') },
+                  ].map((item, i) => (
+                    <li key={i} className="flex flex-col gap-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{item.criteria}</span>
+                      <div className="text-sm text-slate-200 flex items-start gap-2 font-medium">
+                        <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <ShieldCheck size={12} className="text-emerald-400" />
+                        </div>
+                        {item.desc}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            </div>
           </div>
         </div>
       </section>
@@ -517,19 +576,19 @@ export default function LandingPage() {
             <EcosystemLoop t={t} />
             <div className="space-y-3">
               {[
-                { num: t('landing.ecoStep1Num'), title: t('landing.ecoStep1Title'), desc: t('landing.ecoStep1Desc'), color: 'text-sky-500', border: 'border-sky-200 dark:border-sky-800', dot: 'bg-sky-500' },
-                { num: t('landing.ecoStep2Num'), title: t('landing.ecoStep2Title'), desc: t('landing.ecoStep2Desc'), color: 'text-indigo-500', border: 'border-indigo-200 dark:border-indigo-800', dot: 'bg-indigo-500' },
-                { num: t('landing.ecoStep3Num'), title: t('landing.ecoStep3Title'), desc: t('landing.ecoStep3Desc'), color: 'text-red-500', border: 'border-red-200 dark:border-red-800', dot: 'bg-red-500' },
-                { num: t('landing.ecoStep4Num'), title: t('landing.ecoStep4Title'), desc: t('landing.ecoStep4Desc'), color: 'text-amber-500', border: 'border-amber-200 dark:border-amber-800', dot: 'bg-amber-500' },
-                { num: t('landing.ecoStep5Num'), title: t('landing.ecoStep5Title'), desc: t('landing.ecoStep5Desc'), color: 'text-emerald-500', border: 'border-emerald-200 dark:border-emerald-800', dot: 'bg-emerald-500' },
-              ].map((step) => (
-                <div key={step.num} className={`flex gap-4 p-5 rounded-3xl border ${step.border} bg-card shadow-sm hover:shadow-md transition-all`}>
-                  <div className={`w-6 h-6 rounded-full ${step.dot} text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5`}>
+                { num: t('landing.ecoStep1Num'), title: t('landing.ecoStep1Title'), desc: t('landing.ecoStep1Desc'), color: 'text-sky-500', border: 'border-sky-500/30 hover:border-sky-500', shadow: 'hover:shadow-sky-500/20', dot: 'bg-sky-500' },
+                { num: t('landing.ecoStep2Num'), title: t('landing.ecoStep2Title'), desc: t('landing.ecoStep2Desc'), color: 'text-indigo-500', border: 'border-indigo-500/30 hover:border-indigo-500', shadow: 'hover:shadow-indigo-500/20', dot: 'bg-indigo-500' },
+                { num: t('landing.ecoStep3Num'), title: t('landing.ecoStep3Title'), desc: t('landing.ecoStep3Desc'), color: 'text-red-500', border: 'border-red-500/30 hover:border-red-500', shadow: 'hover:shadow-red-500/20', dot: 'bg-red-500' },
+                { num: t('landing.ecoStep4Num'), title: t('landing.ecoStep4Title'), desc: t('landing.ecoStep4Desc'), color: 'text-amber-500', border: 'border-amber-500/30 hover:border-amber-500', shadow: 'hover:shadow-amber-500/20', dot: 'bg-amber-500' },
+                { num: t('landing.ecoStep5Num'), title: t('landing.ecoStep5Title'), desc: t('landing.ecoStep5Desc'), color: 'text-emerald-500', border: 'border-emerald-500/30 hover:border-emerald-500', shadow: 'hover:shadow-emerald-500/20', dot: 'bg-emerald-500' },
+              ].map((step, idx) => (
+                <div key={step.num} className={`group flex gap-4 p-5 rounded-3xl border ${step.border} bg-card/40 backdrop-blur-xl ${step.shadow} hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 animate-fade-in-up`} style={{ animationDelay: `${idx * 0.1}s` }}>
+                  <div className={`w-8 h-8 rounded-full ${step.dot} text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5 shadow-lg group-hover:scale-110 transition-transform`}>
                     {step.num.replace('0', '')}
                   </div>
                   <div>
-                    <p className={`font-bold text-sm ${step.color}`}>{step.title}</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mt-0.5">{step.desc}</p>
+                    <p className={`font-black text-base ${step.color}`}>{step.title}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed mt-1 font-medium">{step.desc}</p>
                   </div>
                 </div>
               ))}
@@ -571,12 +630,13 @@ export default function LandingPage() {
                 iconColor: 'bg-indigo-500/10 text-indigo-600',
               },
             ] as { Icon: FC<LucideProps>; title: string; desc: string; iconColor: string }[]).map((card, i) => (
-              <div key={i} className="rounded-3xl border border-border bg-card p-8 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all space-y-5">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${card.iconColor}`}>
-                  <card.Icon size={24} />
+              <div key={i} className="group rounded-3xl border border-border bg-card/60 backdrop-blur-xl p-8 shadow-lg hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 transition-all duration-500 space-y-5 animate-fade-in-up relative overflow-hidden" style={{ animationDelay: `${i * 0.2}s` }}>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.iconColor} group-hover:scale-110 transition-transform duration-500 relative z-10 shadow-inner`}>
+                  <card.Icon size={28} />
                 </div>
-                <h3 className="font-black text-xl text-foreground">{card.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+                <h3 className="font-black text-2xl text-foreground relative z-10 group-hover:text-primary transition-colors">{card.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium relative z-10">{card.desc}</p>
               </div>
             ))}
           </div>
@@ -606,20 +666,28 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { quote: t('testimonials.t1.quote'), name: t('testimonials.t1.name'), role: t('testimonials.t1.role'), initial: 'M' },
-              { quote: t('testimonials.t2.quote'), name: t('testimonials.t2.name'), role: t('testimonials.t2.role'), initial: 'H' },
-              { quote: t('testimonials.t3.quote'), name: t('testimonials.t3.name'), role: t('testimonials.t3.role'), initial: 'L' },
+              { quote: t('testimonials.t1.quote'), name: t('testimonials.t1.name'), role: t('testimonials.t1.role'), initial: 'M', color: 'from-blue-500/10' },
+              { quote: t('testimonials.t2.quote'), name: t('testimonials.t2.name'), role: t('testimonials.t2.role'), initial: 'H', color: 'from-emerald-500/10' },
+              { quote: t('testimonials.t3.quote'), name: t('testimonials.t3.name'), role: t('testimonials.t3.role'), initial: 'L', color: 'from-purple-500/10' },
             ].map((item, idx) => (
-              <div key={idx} className="relative rounded-3xl border border-border bg-card p-8 hover:border-primary/30 hover:-translate-y-1 transition-all">
-                <Quote size={32} className="text-primary/20 mb-4" />
-                <p className="text-sm leading-relaxed text-muted-foreground mb-8 font-medium italic">&ldquo;{item.quote}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-black">{item.initial}</AvatarFallback>
-                  </Avatar>
+              <div key={idx} className="group relative rounded-3xl border border-border/50 bg-card/30 backdrop-blur-xl p-8 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-500 overflow-hidden">
+                <div className={`absolute top-0 left-0 w-full h-full bg-gradient-to-br ${item.color} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none`} />
+                
+                {/* Shimmer line effect on hover */}
+                <div className="absolute top-0 left-[-100%] w-1/2 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent group-hover:left-[200%] transition-all duration-1000 ease-in-out" />
+                
+                <Quote size={40} className="text-primary/20 mb-6 group-hover:scale-110 group-hover:text-primary/40 transition-all duration-500" />
+                <p className="text-base leading-relaxed text-foreground mb-8 font-medium italic relative z-10">&ldquo;{item.quote}&rdquo;</p>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 border-2 border-primary/20 group-hover:border-primary/60 transition-colors">
+                      <AvatarFallback className="bg-background text-primary text-lg font-black">{item.initial}</AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full" />
+                  </div>
                   <div>
-                    <div className="font-bold text-sm">{item.name}</div>
-                    <div className="text-xs text-muted-foreground">{item.role}</div>
+                    <div className="font-black text-base">{item.name}</div>
+                    <div className="text-xs font-bold text-primary tracking-wide uppercase">{item.role}</div>
                   </div>
                 </div>
               </div>
@@ -652,7 +720,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
               <Link href="/register" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-lg shadow-xl">
+                <Button size="lg" className="shimmer-btn w-full h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-lg shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] animate-glow-pulse border-none">
                   {t('landing.ctaPrimary')}
                   <ArrowRight size={20} className="ml-2" />
                 </Button>

@@ -17,17 +17,23 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 
 interface Sensor {
   id: number;
   name: string;
   type: 'water_level' | 'rainfall' | 'wind' | 'humidity' | 'temperature' | 'combined';
-  status: 'online' | 'offline' | 'warning' | 'error';
-  location: string;
+  status: string;
+  location?: string | { lat?: number | string | null; lng?: number | string | null } | null;
   latitude?: number;
   longitude?: number;
+  unit?: string;
+  metadata?: {
+    station_label?: string;
+    address?: string;
+    latitude?: number | string;
+    longitude?: number | string;
+  } | null;
   readings: {
     water_level?: number;
     rainfall?: number;
@@ -39,6 +45,8 @@ interface Sensor {
   battery?: number;
   last_reading?: string;
   zone?: string;
+  district?: { id: number; name: string } | null;
+  flood_zone?: { id: number; name: string } | null;
 }
 
 export default function SensorsPage() {
@@ -58,7 +66,14 @@ export default function SensorsPage() {
         if (statusFilter !== 'all') params.status = statusFilter;
         if (typeFilter !== 'all') params.type = typeFilter;
         const res = await api.get('/sensors', { params });
-        setSensors(res.data?.data ?? []);
+        const mappedSensors = (res.data?.data ?? []).map((s: any) => ({
+          ...s,
+          readings: {
+            [s.type]: s.last_value != null ? parseFloat(s.last_value) : undefined
+          },
+          last_reading: s.last_reading_at || s.last_reading
+        }));
+        setSensors(mappedSensors);
       } catch (e) {
         // silent
       } finally {
@@ -73,7 +88,7 @@ export default function SensorsPage() {
       const data = e.detail;
       setSensors(prev => prev.map(s =>
         s.id === data.sensor_id
-          ? { ...s, readings: { ...s.readings, ...data.readings }, last_reading: new Date().toISOString() }
+          ? { ...s, readings: { ...(s.readings || {}), ...data.readings }, last_reading: new Date().toISOString() }
           : s
       ));
     };
@@ -114,9 +129,61 @@ export default function SensorsPage() {
     }
   };
 
+  const getLocationString = (sensor: Sensor) => {
+    if (sensor.metadata?.station_label && sensor.metadata?.address) {
+      return `${sensor.metadata.station_label} · ${sensor.metadata.address}`;
+    }
+    if (sensor.metadata?.address) return sensor.metadata.address;
+
+    if (sensor.flood_zone?.name && sensor.district?.name) {
+      return `${sensor.flood_zone.name} · ${sensor.district.name}`;
+    }
+    if (sensor.flood_zone?.name) return sensor.flood_zone.name;
+    if (sensor.district?.name) return sensor.district.name;
+
+    const { location } = sensor;
+    if (typeof location === 'object' && location !== null) {
+      const lat = Number(location.lat);
+      const lng = Number(location.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+    const metadataLat = Number(sensor.metadata?.latitude);
+    const metadataLng = Number(sensor.metadata?.longitude);
+    if (Number.isFinite(metadataLat) && Number.isFinite(metadataLng)) {
+      return `${metadataLat.toFixed(4)}, ${metadataLng.toFixed(4)}`;
+    }
+    if (typeof location === 'string' && location.trim()) return location;
+    return 'Chưa có vị trí';
+  };
+
+  const getStatusFilterLabel = (val: string) => {
+    switch (val) {
+      case 'all': return 'Tất cả';
+      case 'online': return 'Trực tuyến';
+      case 'warning': return 'Cảnh báo';
+      case 'offline': return 'Offline';
+      default: return 'Trạng thái';
+    }
+  };
+
+  const getTypeFilterLabel = (val: string) => {
+    switch (val) {
+      case 'all': return 'Tất cả loại';
+      case 'water_level': return 'Mực nước';
+      case 'rainfall': return 'Lượng mưa';
+      case 'temperature': return 'Nhiệt độ';
+      case 'humidity': return 'Độ ẩm';
+      case 'wind': return 'Gió';
+      case 'combined': return 'Đa chức năng';
+      default: return 'Loại cảm biến';
+    }
+  };
+
   const filteredSensors = sensors.filter(sensor =>
     sensor.name.toLowerCase().includes(search.toLowerCase()) ||
-    sensor.location.toLowerCase().includes(search.toLowerCase())
+    getLocationString(sensor).toLowerCase().includes(search.toLowerCase())
   );
 
   const stats = {
@@ -127,9 +194,9 @@ export default function SensorsPage() {
   };
 
   const avgReadings = {
-    water_level: sensors.filter(s => s.readings.water_level).reduce((acc, s) => acc + (s.readings.water_level ?? 0), 0) / Math.max(sensors.filter(s => s.readings.water_level).length, 1),
-    temperature: sensors.filter(s => s.readings.temperature).reduce((acc, s) => acc + (s.readings.temperature ?? 0), 0) / Math.max(sensors.filter(s => s.readings.temperature).length, 1),
-    humidity: sensors.filter(s => s.readings.humidity).reduce((acc, s) => acc + (s.readings.humidity ?? 0), 0) / Math.max(sensors.filter(s => s.readings.humidity).length, 1),
+    water_level: sensors.filter(s => s.readings?.water_level).reduce((acc, s) => acc + (s.readings?.water_level ?? 0), 0) / Math.max(sensors.filter(s => s.readings?.water_level).length, 1),
+    temperature: sensors.filter(s => s.readings?.temperature).reduce((acc, s) => acc + (s.readings?.temperature ?? 0), 0) / Math.max(sensors.filter(s => s.readings?.temperature).length, 1),
+    humidity: sensors.filter(s => s.readings?.humidity).reduce((acc, s) => acc + (s.readings?.humidity ?? 0), 0) / Math.max(sensors.filter(s => s.readings?.humidity).length, 1),
   };
 
   return (
@@ -189,7 +256,7 @@ export default function SensorsPage() {
         </div>
         <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v)}>
           <SelectTrigger className="w-full sm:w-[140px]">
-            <SelectValue placeholder="Trạng thái" />
+            <span className="flex-1 text-left truncate">{getStatusFilterLabel(statusFilter)}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
@@ -200,7 +267,7 @@ export default function SensorsPage() {
         </Select>
         <Select value={typeFilter} onValueChange={(v) => v && setTypeFilter(v)}>
           <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Loại cảm biến" />
+            <span className="flex-1 text-left truncate">{getTypeFilterLabel(typeFilter)}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả loại</SelectItem>
@@ -254,7 +321,7 @@ export default function SensorsPage() {
                               <h3 className="font-semibold text-sm">{sensor.name}</h3>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <MapPin size={10} />
-                                <span className="truncate max-w-[120px]">{sensor.location}</span>
+                                <span className="truncate max-w-[160px]">{getLocationString(sensor)}</span>
                               </div>
                             </div>
                           </div>
@@ -266,25 +333,25 @@ export default function SensorsPage() {
 
                         {/* Readings */}
                         <div className="grid grid-cols-2 gap-2 mb-3">
-                          {sensor.readings.water_level !== undefined && (
+                          {sensor.readings?.water_level !== undefined && (
                             <div className="p-2 bg-blue-50 rounded-lg">
                               <p className="text-[10px] text-muted-foreground">Mực nước</p>
                               <p className="font-bold text-sm">{sensor.readings.water_level}m</p>
                             </div>
                           )}
-                          {sensor.readings.temperature !== undefined && (
+                          {sensor.readings?.temperature !== undefined && (
                             <div className="p-2 bg-orange-50 rounded-lg">
                               <p className="text-[10px] text-muted-foreground">Nhiệt độ</p>
                               <p className="font-bold text-sm">{sensor.readings.temperature}°C</p>
                             </div>
                           )}
-                          {sensor.readings.humidity !== undefined && (
+                          {sensor.readings?.humidity !== undefined && (
                             <div className="p-2 bg-purple-50 rounded-lg">
                               <p className="text-[10px] text-muted-foreground">Độ ẩm</p>
                               <p className="font-bold text-sm">{sensor.readings.humidity}%</p>
                             </div>
                           )}
-                          {sensor.readings.rainfall !== undefined && (
+                          {sensor.readings?.rainfall !== undefined && (
                             <div className="p-2 bg-cyan-50 rounded-lg">
                               <p className="text-[10px] text-muted-foreground">Lượng mưa</p>
                               <p className="font-bold text-sm">{sensor.readings.rainfall}mm</p>
@@ -355,7 +422,7 @@ export default function SensorsPage() {
                           <tr key={sensor.id} className="border-b border-border hover:bg-muted/50">
                             <td className="p-4 font-medium text-sm">{sensor.name}</td>
                             <td className="p-4"><Badge variant="outline" className="text-xs">{getTypeLabel(sensor.type)}</Badge></td>
-                            <td className="p-4 text-sm text-muted-foreground">{sensor.location}</td>
+                            <td className="p-4 text-sm text-muted-foreground">{getLocationString(sensor)}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-1">
                                 <span className={`w-2 h-2 rounded-full ${status.color}`} />
@@ -363,9 +430,9 @@ export default function SensorsPage() {
                               </div>
                             </td>
                             <td className="p-4 text-sm font-medium">
-                              {sensor.readings.water_level !== undefined && `${sensor.readings.water_level}m`}
-                              {sensor.readings.temperature !== undefined && `${sensor.readings.temperature}°C`}
-                              {sensor.readings.humidity !== undefined && `${sensor.readings.humidity}%`}
+                              {sensor.readings?.water_level !== undefined && `${sensor.readings.water_level}m`}
+                              {sensor.readings?.temperature !== undefined && `${sensor.readings.temperature}°C`}
+                              {sensor.readings?.humidity !== undefined && `${sensor.readings.humidity}%`}
                             </td>
                             <td className="p-4 text-sm text-muted-foreground">
                               {sensor.battery ? `${sensor.battery}%` : '-'}

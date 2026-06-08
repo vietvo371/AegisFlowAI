@@ -618,8 +618,8 @@
       "low": "Low", "medium": "Medium", "high": "High", "critical": "Critical"
     },
     "incidentStatus": {
-      "reported": "Reported", "investigating": "Investigating",
-      "confirmed": "Confirmed", "resolved": "Resolved", "false_alarm": "False Alarm"
+      "reported": "Reported", "verified": "Verified",
+      "responding": "Responding", "resolved": "Resolved", "closed": "Closed"
     },
     "rescueStatus": {
       "pending": "Pending", "assigned": "Assigned",
@@ -920,6 +920,23 @@
     "loading": "Loading notifications..."
   },
   "auth": {
+    "actorLoginTitle": "Sign in by actor",
+    "chooseActorTitle": "Choose a sign-in portal",
+    "chooseActorDesc": "Each actor has a separate AegisFlow AI workspace and access scope.",
+    "actorWelcome": "{actor} Sign In",
+    "actorMismatch": "This account does not belong to the {actor} portal. Please choose the correct actor.",
+    "roles": {
+      "cityAdmin": "City Admin",
+      "cityAdminDesc": "Command center, system configuration, and user management.",
+      "rescueOperator": "Rescue Operator",
+      "rescueOperatorDesc": "Monitor incidents, dispatch teams, and issue alerts.",
+      "aiOperator": "AI Operator",
+      "aiOperatorDesc": "Review predictions, models, and automated recommendations.",
+      "rescueTeam": "Rescue Team",
+      "rescueTeamDesc": "Receive assignments, update status, and navigate in the field.",
+      "citizen": "Citizen",
+      "citizenDesc": "View alerts, safe maps, and submit support requests."
+    },
     "welcomeBack": "Welcome Back",
     "signInDesc": "Sign in to continue monitoring and protecting your community.",
     "email": "Email address",

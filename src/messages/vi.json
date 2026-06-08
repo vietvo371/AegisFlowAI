@@ -618,8 +618,8 @@
       "low": "Thấp", "medium": "Trung bình", "high": "Cao", "critical": "Khẩn cấp"
     },
     "incidentStatus": {
-      "reported": "Mới báo cáo", "investigating": "Đang kiểm tra",
-      "confirmed": "Đã xác nhận", "resolved": "Đã giải quyết", "false_alarm": "Báo giả"
+      "reported": "Mới báo cáo", "verified": "Đã xác minh",
+      "responding": "Đang ứng phó", "resolved": "Đã giải quyết", "closed": "Đã đóng"
     },
     "rescueStatus": {
       "pending": "Đang chờ", "assigned": "Đã phân công",
@@ -920,6 +920,23 @@
     "loading": "Đang tải thông báo..."
   },
   "auth": {
+    "actorLoginTitle": "Đăng nhập theo tác nhân",
+    "chooseActorTitle": "Chọn cổng đăng nhập",
+    "chooseActorDesc": "Mỗi tác nhân có giao diện và quyền truy cập riêng trong AegisFlow AI.",
+    "actorWelcome": "Đăng nhập {actor}",
+    "actorMismatch": "Tài khoản này không thuộc cổng {actor}. Vui lòng chọn đúng tác nhân.",
+    "roles": {
+      "cityAdmin": "Quản trị đô thị",
+      "cityAdminDesc": "Trung tâm chỉ huy, cấu hình hệ thống và quản lý người dùng.",
+      "rescueOperator": "Điều phối cứu hộ",
+      "rescueOperatorDesc": "Theo dõi sự cố, phân công lực lượng và gửi cảnh báo.",
+      "aiOperator": "Vận hành AI",
+      "aiOperatorDesc": "Kiểm duyệt dự báo, mô hình và các khuyến nghị tự động.",
+      "rescueTeam": "Đội cứu hộ",
+      "rescueTeamDesc": "Nhận nhiệm vụ, cập nhật trạng thái và dẫn đường thực địa.",
+      "citizen": "Công dân",
+      "citizenDesc": "Xem cảnh báo, bản đồ an toàn và gửi yêu cầu hỗ trợ."
+    },
     "welcomeBack": "Chào mừng trở lại",
     "signInDesc": "Đăng nhập để tiếp tục giám sát và bảo vệ cộng đồng.",
     "email": "Địa chỉ email",
