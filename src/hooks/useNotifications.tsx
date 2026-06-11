@@ -22,6 +22,7 @@ interface NotificationContextType {
   seedNotifications: (items: Notification[]) => void;
   markAsRead: (id: string) => void;
   markAllRead: () => void;
+  deleteNotification: (id: string) => void;
   clearAll: () => void;
   seeded: boolean;
 }
@@ -37,6 +38,7 @@ const NotificationContext = createContext<NotificationContextType>({
   seedNotifications: () => {},
   markAsRead: () => {},
   markAllRead: () => {},
+  deleteNotification: () => {},
   clearAll: () => {},
   seeded: false,
 });
@@ -91,6 +93,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
+  const deleteNotification = useCallback(async (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+
+    if (!isUuid(id)) return;
+
+    try {
+      await api.delete(`/notifications/${id}`);
+    } catch (error) {
+      console.error('[useNotifications] deleteNotification failed:', error);
+    }
+  }, []);
+
   const clearAll = useCallback(() => {
     setNotifications([]);
   }, []);
@@ -106,6 +120,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         seedNotifications,
         markAsRead,
         markAllRead,
+        deleteNotification,
         clearAll,
         seeded,
       }}

@@ -1,12 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'framer-motion';
 import {
-  Settings, User, Bell, Shield, Palette, Globe, Key,
-  Mail, Phone, MapPin, Save, Camera, CheckCircle, AlertTriangle, Loader2
+  User, Bell, Shield, Palette, Key,
+  Save, Camera, AlertTriangle, Loader2, Brain, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,11 +23,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface AiSystemSettings {
+  prediction_enabled: boolean;
+  prediction_interval_minutes: number;
+  prediction_horizon_minutes: number;
+  seasonality_enabled: boolean;
+  last_run_at?: string | null;
+}
+
 export default function SettingsPage() {
-  const t = useTranslations('dashboard');
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [savingNotifications, setSavingNotifications] = React.useState(false);
+  const [loadingSystemSettings, setLoadingSystemSettings] = React.useState(true);
+  const [savingSystemSettings, setSavingSystemSettings] = React.useState(false);
   const [deletingAccount, setDeletingAccount] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
@@ -52,6 +60,68 @@ export default function SettingsPage() {
     timezone: 'Asia/Ho_Chi_Minh',
   });
 
+  const [aiSettings, setAiSettings] = React.useState<AiSystemSettings>({
+    prediction_enabled: true,
+    prediction_interval_minutes: 15,
+    prediction_horizon_minutes: 60,
+    seasonality_enabled: true,
+    last_run_at: null,
+  });
+
+  React.useEffect(() => {
+    const fetchSystemSettings = async () => {
+      setLoadingSystemSettings(true);
+      try {
+        const api = (await import('@/lib/api')).default;
+        const res = await api.get('/admin/system-settings');
+        const ai = res.data?.data?.ai;
+        if (ai) {
+          setAiSettings({
+            prediction_enabled: Boolean(ai.prediction_enabled),
+            prediction_interval_minutes: Number(ai.prediction_interval_minutes ?? 15),
+            prediction_horizon_minutes: Number(ai.prediction_horizon_minutes ?? 60),
+            seasonality_enabled: Boolean(ai.seasonality_enabled),
+            last_run_at: ai.last_run_at ?? null,
+          });
+        }
+      } catch {
+        toast.error('Không tải được cấu hình hệ thống');
+      } finally {
+        setLoadingSystemSettings(false);
+      }
+    };
+
+    fetchSystemSettings();
+  }, []);
+
+  const handleSystemSettingsSave = async () => {
+    setSavingSystemSettings(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      const res = await api.put('/admin/system-settings', {
+        ai_prediction_enabled: aiSettings.prediction_enabled,
+        ai_prediction_interval_minutes: aiSettings.prediction_interval_minutes,
+        ai_prediction_horizon_minutes: aiSettings.prediction_horizon_minutes,
+        ai_seasonality_enabled: aiSettings.seasonality_enabled,
+      });
+      const ai = res.data?.data?.ai;
+      if (ai) {
+        setAiSettings({
+          prediction_enabled: Boolean(ai.prediction_enabled),
+          prediction_interval_minutes: Number(ai.prediction_interval_minutes ?? 15),
+          prediction_horizon_minutes: Number(ai.prediction_horizon_minutes ?? 60),
+          seasonality_enabled: Boolean(ai.seasonality_enabled),
+          last_run_at: ai.last_run_at ?? null,
+        });
+      }
+      toast.success('Đã lưu cấu hình hệ thống');
+    } catch {
+      toast.error('Không thể lưu cấu hình hệ thống');
+    } finally {
+      setSavingSystemSettings(false);
+    }
+  };
+
   const handleProfileUpdate = async () => {
     setLoading(true);
     try {
@@ -59,7 +129,7 @@ export default function SettingsPage() {
       await api.put('/auth/profile', { name: profile.name, phone: profile.phone });
       await refreshUser();
       toast.success('Cập nhật hồ sơ thành công!');
-    } catch (e) {
+    } catch {
       toast.error('Không thể cập nhật hồ sơ');
     } finally {
       setLoading(false);
@@ -132,7 +202,7 @@ export default function SettingsPage() {
       });
       toast.success('Đổi mật khẩu thành công!');
       e.currentTarget.reset();
-    } catch (e) {
+    } catch {
       toast.error('Không thể đổi mật khẩu');
     } finally {
       setLoading(false);
@@ -146,6 +216,129 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Cài đặt</h1>
         <p className="text-sm text-muted-foreground">Quản lý tài khoản và tùy chọn</p>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain size={20} />
+              Cấu hình hệ thống AI
+            </CardTitle>
+            <CardDescription>
+              Điều chỉnh lịch chạy dự báo tự động và khung thời gian AI dự báo
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-5 lg:grid-cols-4">
+              <div className="flex items-center justify-between rounded-lg border p-4 lg:col-span-2">
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">Chạy dự báo tự động</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Scheduler sẽ tự gửi job dự báo vào queue theo khoảng thời gian bên dưới.
+                  </p>
+                </div>
+                <Switch
+                  checked={aiSettings.prediction_enabled}
+                  disabled={loadingSystemSettings}
+                  onCheckedChange={(checked) =>
+                    setAiSettings((settings) => ({ ...settings, prediction_enabled: checked }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Chu kỳ chạy</Label>
+                <Select
+                  value={String(aiSettings.prediction_interval_minutes)}
+                  disabled={loadingSystemSettings}
+                  onValueChange={(value) =>
+                    setAiSettings((settings) => ({
+                      ...settings,
+                      prediction_interval_minutes: Number(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Mỗi 1 phút</SelectItem>
+                    <SelectItem value="5">Mỗi 5 phút</SelectItem>
+                    <SelectItem value="10">Mỗi 10 phút</SelectItem>
+                    <SelectItem value="15">Mỗi 15 phút</SelectItem>
+                    <SelectItem value="30">Mỗi 30 phút</SelectItem>
+                    <SelectItem value="60">Mỗi 1 giờ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Khung dự báo</Label>
+                <Select
+                  value={String(aiSettings.prediction_horizon_minutes)}
+                  disabled={loadingSystemSettings}
+                  onValueChange={(value) =>
+                    setAiSettings((settings) => ({
+                      ...settings,
+                      prediction_horizon_minutes: Number(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 phút tới</SelectItem>
+                    <SelectItem value="30">30 phút tới</SelectItem>
+                    <SelectItem value="60">1 giờ tới</SelectItem>
+                    <SelectItem value="120">2 giờ tới</SelectItem>
+                    <SelectItem value="240">4 giờ tới</SelectItem>
+                    <SelectItem value="1440">24 giờ tới</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex gap-3">
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Clock size={17} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Dùng dữ liệu mẫu theo tháng/năm</p>
+                  <p className="text-xs text-muted-foreground">
+                    AI dùng seasonality từ dataset lịch sử, ví dụ mùa mưa Sep-Dec có rủi ro nền cao hơn.
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Lần chạy gần nhất: {aiSettings.last_run_at ? new Date(aiSettings.last_run_at).toLocaleString('vi-VN') : 'Chưa có'}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={aiSettings.seasonality_enabled}
+                disabled={loadingSystemSettings}
+                onCheckedChange={(checked) =>
+                  setAiSettings((settings) => ({ ...settings, seasonality_enabled: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                className="gap-2"
+                onClick={handleSystemSettingsSave}
+                disabled={loadingSystemSettings || savingSystemSettings}
+              >
+                {savingSystemSettings ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Lưu cấu hình hệ thống
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left Column */}

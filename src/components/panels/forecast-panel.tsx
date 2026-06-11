@@ -315,7 +315,7 @@ export function ForecastPanel() {
         : windSensor?.last_value != null
           ? `${windSensor.last_value}${windSensor.unit || 'km/h'}`
           : `${DA_NANG_FALLBACK_WEATHER.windSpeedKmh}km/h`,
-      sub: weather?.wind_direction ?? windSensor?.name ?? `${DA_NANG_FALLBACK_WEATHER.windDirection} · ${DA_NANG_FALLBACK_WEATHER.sourceLabel}`,
+      sub: weather?.wind_direction ? (!isNaN(Number(weather.wind_direction)) ? `Hướng: ${weather.wind_direction}°` : weather.wind_direction) : windSensor?.name ?? `${DA_NANG_FALLBACK_WEATHER.windDirection} · ${DA_NANG_FALLBACK_WEATHER.sourceLabel}`,
       color: 'text-slate-500',
     },
     {

@@ -54,16 +54,18 @@ const getMappedPriority = (rec: any): 'low' | 'medium' | 'high' | 'critical' => 
   return 'medium';
 };
 
-const getMappedTitle = (rec: any): string => {
+const getMappedTitle = (rec: any, tRec: any): string => {
   if (rec.title) return rec.title;
-  if (rec.type === 'rescue_dispatch') return 'Điều phối lực lượng cứu hộ';
-  if (rec.type === 'evacuation') return 'Yêu cầu sơ tán dân cư';
-  if (rec.type === 'alert') return 'Phát thông tin cảnh báo thiên tai';
-  return rec.type_label || 'Đề xuất tối ưu từ AI';
+  if (rec.type === 'rescue_dispatch') return tRec('recTypeRescueDispatch');
+  if (rec.type === 'evacuation') return tRec('recTypeEvacuation');
+  if (rec.type === 'alert') return tRec('recTypeAlert');
+  return rec.type_label || tRec('recTypeDefault');
 };
 
 export default function RecommendationsPage() {
   const t = useTranslations('dashboard');
+  const tRec = useTranslations('dashboard.recommendations');
+  const tCommon = useTranslations('common');
   const [recommendations, setRecommendations] = React.useState<Recommendation[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<number | null>(null);
@@ -304,7 +306,7 @@ export default function RecommendationsPage() {
         <DialogContent className="sm:max-w-[500px]">
           {selectedRec && (() => {
             const mappedPriority = getMappedPriority(selectedRec);
-            const mappedTitle = getMappedTitle(selectedRec);
+            const mappedTitle = getMappedTitle(selectedRec, tRec);
             const confidenceVal = selectedRec.confidence ?? selectedRec.details?.confidence_score ?? 0.85;
 
             const priority = getPriorityConfig(mappedPriority);
@@ -319,9 +321,9 @@ export default function RecommendationsPage() {
                       {type.icon}
                     </div>
                     <div>
-                      <DialogTitle className="text-lg font-bold">{mappedTitle}</DialogTitle>
+                      <DialogTitle className="text-base sm:text-lg">{getMappedTitle(selectedRec, tRec)}</DialogTitle>
                       <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                        Khuyến nghị ID #{selectedRec.id} • {type.label}
+                        {tRec('recId')} #{selectedRec.id} • {type.label}
                       </DialogDescription>
                     </div>
                   </div>
@@ -331,10 +333,10 @@ export default function RecommendationsPage() {
                   {/* Status & Priority Badges */}
                   <div className="flex flex-wrap gap-2">
                     <Badge className={`${priority.text} bg-opacity-10`} style={{ backgroundColor: 'var(--tw-bg-opacity, 0.1)' }}>
-                      Mức độ: {priority.label}
+                      {tRec('priorityLabel')}: {priority.label}
                     </Badge>
                     <Badge variant="outline" className={`${status.color}`}>
-                      Trạng thái: {status.label}
+                      {tRec('statusLabel')}: {status.label}
                     </Badge>
                   </div>
 
@@ -347,7 +349,7 @@ export default function RecommendationsPage() {
                   {selectedRec.incident && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-b py-2 my-2">
                       <MapPin size={14} className="text-red-500" />
-                      <span className="font-semibold text-slate-700">Sự cố liên quan:</span>
+                      <span className="font-semibold text-slate-700">{tRec('relatedIncident')}</span>
                       <span className="truncate flex-1">{selectedRec.incident.title}</span>
                     </div>
                   )}
@@ -357,7 +359,7 @@ export default function RecommendationsPage() {
                     <div className="space-y-1 bg-emerald-50/30 border border-emerald-100/50 rounded-xl p-3">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-medium text-slate-500 flex items-center gap-1">
-                          <Shield size={13} className="text-emerald-600 animate-pulse" /> Độ tin cậy của AI
+                          <Shield size={13} className="text-emerald-600 animate-pulse" /> {tRec('aiConfidence')}
                         </span>
                         <span className="font-bold text-emerald-600">{Math.round(confidenceVal * 100)}%</span>
                       </div>
@@ -370,7 +372,7 @@ export default function RecommendationsPage() {
                     <div className="rounded-xl border p-3.5 space-y-2.5 bg-indigo-50/20">
                       <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                         <Sparkles size={14} className="text-indigo-500" />
-                        Cơ sở đưa ra khuyến nghị
+                        {tRec('recBasis')}
                       </p>
                       <div className="space-y-2">
                         {selectedRec.details.reasoning.map((reason: string, idx: number) => (
@@ -387,15 +389,15 @@ export default function RecommendationsPage() {
                   {(selectedRec.target_area || (selectedRec.target_audience && selectedRec.target_audience.length > 0)) && (
                     <div className="grid grid-cols-2 gap-3 text-xs border border-dashed rounded-xl p-3 bg-slate-50/50">
                       <div>
-                        <span className="text-muted-foreground block mb-0.5">📍 Khu vực áp dụng</span>
-                        <span className="font-semibold text-slate-800">{selectedRec.target_area || 'Liên Chiểu, Đà Nẵng'}</span>
+                        <span className="text-muted-foreground block mb-0.5">{tRec('targetAreaLabel')}</span>
+                        <span className="font-semibold text-slate-800">{selectedRec.target_area || tRec('defaultArea')}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block mb-0.5">👥 Đối tượng nhận tin</span>
+                        <span className="text-muted-foreground block mb-0.5">{tRec('targetAudienceLabel')}</span>
                         <span className="font-semibold text-slate-800">
                           {selectedRec.target_audience && selectedRec.target_audience.length > 0
                             ? selectedRec.target_audience.join(', ')
-                            : 'Đội cứu hộ, cư dân'}
+                            : tRec('targetAudienceDefault')}
                         </span>
                       </div>
                     </div>
@@ -404,10 +406,10 @@ export default function RecommendationsPage() {
                   {/* Reject Reason input field */}
                   {isRejecting && (
                     <div className="space-y-2 border-t pt-3">
-                      <label className="text-xs font-bold text-red-600 block">Lý do từ chối (bắt buộc):</label>
+                      <label className="text-xs font-bold text-red-600 block">{tRec('rejectReasonLabel')}</label>
                       <textarea
                         className="w-full min-h-[70px] p-2 border rounded-md text-xs focus:ring-1 focus:ring-red-500 focus:outline-none"
-                        placeholder="Nhập lý do chi tiết từ chối để AI có thể tự học hỏi và cải thiện..."
+                        placeholder={tRec('rejectReasonPlaceholder')}
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
                         maxLength={500}
@@ -429,7 +431,7 @@ export default function RecommendationsPage() {
                             setRejectReason('');
                           }}
                         >
-                          Hủy bỏ
+                          {tCommon('cancel')}
                         </Button>
                         <Button
                           variant="destructive"
@@ -439,7 +441,7 @@ export default function RecommendationsPage() {
                           disabled={actionLoading === selectedRec.id}
                         >
                           <XCircle size={15} />
-                          Xác nhận từ chối
+                          {tRec('confirmReject')}
                         </Button>
                       </>
                     ) : (
@@ -450,7 +452,7 @@ export default function RecommendationsPage() {
                           className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                           onClick={() => setIsRejecting(true)}
                         >
-                          Từ chối
+                          {tRec('rejectBtn')}
                         </Button>
                         <Button
                           size="sm"
@@ -459,7 +461,7 @@ export default function RecommendationsPage() {
                           disabled={actionLoading === selectedRec.id}
                         >
                           <CheckCircle size={15} />
-                          Phê duyệt & Ban hành
+                          {tRec('approvePublish')}
                         </Button>
                       </>
                     )
@@ -470,7 +472,7 @@ export default function RecommendationsPage() {
                       className="w-full"
                       onClick={() => setIsDetailOpen(false)}
                     >
-                      Đóng
+                      {tCommon('close')}
                     </Button>
                   )}
                 </DialogFooter>
@@ -498,7 +500,7 @@ export default function RecommendationsPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground">Không có khuyến nghị nào</p>
+            <p className="text-muted-foreground">{tRec('noRecommendations')}</p>
           </CardContent>
         </Card>
       );
@@ -506,7 +508,7 @@ export default function RecommendationsPage() {
 
     return items.map((rec, i) => {
       const mappedPriority = getMappedPriority(rec);
-      const mappedTitle = getMappedTitle(rec);
+      const mappedTitle = getMappedTitle(rec, tRec);
       const confidenceVal = rec.confidence ?? rec.details?.confidence_score ?? 0.85;
 
       const priority = getPriorityConfig(mappedPriority);

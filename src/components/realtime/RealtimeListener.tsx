@@ -27,12 +27,14 @@ function getLinkByRole(type: string, data: Record<string, unknown>, role?: strin
     return '/dashboard/alerts';
   }
   if (type === 'rescue') {
+    if (data.rescue_request_id) return `/dashboard/rescue-requests`;
     return '/dashboard/rescue-requests';
   }
-  if (type === 'prediction') {
-    return '/dashboard/predictions';
+  if (type === 'prediction' || type === 'recommendation') {
+    if (data.id) return `/dashboard/recommendations`;
+    return '/dashboard/recommendations';
   }
-  return '/dashboard/notifications';
+  return '';
 }
 
 function mapNotificationType(backendType: string): 'incident' | 'alert' | 'rescue' | 'prediction' | 'sensor' | 'system' {
@@ -40,6 +42,7 @@ function mapNotificationType(backendType: string): 'incident' | 'alert' | 'rescu
   if (backendType === 'AlertCreated') return 'alert';
   if (backendType === 'RescueRequestCreated') return 'rescue';
   if (backendType === 'PredictionReceived') return 'prediction';
+  if (backendType === 'RecommendationApproved') return 'prediction';
   if (backendType === 'SensorReadingReceived') return 'sensor';
   return 'system';
 }

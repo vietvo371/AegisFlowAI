@@ -25,6 +25,11 @@ interface FocusPoint {
   type?: 'incident' | 'team' | 'shelter' | 'flood_zone' | 'rescue_request';
   subtitle?: string;
   status?: string;
+  urgency?: string;
+  caller?: string;
+  phone?: string;
+  peopleCount?: string;
+  photoUrl?: string;
   riskLevel?: string;
   waterLevel?: string;
   capacity?: string;
@@ -81,6 +86,12 @@ export default function DashboardPage() {
     const requestId = Number(searchParams.get('requestId'));
     const requestTitle = searchParams.get('requestTitle');
     const requestStatus = searchParams.get('requestStatus');
+    const requestAddress = searchParams.get('requestAddress');
+    const requestUrgency = searchParams.get('requestUrgency');
+    const requestCaller = searchParams.get('requestCaller');
+    const requestPhone = searchParams.get('requestPhone');
+    const requestPeople = searchParams.get('requestPeople');
+    const requestPhoto = searchParams.get('requestPhoto');
 
     if (Number.isFinite(teamId) && Number.isFinite(lat) && Number.isFinite(lng) && name) {
       setSelectedTeam({ id: teamId, name, latitude: lat, longitude: lng });
@@ -145,7 +156,13 @@ export default function DashboardPage() {
         latitude: lat,
         longitude: lng,
         type: 'rescue_request',
+        subtitle: requestAddress || undefined,
         status: requestStatus || undefined,
+        urgency: requestUrgency || undefined,
+        caller: requestCaller || undefined,
+        phone: requestPhone || undefined,
+        peopleCount: requestPeople || undefined,
+        photoUrl: requestPhoto || undefined,
       });
       setSelectedTeam(null);
       setEvacuationRoute(null);

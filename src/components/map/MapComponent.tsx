@@ -63,6 +63,11 @@ interface Props {
     type?: 'incident' | 'team' | 'shelter' | 'flood_zone' | 'rescue_request';
     subtitle?: string;
     status?: string;
+    urgency?: string;
+    caller?: string;
+    phone?: string;
+    peopleCount?: string;
+    photoUrl?: string;
     riskLevel?: string;
     waterLevel?: string;
     capacity?: string;
@@ -984,8 +989,36 @@ export default function MapComponent({ evacuationRoute, focusTeam, focusPoint, f
         : focusPoint.type === 'rescue_request'
           ? `
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;margin-top:10px">
-    <span style="color:#6B7280;font-size:12px">Trạng thái: <b style="color:#111827">${focusPoint.status || '—'}</b></span>
-  </div>`
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr>
+        <td style="color:#6B7280;padding:4px 0;width:42%">Người yêu cầu</td>
+        <td style="text-align:right;padding:4px 0"><b style="color:#111827">${focusPoint.caller || '—'}</b></td>
+      </tr>
+      <tr>
+        <td style="color:#6B7280;padding:4px 0;border-top:1px solid #E5E7EB">Số điện thoại</td>
+        <td style="text-align:right;padding:4px 0;border-top:1px solid #E5E7EB"><b style="color:#2563EB">${focusPoint.phone || '—'}</b></td>
+      </tr>
+      <tr>
+        <td style="color:#6B7280;padding:4px 0;border-top:1px solid #E5E7EB">Số người</td>
+        <td style="text-align:right;padding:4px 0;border-top:1px solid #E5E7EB"><b style="color:#111827">${focusPoint.peopleCount ? `${focusPoint.peopleCount} người` : '—'}</b></td>
+      </tr>
+      <tr>
+        <td style="color:#6B7280;padding:4px 0;border-top:1px solid #E5E7EB">Trạng thái</td>
+        <td style="text-align:right;padding:4px 0;border-top:1px solid #E5E7EB"><b style="color:#111827">${focusPoint.status || '—'}</b></td>
+      </tr>
+      <tr style="border-top:1px solid #E5E7EB">
+        <td style="color:#6B7280;padding:4px 0">Mức khẩn cấp</td>
+        <td style="text-align:right;padding:4px 0"><b style="color:#DC2626">${focusPoint.urgency || '—'}</b></td>
+      </tr>
+      <tr style="border-top:1px solid #E5E7EB">
+        <td style="color:#6B7280;padding:4px 0;vertical-align:top">Địa điểm</td>
+        <td style="text-align:right;color:#374151;padding:4px 0;word-break:break-word">${focusPoint.subtitle || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}</td>
+      </tr>
+    </table>
+  </div>
+  ${focusPoint.photoUrl
+    ? `<img src="${focusPoint.photoUrl}" alt="Ảnh yêu cầu cứu hộ" style="width:100%;height:128px;object-fit:cover;border-radius:10px;margin-top:10px;border:1px solid #E5E7EB;background:#F3F4F6" />`
+    : `<div style="margin-top:10px;border:1px dashed #D1D5DB;border-radius:10px;padding:10px;text-align:center;color:#6B7280;font-size:12px;background:#F9FAFB">Chưa có ảnh đính kèm</div>`}`
         : focusPoint.type === 'incident'
           ? `
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB;margin-top:10px">
@@ -1183,22 +1216,33 @@ export default function MapComponent({ evacuationRoute, focusTeam, focusPoint, f
 </div>`;
       } else if (layerId === 'layer-incidents') {
         const wardDistrict = [props.ward_name, props.district_name].filter(Boolean).join(', ');
+        const severityColor = props.severity === 'critical' ? '#DC2626' : props.severity === 'high' ? '#EA580C' : props.severity === 'medium' ? '#D97706' : '#16A34A';
+        const severityBg = props.severity === 'critical' ? '#FEE2E2' : props.severity === 'high' ? '#FFEDD5' : props.severity === 'medium' ? '#FEF3C7' : '#DCFCE7';
+        const statusColor = props.status === 'responding' ? '#D97706' : props.status === 'resolved' ? '#16A34A' : '#6B7280';
+        const statusBg = props.status === 'responding' ? '#FEF3C7' : props.status === 'resolved' ? '#DCFCE7' : '#F3F4F6';
+        const descRow = props.description ? `<tr style="border-top:1px solid #E5E7EB"><td colspan="2" style="color:#374151;padding:6px 0;font-size:12px;line-height:1.5">${String(props.description)}</td></tr>` : '';
+        const affectedRow = props.affected_people ? `<tr style="border-top:1px solid #E5E7EB"><td style="color:#6B7280;padding:4px 0">👥 Người bị ảnh hưởng</td><td style="text-align:right;font-weight:600;color:#111827;padding:4px 0">${String(props.affected_people)} người</td></tr>` : '';
+        const waterRow = props.water_level_m ? `<tr style="border-top:1px solid #E5E7EB"><td style="color:#6B7280;padding:4px 0">💧 Mực nước</td><td style="text-align:right;font-weight:700;color:#2563EB;padding:4px 0">${Number(props.water_level_m).toFixed(2)} m</td></tr>` : '';
+        const timeRow = props.reported_at ? `<tr style="border-top:1px solid #E5E7EB"><td style="color:#6B7280;padding:4px 0">🕐 Báo cáo lúc</td><td style="text-align:right;color:#374151;padding:4px 0">${String(props.reported_at)}</td></tr>` : '';
         html = `
-<div style="font-family:system-ui,sans-serif;min-width:260px;max-width:320px">
-  <div style="font-size:10px;font-weight:700;color:#DC2626;letter-spacing:.08em;margin-bottom:4px">⚠️ ${tPopup('incidents') || 'INCIDENT'}</div>
+<div style="font-family:system-ui,sans-serif;min-width:270px;max-width:320px">
+  <div style="font-size:10px;font-weight:700;color:#DC2626;letter-spacing:.08em;margin-bottom:4px">⚠️ SỰ CỐ · ${String(props.type_label ?? 'Sự cố')}</div>
   <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;line-height:1.3">${String(props.title ?? '—')}</div>
-  <div style="font-size:12px;color:#6B7280;margin-bottom:12px">${wardDistrict || String(props.address ?? '—')}</div>
+  <div style="font-size:12px;color:#6B7280;margin-bottom:10px">${wardDistrict || String(props.address ?? '—')}</div>
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <span style="background:${severityBg};color:${severityColor};border-radius:5px;padding:2px 9px;font-size:11px;font-weight:700">${String(props.severity_label ?? props.severity ?? '—')}</span>
+    <span style="background:${statusBg};color:${statusColor};border-radius:5px;padding:2px 9px;font-size:11px;font-weight:700">${String(props.status_label ?? props.status ?? '—')}</span>
+  </div>
   <div style="background:#F9FAFB;border-radius:8px;padding:12px;border:1px solid #E5E7EB">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <tr>
-        <td style="color:#6B7280;padding:4px 0">${tPopup('status')}</td>
-        <td style="text-align:right;padding:4px 0"><span style="background:#FEF3C7;color:#D97706;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${String(props.status ?? '—')}</span></td>
-      </tr>
-      <tr>
-        <td style="color:#6B7280;padding:4px 0">${tPopup('severity')}</td>
-        <td style="text-align:right;padding:4px 0"><span style="background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${String(props.severity ?? '—')}</span></td>
-      </tr>
+      ${descRow}
+      ${waterRow}
+      ${affectedRow}
+      ${timeRow}
     </table>
+  </div>
+  <div style="margin-top:8px;text-align:right">
+    <a href="/dashboard/incidents/${String(props.id)}" style="font-size:12px;color:#2563EB;font-weight:600;text-decoration:none">Xem chi tiết →</a>
   </div>
 </div>`;
       } else if (layerId === 'layer-shelters') {
