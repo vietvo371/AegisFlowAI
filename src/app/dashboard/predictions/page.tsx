@@ -128,12 +128,16 @@ function formatMeasurement(value?: number, suffix = ''): string {
 
 function formatDateTime(value?: string | null, locale = 'vi'): string {
   if (!value) return '';
-  return new Date(value).toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
+  const date = new Date(value);
+  const timeStr = date.toLocaleTimeString(locale === 'en' ? 'en-US' : 'vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
   });
+  const dateStr = date.toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+  return `${timeStr} - ${dateStr}`;
 }
 
 function predictionKey(prediction: Prediction): string {

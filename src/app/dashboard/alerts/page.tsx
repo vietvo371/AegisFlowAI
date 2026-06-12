@@ -397,7 +397,6 @@ export default function AlertsPage() {
         flood_zone_id: '',
         effective_until: '',
       });
-      toast.success('Ban hành cảnh báo thành công!');
       await fetchAlerts(false);
     } catch (e) {
       toast.error('Lỗi khi phát hành cảnh báo');
@@ -435,8 +434,6 @@ export default function AlertsPage() {
         }
         return prev;
       });
-
-      toast.success('Đã giải quyết cảnh báo');
     } catch {
       toast.error(t('alerts.updateError') || 'Không thể giải quyết cảnh báo');
     } finally {
@@ -1219,7 +1216,7 @@ export default function AlertsPage() {
                 <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background/50 text-xs font-semibold focus:ring-amber-500">
                   <SelectValue placeholder={incidentsLoading ? 'Đang tải sự cố...' : 'Chọn sự cố / vụ việc cụ thể'} />
                 </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
+                <SelectContent className="max-h-[200px] w-auto sm:min-w-[480px]">
                   {incidents.map(incident => (
                     <SelectItem key={incident.id} value={String(incident.id)} className="text-xs font-semibold">
                       #{String(incident.id).padStart(4, '0')} · {incident.title}

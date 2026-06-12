@@ -560,7 +560,8 @@
       "teamStatusLabel": "Team Status",
       "allStatuses": "All Statuses",
       "listTitle": "Response Force List",
-      "personnel": "Personnel",
+      "users": "Personnel",
+      "roles": "Roles & Permissions",
       "vehiclesLabel": "Vehicles",
       "peopleCount": "{count} people",
       "vehiclesCount": "{count} vehicles",
@@ -786,7 +787,9 @@
       "generalArea": "General Area"
     },
     "recommendations": {
-      "subtitle": "Human-in-the-loop — AI suggests, operator approves before execution",
+      "recId": "Recommendation ID",
+      "statusLabel": "Status",
+      "subtitle": "Human-in-the-loop — AI proposes, operator approves before execution",
       "pendingBadge": "{count} pending",
       "searchPlaceholder": "Search recommendations...",
       "colId": "ID",
@@ -1135,6 +1138,29 @@
       "passwordMismatch": "Passwords do not match!",
       "passwordTooShort": "New password must be at least 8 characters!"
     },
+    "roles": {
+      "title": "Roles & Permissions",
+      "subtitle": "Manage system roles and permissions.",
+      "colRole": "Role",
+      "colPermissions": "Permissions",
+      "colAction": "Action",
+      "editTitle": "Update permissions for {role}",
+      "editDesc": "Select permissions below to assign to this role.",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "updateSuccess": "Permissions updated successfully",
+      "updateError": "Failed to update permissions",
+      "groups": {
+        "dashboard": "Dashboard",
+        "flood": "Flood",
+        "incident": "Incident",
+        "rescue": "Rescue",
+        "alert": "Alert",
+        "map": "Map",
+        "system": "System",
+        "analytics": "Analytics"
+      }
+    },
     "users": {
       "title": "Permissions & Personnel",
       "subtitle": "Manage system access accounts and command structure permissions",
@@ -1186,6 +1212,12 @@
     }
   },
   "enums": {
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "severity": {
       "low": "Low",
       "medium": "Medium",

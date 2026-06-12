@@ -100,6 +100,12 @@ export default function AdminUsersPage() {
     status: 'active',
   });
 
+  const [editPermissionsUser, setEditPermissionsUser] = React.useState<UserData | null>(null);
+  const [userPermissions, setUserPermissions] = React.useState<string[]>([]);
+  const [rolePermissions, setRolePermissions] = React.useState<string[]>([]);
+  const [allPermissions, setAllPermissions] = React.useState<Array<{ group: string; permissions: Array<{ id: number; name: string }> }>>([]);
+  const [permissionsLoading, setPermissionsLoading] = React.useState(false);
+
   const fetchUsers = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -204,6 +210,46 @@ export default function AdminUsersPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openEditPermissions = async (user: UserData) => {
+    setEditPermissionsUser(user);
+    setPermissionsLoading(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      const res = await api.get(`/admin/users/${user.id}/permissions`);
+      setUserPermissions(res.data?.data?.direct_permissions ?? []);
+      setRolePermissions(res.data?.data?.role_permissions ?? []);
+      setAllPermissions(res.data?.data?.all_permissions ?? []);
+    } catch {
+      toast.error(tCommon('error'));
+    } finally {
+      setPermissionsLoading(false);
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!editPermissionsUser) return;
+    setSubmitting(true);
+    try {
+      const api = (await import('@/lib/api')).default;
+      await api.put(`/admin/users/${editPermissionsUser.id}/permissions`, {
+        permissions: userPermissions,
+      });
+      toast.success(tCommon('success') || 'Cập nhật quyền thành công');
+      setEditPermissionsUser(null);
+    } catch {
+      toast.error(tCommon('error'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const togglePermission = (permName: string) => {
+    if (rolePermissions.includes(permName)) return; // Cannot toggle role permissions
+    setUserPermissions(prev => 
+      prev.includes(permName) ? prev.filter(p => p !== permName) : [...prev, permName]
+    );
   };
 
   const filteredUsers = users.filter(u =>
@@ -379,6 +425,9 @@ export default function AdminUsersPage() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEditPermissions(u)} title="Phân quyền riêng">
+                              <Shield size={14} />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)}>
                               <Edit size={14} />
                             </Button>
@@ -516,6 +565,72 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={!!editPermissionsUser} onOpenChange={(open) => !open && setEditPermissionsUser(null)}>
+        <DialogContent className="max-w-3xl sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Phân quyền riêng cho {editPermissionsUser?.name}</DialogTitle>
+            <DialogDescription>
+              Cấp các quyền đặc biệt nằm ngoài những quyền mặc định của vai trò {roleLabel(editPermissionsUser?.role || '')}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto custom-scroll pr-2 -mr-2 space-y-6 py-4">
+            {permissionsLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : (
+              allPermissions.map((group) => (
+                <div key={group.group} className="space-y-3">
+                  <h3 className="font-semibold text-sm text-foreground capitalize border-b pb-2">
+                    {group.group.replace('_', ' ')}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {group.permissions.map(perm => {
+                      const isDirect = userPermissions.includes(perm.name);
+                      const isRole = rolePermissions.includes(perm.name);
+                      const isSelected = isDirect || isRole;
+                      return (
+                        <div
+                          key={perm.id}
+                          onClick={() => togglePermission(perm.name)}
+                          className={`
+                            flex items-center gap-3 p-3 rounded-lg border transition-all
+                            ${isRole ? 'bg-muted/50 border-border opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+                            ${!isRole && isSelected ? 'bg-primary/5 border-primary shadow-sm' : ''}
+                            ${!isRole && !isSelected ? 'hover:bg-muted/50 border-transparent bg-muted/20' : ''}
+                          `}
+                          title={isRole ? 'Quyền này được kế thừa từ Vai trò (Role)' : 'Nhấp để cấp quyền riêng'}
+                        >
+                          <div className={`
+                            flex items-center justify-center w-5 h-5 rounded border
+                            ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'bg-background border-input'}
+                            ${isRole ? 'bg-muted-foreground border-muted-foreground' : ''}
+                          `}>
+                            {isSelected && <CheckCircle size={12} />}
+                          </div>
+                          <span className={`text-sm ${isSelected ? 'font-medium' : ''} break-all`}>
+                            {perm.name}
+                            {isRole && <span className="text-xs text-muted-foreground font-normal ml-2">(Từ Role)</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <DialogFooter className="pt-4 border-t">
+            <Button variant="outline" onClick={() => setEditPermissionsUser(null)}>{tCommon('cancel')}</Button>
+            <Button onClick={handleSavePermissions} disabled={submitting}>{tCommon('save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

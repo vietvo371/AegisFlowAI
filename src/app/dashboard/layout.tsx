@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Bell, Settings, LogOut, Search, User, Menu,
   BarChart3, AlertTriangle, HeartPulse, ShieldAlert, Home, Activity, 
-  Megaphone, BrainCircuit, Users, CheckCircle2, Waves, ChevronDown
+  Megaphone, BrainCircuit, Users, CheckCircle2, Waves, ChevronDown, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -104,6 +104,7 @@ export default function DashboardLayout({
             { href: '/dashboard/predictions',     icon: BrainCircuit,    labelKey: 'pages.predictions',      roles: null },
             { href: '/dashboard/recommendations', icon: CheckCircle2,    labelKey: 'pages.recommendations',  roles: null },
             { href: '/dashboard/admin/users',     icon: Users,           labelKey: 'pages.users',            roles: ['city_admin'] },
+            { href: '/dashboard/admin/roles',     icon: Shield,          labelKey: 'pages.roles',            roles: ['city_admin'] },
           ].filter(item => !item.roles || item.roles.includes(user?.role ?? '')).map((item) => {
             const isActive = pathname === item.href;
             return (

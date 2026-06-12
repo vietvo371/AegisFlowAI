@@ -378,7 +378,7 @@ export default function SheltersPage() {
             { label: t('shelters.statsTotal'), value: stats.total, color: 'border-blue-500/20 bg-blue-500/5 text-blue-500' },
             { label: t('shelters.statsReady'), value: stats.available, color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500' },
             { label: t('shelters.statsOccupants'), value: t('shelters.peopleSuffix', { count: stats.totalOccupancy.toLocaleString() }), color: 'border-amber-500/20 bg-amber-500/5 text-amber-500' },
-            { label: t('shelters.statsMaxCapacity'), value: t('shelters.peopleSuffix', { count: stats.totalCapacity.toLocaleString() }), color: 'border-purple-500/20 bg-purple-500/5 text-purple-505' },
+            { label: t('shelters.statsMaxCapacity'), value: t('shelters.peopleSuffix', { count: stats.totalCapacity.toLocaleString() }), color: 'border-purple-500/20 bg-purple-500/5 text-purple-500' },
             { label: t('shelters.statsUsageRate'), value: `${occupancyPercentage}%`, color: 'border-rose-500/20 bg-rose-500/5 text-rose-500' }
           ].map((item, idx) => (
             <Card key={idx} className={cn("bg-background/40 border-border/40 p-4 shadow-sm hover:shadow-md transition-all duration-300", item.color)}>
@@ -857,7 +857,7 @@ export default function SheltersPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>{t('shelters.fieldLatitude')}</Label>
+                <Label>{t('shelters.fieldLat')}</Label>
                 <Input
                   value={createForm.latitude}
                   onChange={(e) => setCreateForm((f) => ({ ...f, latitude: e.target.value }))}
@@ -866,7 +866,7 @@ export default function SheltersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('shelters.fieldLongitude')}</Label>
+                <Label>{t('shelters.fieldLng')}</Label>
                 <Input
                   value={createForm.longitude}
                   onChange={(e) => setCreateForm((f) => ({ ...f, longitude: e.target.value }))}

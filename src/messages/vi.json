@@ -165,6 +165,7 @@
       "floodZones": "Vùng ngập",
       "analytics": "Thống kê",
       "users": "Nhân sự",
+      "roles": "Phân quyền",
       "notifications": "Thông báo",
       "settings": "Cài đặt"
     },
@@ -786,6 +787,8 @@
       "generalArea": "Khu vực chung"
     },
     "recommendations": {
+      "recId": "ID Đề xuất",
+      "statusLabel": "Trạng thái",
       "subtitle": "Human-in-the-loop — AI đề xuất, operator phê duyệt trước khi thực thi",
       "pendingBadge": "{count} chờ duyệt",
       "searchPlaceholder": "Tìm kiếm đề xuất...",
@@ -1135,6 +1138,29 @@
       "passwordMismatch": "Mật khẩu xác nhận không khớp!",
       "passwordTooShort": "Mật khẩu mới phải từ 8 ký tự trở lên!"
     },
+    "roles": {
+      "title": "Quản lý Phân quyền",
+      "subtitle": "Quản lý vai trò và quyền hạn trong hệ thống.",
+      "colRole": "Vai trò",
+      "colPermissions": "Quyền hạn",
+      "colAction": "Thao tác",
+      "editTitle": "Cập nhật quyền cho {role}",
+      "editDesc": "Chọn các quyền bên dưới để cấp cho vai trò này.",
+      "selectAll": "Chọn tất cả",
+      "deselectAll": "Bỏ chọn tất cả",
+      "updateSuccess": "Cập nhật quyền thành công",
+      "updateError": "Cập nhật quyền thất bại",
+      "groups": {
+        "dashboard": "Dashboard",
+        "flood": "Ngập lụt",
+        "incident": "Sự cố",
+        "rescue": "Cứu hộ",
+        "alert": "Cảnh báo",
+        "map": "Bản đồ",
+        "system": "Hệ thống",
+        "analytics": "Phân tích"
+      }
+    },
     "users": {
       "title": "Cấp Quyền & Nhân Sự",
       "subtitle": "Quản lý tài khoản truy cập hệ thống và quyền của bộ máy chỉ đạo",
@@ -1186,6 +1212,12 @@
     }
   },
   "enums": {
+    "status": {
+      "enabled": "Bật",
+      "disabled": "Tắt",
+      "active": "Hoạt động",
+      "inactive": "Không hoạt động"
+    },
     "severity": {
       "low": "Thấp",
       "medium": "Trung bình",
