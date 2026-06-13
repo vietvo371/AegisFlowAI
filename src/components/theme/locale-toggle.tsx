@@ -30,7 +30,7 @@ export function LocaleToggle() {
         <Globe className="h-[1.2rem] w-[1.2rem]" />
         <span className="sr-only">Toggle language</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[120px]">
+      <DropdownMenuContent align="end" className="min-w-[160px]">
         <DropdownMenuItem 
           onClick={() => switchLocale('vi')} 
           className="cursor-pointer flex justify-between"
@@ -46,6 +46,38 @@ export function LocaleToggle() {
         >
           <span>English</span>
           {locale === 'en' && <span>✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => switchLocale('id')} 
+          className="cursor-pointer flex justify-between"
+          disabled={locale === 'id'}
+        >
+          <span>Bahasa Indonesia</span>
+          {locale === 'id' && <span>✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => switchLocale('ms')} 
+          className="cursor-pointer flex justify-between"
+          disabled={locale === 'ms'}
+        >
+          <span>Bahasa Melayu</span>
+          {locale === 'ms' && <span>✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => switchLocale('th')} 
+          className="cursor-pointer flex justify-between"
+          disabled={locale === 'th'}
+        >
+          <span>ไทย (Thai)</span>
+          {locale === 'th' && <span>✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => switchLocale('tl')} 
+          className="cursor-pointer flex justify-between"
+          disabled={locale === 'tl'}
+        >
+          <span>Filipino</span>
+          {locale === 'tl' && <span>✓</span>}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
