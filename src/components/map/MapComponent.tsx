@@ -271,7 +271,7 @@ export default function MapComponent({ evacuationRoute, focusTeam, focusPoint, f
     { key: 'station_flood_3m',    label: tMap('floodAlertTower'),      count: 24,  icon: '⚠️',  color: '#F97316', defaultOn: false, group: 'station' },
     { key: 'station_water_level',  label: tMap('waterLevelStation'),    count: 8,   icon: '⏱️', color: '#0EA5E9', defaultOn: false, group: 'station' },
     { key: 'station_reservoir',    label: tMap('reservoirStation'),     count: 5,   icon: '🌊', color: '#10B981', defaultOn: false, group: 'station' },
-    { key: 'flood_zones',         label: tMap('floodZones'),           count: 3,   icon: '🗺️',  color: '#06B6D4', defaultOn: false, group: 'other' },
+    { key: 'flood_zones',         label: tMap('floodZones'),           count: 3,   icon: '🗺️',  color: '#06B6D4', defaultOn: true,  group: 'other' },
     { key: 'incidents',           label: tMap('incidents'),             count: 3,   icon: '🛑',  color: '#EF4444', defaultOn: true,  group: 'other' },
     { key: 'shelters',            label: tMap('shelters'),              count: 4,   icon: '🏠',  color: '#22C55E', defaultOn: true,  group: 'other' },
     { key: 'rescue_teams',        label: tMap('rescueTeams'),            count: 5,   icon: '➕',  color: '#F97316', defaultOn: false, group: 'other' },
