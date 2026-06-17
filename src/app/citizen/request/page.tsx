@@ -224,7 +224,11 @@ export default function CitizenRequestPage() {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('urgencyLevel')} *</Label>
                   <Select value={form.urgency} onValueChange={v => setForm(f => ({ ...f, urgency: v ?? "" }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue>
+                        {form.urgency ? t(`urgency.${form.urgency}` as any) : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">{t('urgency.low')}</SelectItem>
                       <SelectItem value="medium">{t('urgency.medium')}</SelectItem>
@@ -236,7 +240,11 @@ export default function CitizenRequestPage() {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('supportType')} *</Label>
                   <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v ?? "" }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue>
+                        {form.category ? t(`category.${form.category}` as any) : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="rescue">{t('category.rescue')}</SelectItem>
                       <SelectItem value="evacuation">{t('category.evacuation')}</SelectItem>

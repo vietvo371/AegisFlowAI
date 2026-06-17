@@ -398,7 +398,13 @@ export default function AnalyticsPage() {
             <Clock className="w-5 h-5 ml-3 mr-1 text-slate-500 dark:text-slate-400" />
             <Select value={period} onValueChange={(v) => v && setPeriod(v)}>
               <SelectTrigger className="w-[180px] border-none shadow-none focus:ring-0 bg-transparent text-slate-800 dark:text-slate-100 font-bold">
-                <SelectValue />
+                <SelectValue>
+                  {period === '24h' ? t('period24h') :
+                   period === '7d' ? t('period7d') :
+                   period === '30d' ? t('period30d') :
+                   period === '90d' ? t('period90d') :
+                   period}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-slate-200 dark:border-white/10">
                 <SelectItem value="24h">{t('period24h')}</SelectItem>

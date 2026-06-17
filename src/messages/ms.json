@@ -165,6 +165,7 @@
       "floodZones": "Zon Banjir",
       "analytics": "Analitis",
       "users": "Pengguna",
+      "roles": "Peranan & Kebenaran",
       "notifications": "Pemberitahuan",
       "settings": "tetapan"
     },
@@ -385,7 +386,9 @@
       "toastCreateSuccess": "Makluman berjaya dikeluarkan!",
       "toastCreateError": "Ralat mengeluarkan amaran",
       "toastDetailError": "Gagal memuatkan butiran makluman",
-      "toastResolveSuccess": "Makluman berjaya diselesaikan"
+      "toastResolveSuccess": "Makluman berjaya diselesaikan",
+      "fieldIncident": "Insiden yang perlu diwaspadai *",
+      "fieldIncidentLoading": "Memuatkan insiden..."
     },
     "sensors": {
       "subtitle": "Sistem pemantauan paras air dan cuaca masa nyata",
@@ -885,7 +888,23 @@
       "targetAudienceDefault": "Pasukan Penyelamat, Rakyat",
       "confirmReject": "Sahkan Penolakan",
       "approvePublish": "Luluskan & Terbitkan",
-      "defaultArea": "Lien Chieu, Da Nang"
+      "defaultArea": "Lien Chieu, Da Nang",
+      "priorityCritical": "Mendesak",
+      "priorityHigh": "Tinggi",
+      "priorityMedium": "Sederhana",
+      "priorityLow": "Rendah",
+      "typeEvacuationLabel": "Evakuasi",
+      "typePreparationLabel": "Persediaan",
+      "typePreventionLabel": "Pencegahan",
+      "typeEmergencyLabel": "Kecemasan",
+      "typeGeneralLabel": "Umum",
+      "statusPendingLabel": "Menunggu Semakan",
+      "statusApprovedLabel": "Diluluskan",
+      "statusExecutedLabel": "Dilaksanakan",
+      "statusRejectedLabel": "Ditolak",
+      "approveAction": "Luluskan & Laksana",
+      "approvingAction": "Meluluskan...",
+      "headerSubtitle": "AI mencadangkan, pengendali meluluskan sebelum pelaksanaan"
     },
     "floodZones": {
       "subtitle": "Mengurus dan memantau zon banjir di Da Nang",
@@ -989,7 +1008,14 @@
       "riskLow": "selamat",
       "riskMedium": "Sederhana",
       "riskHigh": "tinggi",
-      "riskCritical": "kritikal"
+      "riskCritical": "kritikal",
+      "aiForecastTitle": "Ramalan AI (1j/3j/6j)",
+      "now": "Sekarang",
+      "loading": "Memuatkan ramalan...",
+      "refresh": "Muat semula ramalan",
+      "rainfallNow": "Hujan semasa",
+      "wind": "Angin",
+      "pressure": "Tekanan"
     },
     "relief": {
       "sosBtn": "SOS — MELAPORKAN INSIDEN KECEMASAN",
@@ -1555,7 +1581,26 @@
         "assigned": "Misi Diterima",
         "in_progress": "Sedang Berlangsung",
         "completed": "Selesai"
-      }
+      },
+      "rescueRequestsTitle": "Permintaan Penyelamatan",
+      "requestsCount": "{count} belum selesai atau dalam proses",
+      "requestDetailTitle": "Butiran Permintaan",
+      "locationLabel": "Lokasi",
+      "contactLabel": "Hubungi",
+      "peopleLabel": "Orang",
+      "timeLabel": "Masa",
+      "notesLabel": "Nota",
+      "noRequestsMsg": "Tiada permintaan penyelamatan",
+      "clickToViewMsg": "Klik permintaan untuk melihat butiran",
+      "updatingMsg": "Mengemas kini...",
+      "acceptRequest": "Terima Permintaan",
+      "startProcessing": "Mula Proses",
+      "noAvailableTeam": "Tiada pasukan penyelamat yang tersedia",
+      "requestAccepted": "Permintaan diterima daripada {name}",
+      "startedProcessing": "Mula memproses permintaan",
+      "requestCompleted": "Permintaan selesai",
+      "requestUpdateError": "Tidak dapat mengemas kini permintaan",
+      "loadError": "Gagal memuatkan permintaan penyelamatan"
     },
     "profile": {
       "title": "Profil Ahli Pasukan",

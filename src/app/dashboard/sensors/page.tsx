@@ -584,7 +584,7 @@ export default function SensorsPage() {
               </div>
               <Badge variant="outline" className="border-cyan-500/20 bg-cyan-500/5 text-cyan-600 text-[10px] font-bold flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                Live Network
+                {t('liveNetwork')}
               </Badge>
             </div>
 

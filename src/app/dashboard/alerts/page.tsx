@@ -109,7 +109,7 @@ interface IncidentOption {
 }
 
 const ALERT_TYPE_CONFIG: Record<string, {
-  label: string;
+  labelKey: string;
   icon: string;
   color: string;
   className: string;
@@ -118,7 +118,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
   glowClass: string;
 }> = {
   flood_warning: {
-    label: 'Cảnh báo ngập',
+    labelKey: 'typeFloodWarning',
     icon: '🌊',
     color: '#3b82f6',
     className: 'border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-500/20 dark:bg-blue-950/20 dark:text-blue-400',
@@ -127,7 +127,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
     glowClass: 'shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:shadow-[0_0_20px_rgba(59,130,246,0.25)]',
   },
   heavy_rain: {
-    label: 'Mưa lớn',
+    labelKey: 'typeHeavyRain',
     icon: '⛈️',
     color: '#8b5cf6',
     className: 'border-violet-200 bg-violet-50 text-violet-600 dark:border-violet-500/20 dark:bg-violet-950/20 dark:text-violet-400',
@@ -136,7 +136,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
     glowClass: 'shadow-[0_0_15px_rgba(139,92,246,0.15)] dark:shadow-[0_0_20px_rgba(139,92,246,0.25)]',
   },
   dam_warning: {
-    label: 'Cảnh báo đập',
+    labelKey: 'typeDamWarning',
     icon: '⚠️',
     color: '#f59e0b',
     className: 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400',
@@ -145,7 +145,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
     glowClass: 'shadow-[0_0_15px_rgba(245,158,11,0.15)] dark:shadow-[0_0_20px_rgba(245,158,11,0.25)]',
   },
   evacuation: {
-    label: 'Sơ tán',
+    labelKey: 'typeEvacuation',
     icon: '🚨',
     color: '#ef4444',
     className: 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-400',
@@ -154,7 +154,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
     glowClass: 'shadow-[0_0_15px_rgba(244,63,94,0.15)] dark:shadow-[0_0_20px_rgba(244,63,94,0.25)]',
   },
   weather: {
-    label: 'Thời tiết',
+    labelKey: 'typeWeather',
     icon: '☁️',
     color: '#6b7280',
     className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-500/20 dark:bg-slate-950/20 dark:text-slate-400',
@@ -163,7 +163,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
     glowClass: 'shadow-[0_0_15px_rgba(100,116,139,0.15)] dark:shadow-[0_0_20px_rgba(100,116,139,0.25)]',
   },
   all_clear: {
-    label: 'Dỡ cảnh báo',
+    labelKey: 'typeAllClear',
     icon: '✅',
     color: '#10b981',
     className: 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400',
@@ -174,7 +174,7 @@ const ALERT_TYPE_CONFIG: Record<string, {
 };
 
 const DEFAULT_TYPE_CONFIG = {
-  label: 'Hệ thống',
+  labelKey: 'typeSystem',
   icon: '📢',
   color: '#6b7280',
   className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-500/20 dark:bg-slate-950/20 dark:text-slate-400',
@@ -186,20 +186,23 @@ const DEFAULT_TYPE_CONFIG = {
 function timeAgo(dateString: string): string {
   const date = new Date(dateString);
   const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (diff < 60) return 'Vừa xong';
-  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  if (diff < 60) return rtf.format(0, 'second');
+  if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+  if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function formatFullDate(dateString: string): string {
   const date = new Date(dateString);
-  return `${date.toLocaleDateString('vi-VN', {
+  return date.toLocaleString(undefined, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  })} lúc ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function getGroupedAlerts(items: Alert[]) {
@@ -270,6 +273,11 @@ export default function AlertsPage() {
     critical: tAlerts('sevCritical'),
   };
 
+  const getTypeLabel = (type: string): string => {
+    const cfg = ALERT_TYPE_CONFIG[type] ?? DEFAULT_TYPE_CONFIG;
+    return tAlerts(cfg.labelKey as Parameters<typeof tAlerts>[0]);
+  };
+
   const fetchAlerts = React.useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
@@ -280,7 +288,7 @@ export default function AlertsPage() {
       const res = await api.get('/alerts', { params });
       setAlerts(res.data?.data ?? []);
     } catch {
-      toast.error('Không tải được danh sách cảnh báo');
+      toast.error(tAlerts('toastLoadError'));
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -306,7 +314,7 @@ export default function AlertsPage() {
         setIncidents(incidentsRes.data?.data ?? []);
         setFloodZones(zonesRes.data?.data ?? []);
       } catch {
-        toast.error('Không tải được danh sách sự cố/khu vực cảnh báo');
+        toast.error(tAlerts('toastContextError'));
       } finally {
         setIncidentsLoading(false);
       }
@@ -349,7 +357,7 @@ export default function AlertsPage() {
       ...prev,
       incident_id: incidentId,
       flood_zone_id: incident?.flood_zone?.id ? String(incident.flood_zone.id) : '',
-      title: prev.title || (incident ? `Cảnh báo: ${incident.title}` : ''),
+      title: prev.title || (incident ? tAlerts('alertTitle', { title: incident.title }) : ''),
       description: prev.description || incident?.address || '',
       severity: incident?.severity || prev.severity,
     }));
@@ -357,18 +365,18 @@ export default function AlertsPage() {
 
   const handleCreateAlert = async () => {
     if (!form.title.trim() || !form.description.trim()) {
-      toast.error('Vui lòng nhập tiêu đề và nội dung cảnh báo');
+      toast.error(tAlerts('toastTitleContentRequired'));
       return;
     }
 
     if (!selectedIncident) {
-      toast.error('Vui lòng chọn vụ/sự cố cần cảnh báo');
+      toast.error(tAlerts('toastIncidentRequired'));
       return;
     }
 
     const effectiveUntil = form.effective_until ? new Date(form.effective_until) : null;
     if (effectiveUntil && effectiveUntil <= new Date()) {
-      toast.error('Hạn cảnh báo phải sau thời điểm hiện tại');
+      toast.error(tAlerts('toastExpiryInvalid'));
       return;
     }
 
@@ -399,7 +407,7 @@ export default function AlertsPage() {
       });
       await fetchAlerts(false);
     } catch (e) {
-      toast.error('Lỗi khi phát hành cảnh báo');
+      toast.error(tAlerts('toastCreateError'));
       console.error(e);
     } finally {
       setSubmitting(false);
@@ -415,7 +423,7 @@ export default function AlertsPage() {
       const detailedAlert = res.data?.data ?? alert;
       setSelectedAlert(detailedAlert);
     } catch {
-      toast.error('Không tải được chi tiết cảnh báo');
+      toast.error(tAlerts('toastDetailError'));
     } finally {
       setDetailLoading(false);
     }
@@ -569,11 +577,11 @@ export default function AlertsPage() {
           <div className="max-w-2xl">
             <div className="mb-3.5 flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
-                Trung tâm phát lệnh
+                {tAlerts('badge')}
               </Badge>
               {stats.active > 0 && (
                 <Badge variant="destructive" className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider animate-glow-pulse-red bg-rose-500 text-white">
-                  {stats.active} Đang hiệu lực
+                  {tAlerts('activeCountLabel', { active: stats.active })}
                 </Badge>
               )}
             </div>
@@ -603,10 +611,10 @@ export default function AlertsPage() {
         {/* Statistical Metrics Grid */}
         <div className="mt-6 grid gap-4 grid-cols-2 md:grid-cols-4">
           {[
-            { label: 'Tổng cảnh báo', value: stats.total, color: 'border-blue-500/20 bg-blue-500/5 text-blue-500' },
-            { label: 'Đang hiệu lực', value: stats.active, color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500' },
-            { label: 'Nguy cấp', value: stats.critical, color: 'border-rose-500/20 bg-rose-500/5 text-rose-500 animate-pulse' },
-            { label: 'Đã giải quyết', value: stats.resolved, color: 'border-zinc-500/20 bg-zinc-500/5 text-zinc-500' }
+            { label: tAlerts('totalAlerts'), value: stats.total, color: 'border-blue-500/20 bg-blue-500/5 text-blue-500' },
+            { label: tAlerts('activeAlerts'), value: stats.active, color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500' },
+            { label: tAlerts('criticalAlerts'), value: stats.critical, color: 'border-rose-500/20 bg-rose-500/5 text-rose-500 animate-pulse' },
+            { label: tAlerts('resolvedAlerts'), value: stats.resolved, color: 'border-zinc-500/20 bg-zinc-500/5 text-zinc-500' }
           ].map((item, idx) => (
             <Card key={idx} className={cn("bg-background/40 border-border/40 p-4 shadow-sm hover:shadow-md transition-all duration-300", item.color)}>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{item.label}</p>
@@ -619,8 +627,8 @@ export default function AlertsPage() {
         {typeBreakdown.length > 0 && (
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">
-              <span className="flex items-center gap-1.5"><ShieldAlert size={13} /> Phân bố cảnh báo</span>
-              <span>{filteredAlerts.length} bản ghi lọc</span>
+              <span className="flex items-center gap-1.5"><ShieldAlert size={13} /> {tAlerts('alertDistribution')}</span>
+              <span>{tAlerts('filteredRecords', { count: filteredAlerts.length })}</span>
             </div>
 
             <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted border border-border/45 shadow-inner">
@@ -633,9 +641,9 @@ export default function AlertsPage() {
                     backgroundColor: item.config.color,
                   }}
                   onClick={() => setTypeFilter(item.type)}
-                  title={`${item.config.label}: ${item.count} (${Math.round(item.percentage)}%)`}
+                  title={`${getTypeLabel(item.type)}: ${item.count} (${Math.round(item.percentage)}%)`}
                 >
-                  <span className="sr-only">{item.config.label}</span>
+                  <span className="sr-only">{getTypeLabel(item.type)}</span>
                 </button>
               ))}
             </div>
@@ -659,7 +667,7 @@ export default function AlertsPage() {
                     )}
                   >
                     <span className="size-2 rounded-full" style={{ backgroundColor: cfg.color }} />
-                    <span>{cfg.label}</span>
+                    <span>{getTypeLabel(type)}</span>
                     <span className="text-[10px] text-muted-foreground/80 font-bold">({count})</span>
                   </button>
                 );
@@ -694,38 +702,38 @@ export default function AlertsPage() {
 
           {/* Severity filter */}
           <div className="grid gap-1">
-            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest px-2 pb-1">Mức độ khẩn cấp</span>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest px-2 pb-1">{tAlerts('severityFilterLabel')}</span>
             <Select value={severityFilter} onValueChange={(val) => { if (val) setSeverityFilter(val); }}>
               <SelectTrigger className="w-full h-9 rounded-xl border-border/60 bg-background/50 text-xs focus:ring-amber-500">
                 <SelectValue>
-                  {severityFilter === 'all' ? 'Tất cả mức độ' : severityLabels[severityFilter] || severityFilter}
+                  {severityFilter === 'all' ? tAlerts('allSeverities') : severityLabels[severityFilter] || severityFilter}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả mức độ</SelectItem>
-                <SelectItem value="critical">🔴 Nguy cấp</SelectItem>
-                <SelectItem value="high">🟠 Nghiêm trọng</SelectItem>
-                <SelectItem value="medium">🟡 Cảnh báo</SelectItem>
-                <SelectItem value="low">🔵 Lưu ý</SelectItem>
+                <SelectItem value="all">{tAlerts('allSeverities')}</SelectItem>
+                <SelectItem value="critical">{tAlerts('sevCriticalLabel')}</SelectItem>
+                <SelectItem value="high">{tAlerts('sevHighLabel')}</SelectItem>
+                <SelectItem value="medium">{tAlerts('sevMediumLabel')}</SelectItem>
+                <SelectItem value="low">{tAlerts('sevLowLabel')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Status filter */}
           <div className="grid gap-1">
-            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest px-2 pb-1">Trạng thái phát</span>
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest px-2 pb-1">{tAlerts('statusFilterLabel')}</span>
             <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); }}>
               <SelectTrigger className="w-full h-9 rounded-xl border-border/60 bg-background/50 text-xs focus:ring-amber-500">
                 <SelectValue>
-                  {statusFilter === 'all' ? 'Tất cả trạng thái' : getStatusConfig(statusFilter).label || statusFilter}
+                  {statusFilter === 'all' ? tAlerts('allStatuses') : getStatusConfig(statusFilter).label || statusFilter}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="active">Hiệu lực</SelectItem>
-                <SelectItem value="updated">Đã cập nhật</SelectItem>
-                <SelectItem value="resolved">Đã giải quyết</SelectItem>
-                <SelectItem value="expired">Hết hạn</SelectItem>
+                <SelectItem value="all">{tAlerts('allStatuses')}</SelectItem>
+                <SelectItem value="active">{tAlerts('statusActiveLabel')}</SelectItem>
+                <SelectItem value="updated">{tAlerts('statusUpdatedLabel')}</SelectItem>
+                <SelectItem value="resolved">{tAlerts('statusResolvedLabel')}</SelectItem>
+                <SelectItem value="expired">{tAlerts('statusExpiredLabel')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -745,7 +753,7 @@ export default function AlertsPage() {
                 setStatusFilter('all');
               }}
             >
-              <X className="mr-1.5" size={13} /> Xóa bộ lọc
+              <X className="mr-1.5" size={13} /> {tAlerts('clearFilter')}
             </Button>
           )}
         </Card>
@@ -757,14 +765,14 @@ export default function AlertsPage() {
             {/* List Header */}
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 bg-muted/10">
               <div>
-                <h2 className="font-black text-sm tracking-tight">Cảnh báo cộng đồng</h2>
+                <h2 className="font-black text-sm tracking-tight">{tAlerts('communityAlerts')}</h2>
                 <p className="text-[11px] text-muted-foreground mt-0.5 font-semibold">
-                  Hiển thị {filteredAlerts.length} trên {alerts.length} bản ghi
+                  {tAlerts('showingCount', { filtered: filteredAlerts.length, total: alerts.length })}
                 </p>
               </div>
               <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-600 text-[10px] font-bold flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Live Feed
+                {tAlerts('liveFeed')}
               </Badge>
             </div>
 
@@ -781,9 +789,9 @@ export default function AlertsPage() {
                   <div className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-muted bg-muted/45 text-muted-foreground/60 shadow-inner">
                     <Megaphone size={28} />
                   </div>
-                  <h3 className="text-base font-black tracking-tight">{tAlerts('noAlerts') || 'Không tìm thấy cảnh báo'}</h3>
+                  <h3 className="text-base font-black tracking-tight">{tAlerts('noAlerts')}</h3>
                   <p className="mt-2.5 max-w-xs text-xs font-semibold leading-relaxed text-muted-foreground">
-                    Thử thay đổi bộ lọc hoặc tiêu chí tìm kiếm của bạn.
+                    {tAlerts('noAlertSelectedDesc')}
                   </p>
                 </div>
               ) : (
@@ -793,9 +801,9 @@ export default function AlertsPage() {
                     if (groupItems.length === 0) return null;
 
                     const groupLabels = {
-                      today: 'Hôm nay',
-                      yesterday: 'Hôm qua',
-                      older: 'Trước đó',
+                      today: tAlerts('today'),
+                      yesterday: tAlerts('yesterday'),
+                      older: tAlerts('older'),
                     };
 
                     return (
@@ -852,7 +860,7 @@ export default function AlertsPage() {
                                 <div className="min-w-0 flex-1">
                                   <div className="mb-1.5 flex flex-wrap items-center gap-2">
                                     <Badge variant="outline" className={cn('h-5 border px-2 py-0 text-[10px] font-extrabold uppercase tracking-wide', cfg.badgeClass)}>
-                                      {cfg.label}
+                                      {getTypeLabel(item.alert_type)}
                                     </Badge>
                                     <Badge variant="outline" className={cn('h-5 border px-2 py-0 text-[10px] font-bold', severity.color)}>
                                       {severity.label}
@@ -867,7 +875,7 @@ export default function AlertsPage() {
                                     {item.title}
                                   </h3>
                                   <p className="line-clamp-1 mt-1 text-[11px] leading-4 text-muted-foreground font-semibold">
-                                    {item.description || 'Không có mô tả chi tiết'}
+                                    {item.description || tAlerts('noDescription')}
                                   </p>
                                   {item.area && (
                                     <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
@@ -923,7 +931,7 @@ export default function AlertsPage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 bg-muted/5">
                 <span className="text-[10px] font-bold text-muted-foreground">
-                  Đang hiển thị {Math.min(filteredAlerts.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredAlerts.length, currentPage * itemsPerPage)} trong số {filteredAlerts.length} cảnh báo
+                  {tAlerts('showingRange', { start: Math.min(filteredAlerts.length, (currentPage - 1) * itemsPerPage + 1), end: Math.min(filteredAlerts.length, currentPage * itemsPerPage), total: filteredAlerts.length })}
                 </span>
                 <div className="flex items-center gap-1">
                   <Button
@@ -971,10 +979,10 @@ export default function AlertsPage() {
                 <div className="border-b border-border/60 px-5 py-4 flex items-center justify-between bg-muted/10">
                   <div className="min-w-0">
                     <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                      Mã CB: #{selectedAlert.alert_number ?? String(selectedAlert.id).padStart(4, '0')}
+                      {tAlerts('detailCodePattern')}: #{selectedAlert.alert_number ?? String(selectedAlert.id).padStart(4, '0')}
                     </p>
                     <h2 className="font-black text-sm tracking-tight mt-0.5 truncate text-foreground">
-                      Chi tiết Cảnh báo
+                      {tAlerts('detailTitlePattern')}
                     </h2>
                   </div>
                   <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-wider gap-1", getStatusConfig(selectedAlert.status).color)}>
@@ -1010,7 +1018,7 @@ export default function AlertsPage() {
                           </h3>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
                             <Badge variant="outline" className={cn("text-[10px] font-extrabold border uppercase tracking-wider", getTypeConfig(selectedAlert.alert_type).badgeClass)}>
-                              {getTypeConfig(selectedAlert.alert_type).label}
+                              {getTypeLabel(selectedAlert.alert_type)}
                             </Badge>
                             <Badge variant="outline" className={cn("text-[10px] font-extrabold border uppercase tracking-wider", getSeverityConfig(selectedAlert.severity).color)}>
                               {getSeverityConfig(selectedAlert.severity).label}
@@ -1022,7 +1030,7 @@ export default function AlertsPage() {
                       {/* Content Description */}
                       <div className="rounded-2xl border border-border/50 bg-background/50 p-4 shadow-inner">
                         <p className="text-xs leading-relaxed font-semibold text-muted-foreground whitespace-pre-wrap">
-                          {selectedAlert.description || 'Không có mô tả nội dung.'}
+                          {selectedAlert.description || tAlerts('noDescription')}
                         </p>
                       </div>
 
@@ -1030,20 +1038,20 @@ export default function AlertsPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2 rounded-xl border border-border/40 bg-background/25 p-3 flex flex-col gap-1">
                           <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                            <Calendar size={12} className="text-amber-500/80" /> Thời gian hiệu lực
+                            <Calendar size={12} className="text-amber-500/80" /> {tAlerts('effectiveTime')}
                           </span>
                           <p className="text-xs font-bold text-foreground mt-1">
-                            Bắt đầu: {formatFullDate(selectedAlert.created_at)}
+                            {tAlerts('effectiveStart')} {formatFullDate(selectedAlert.created_at)}
                           </p>
                           <p className="text-xs font-bold text-foreground">
-                            Kết thúc: {selectedAlert.effective_until ? formatFullDate(selectedAlert.effective_until) : 'Vô thời hạn (Hoạt động cho đến khi giải quyết)'}
+                            {tAlerts('effectiveEnd')} {selectedAlert.effective_until ? formatFullDate(selectedAlert.effective_until) : tAlerts('indefiniteDesc')}
                           </p>
                         </div>
 
                         {selectedAlert.area && (
                           <div className="col-span-2 rounded-xl border border-border/40 bg-background/25 p-3">
                             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                              <MapPin size={12} className="text-blue-500/80" /> Vị trí ảnh hưởng
+                              <MapPin size={12} className="text-blue-500/80" /> {tAlerts('affectedArea')}
                             </span>
                             <p className="text-xs font-bold text-foreground mt-2 leading-relaxed">
                               {selectedAlert.area}
@@ -1059,10 +1067,10 @@ export default function AlertsPage() {
                         {selectedAlert.issuer && (
                           <div className="rounded-xl border border-border/40 bg-background/25 p-3 flex flex-col justify-between">
                             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                              <User size={12} className="text-emerald-500/80" /> Người ban hành
+                              <User size={12} className="text-emerald-500/80" /> {tAlerts('issuer')}
                             </span>
                             <span className="text-xs font-black text-foreground mt-2">
-                              {selectedAlert.issuer.name || 'Hệ thống AI'}
+                              {selectedAlert.issuer.name || tAlerts('issuerSystem')}
                             </span>
                             <span className="text-[10px] text-muted-foreground font-semibold mt-0.5">
                               {selectedAlert.issuer.email || 'operator@aegisflow.gov.vn'}
@@ -1073,13 +1081,13 @@ export default function AlertsPage() {
                         {selectedAlert.affected_population && (
                           <div className="rounded-xl border border-border/40 bg-background/25 p-3 flex flex-col justify-between">
                             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                              👥 Dân số ảnh hưởng
+                              {tAlerts('affectedPopulationLabel')}
                             </span>
                             <span className="text-xs font-black text-foreground mt-2">
-                              {selectedAlert.affected_population.toLocaleString()} người
+                              {tAlerts('affectedPopulationEstimate', { count: selectedAlert.affected_population.toLocaleString() })}
                             </span>
                             <span className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                              (Dự kiến theo mật độ vùng)
+                              {tAlerts('affectedPopulationNote')}
                             </span>
                           </div>
                         )}
@@ -1087,11 +1095,11 @@ export default function AlertsPage() {
                         {selectedAlert.related_incident_id && (
                           <div className="col-span-2 rounded-xl border border-border/40 bg-background/25 p-3">
                             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                              🔥 Sự cố kích hoạt cảnh báo
+                              {tAlerts('triggeredByIncident')}
                             </span>
                             <div className="mt-2 flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground">
-                                Sự cố liên quan #{selectedAlert.related_incident_id}
+                                {tAlerts('relatedIncident', { id: selectedAlert.related_incident_id })}
                               </span>
                               <Button
                                 variant="link"
@@ -1099,7 +1107,7 @@ export default function AlertsPage() {
                                 className="h-auto p-0 text-amber-500 hover:text-amber-600 font-extrabold text-xs"
                                 onClick={() => window.open(`/dashboard/incidents?id=${selectedAlert.related_incident_id}`, '_blank')}
                               >
-                                Xem chi tiết sự cố →
+                                {tAlerts('viewIncidentDetail')}
                               </Button>
                             </div>
                           </div>
@@ -1122,7 +1130,7 @@ export default function AlertsPage() {
                       ) : (
                         <CheckCircle size={15} />
                       )}
-                      Đánh dấu đã giải quyết cảnh báo
+                      {tAlerts('markResolvedBtn')}
                     </Button>
                   </div>
                 )}
@@ -1132,9 +1140,9 @@ export default function AlertsPage() {
                 <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border border-dashed border-muted-foreground/35 bg-background/50 text-muted-foreground/50 shadow-inner">
                   <Megaphone size={24} />
                 </div>
-                <h3 className="text-sm font-bold text-foreground">Chưa chọn cảnh báo</h3>
+                <h3 className="text-sm font-bold text-foreground">{tAlerts('noAlertSelected')}</h3>
                 <p className="mt-1.5 max-w-xs text-xs text-muted-foreground font-semibold">
-                  Chọn một cảnh báo từ bảng tin bên trái để xem nội dung chi tiết và các khu vực bị ảnh hưởng.
+                  {tAlerts('noAlertSelectedDesc')}
                 </p>
               </div>
             )}
@@ -1176,13 +1184,13 @@ export default function AlertsPage() {
                 <Select value={form.alert_type} onValueChange={(v) => setForm(prev => ({ ...prev, alert_type: v || 'flood_warning' }))}>
                   <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background/50 text-xs font-semibold focus:ring-amber-500">
                     <SelectValue>
-                      {ALERT_TYPE_CONFIG[form.alert_type]?.label ?? form.alert_type}
+                      {getTypeLabel(form.alert_type)}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(ALERT_TYPE_CONFIG).map(([value, item]) => (
                       <SelectItem key={value} value={value} className="text-xs font-semibold">
-                        {item.icon} {item.label}
+                        {item.icon} {getTypeLabel(value)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1196,10 +1204,10 @@ export default function AlertsPage() {
                     <SelectValue>{severityLabels[form.severity]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low" className="text-xs font-semibold">🔵 Lưu ý (Thấp)</SelectItem>
-                    <SelectItem value="medium" className="text-xs font-semibold">🟡 Cảnh báo (Vừa)</SelectItem>
-                    <SelectItem value="high" className="text-xs font-semibold">🟠 Nghiêm trọng (Cao)</SelectItem>
-                    <SelectItem value="critical" className="text-xs font-semibold">🔴 Nguy cấp (Tối khẩn)</SelectItem>
+                    <SelectItem value="low" className="text-xs font-semibold">{tAlerts('sevLowLabel')}</SelectItem>
+                    <SelectItem value="medium" className="text-xs font-semibold">{tAlerts('sevMediumLabel')}</SelectItem>
+                    <SelectItem value="high" className="text-xs font-semibold">{tAlerts('sevHighLabel')}</SelectItem>
+                    <SelectItem value="critical" className="text-xs font-semibold">{tAlerts('sevCriticalLabel')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1207,14 +1215,14 @@ export default function AlertsPage() {
 
             {/* Related incident select */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-black uppercase text-muted-foreground tracking-wider">Vụ/sự cố cần cảnh báo *</Label>
+              <Label className="text-xs font-black uppercase text-muted-foreground tracking-wider">{tAlerts('fieldIncident')}</Label>
               <Select
                 value={form.incident_id}
                 onValueChange={(v) => handleIncidentChange(v || '')}
                 disabled={incidentsLoading}
               >
                 <SelectTrigger className="h-10 rounded-xl border-border/60 bg-background/50 text-xs font-semibold focus:ring-amber-500">
-                  <SelectValue placeholder={incidentsLoading ? 'Đang tải sự cố...' : 'Chọn sự cố / vụ việc cụ thể'} />
+                  <SelectValue placeholder={incidentsLoading ? tAlerts('fieldIncidentLoading') : tAlerts('selectIncidentPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px] w-auto sm:min-w-[480px]">
                   {incidents.map(incident => (
@@ -1234,11 +1242,11 @@ export default function AlertsPage() {
                     #{String(selectedIncident.id).padStart(4, '0')} · {selectedIncident.title}
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] font-semibold">
-                    <span>Vùng: <strong className="text-foreground">{selectedIncident.flood_zone?.name ?? selectedFloodZone?.name ?? 'Không rõ'}</strong></span>
-                    <span>Huyện: <strong className="text-foreground">{selectedIncident.district?.name ?? selectedFloodZone?.district?.name ?? 'Không rõ'}</strong></span>
-                    <span className="col-span-2">Địa chỉ: <strong className="text-foreground">{selectedIncident.address ?? 'Không có'}</strong></span>
-                    <span>Mực nước: <strong className="text-foreground">{selectedIncident.water_level_m ?? selectedFloodZone?.current_water_level_m ?? '—'}m</strong></span>
-                    <span>Toạ độ: <strong className="text-foreground">{hasSelectedCoordinates ? `${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}` : 'Chưa gắn'}</strong></span>
+                    <span>{tAlerts('zone')}: <strong className="text-foreground">{selectedIncident.flood_zone?.name ?? selectedFloodZone?.name ?? '—'}</strong></span>
+                    <span>{tAlerts('district')}: <strong className="text-foreground">{selectedIncident.district?.name ?? selectedFloodZone?.district?.name ?? '—'}</strong></span>
+                    <span className="col-span-2">{tAlerts('address')}: <strong className="text-foreground">{selectedIncident.address ?? '—'}</strong></span>
+                    <span>{tAlerts('waterLevel')}: <strong className="text-foreground">{selectedIncident.water_level_m ?? selectedFloodZone?.current_water_level_m ?? '—'}m</strong></span>
+                    <span>{tAlerts('coordinates')}: <strong className="text-foreground">{hasSelectedCoordinates ? `${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}` : '—'}</strong></span>
                   </div>
                 </div>
               )}
@@ -1246,7 +1254,7 @@ export default function AlertsPage() {
 
             {/* Expire time selection */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-black uppercase text-muted-foreground tracking-wider">Hạn hiệu lực cảnh báo (tuỳ chọn)</Label>
+              <Label className="text-xs font-black uppercase text-muted-foreground tracking-wider">{tAlerts('fieldEffectiveUntil')}</Label>
               <Input
                 type="datetime-local"
                 value={form.effective_until}
@@ -1254,7 +1262,7 @@ export default function AlertsPage() {
                 className="h-10 rounded-xl border-border/60 focus-visible:ring-amber-500 bg-background/50 text-xs font-semibold"
               />
               <p className="text-[10px] text-muted-foreground font-semibold">
-                Bỏ trống nếu muốn cảnh báo hoạt động liên tục cho tới khi bạn dỡ cảnh báo thủ công.
+                {tAlerts('indefiniteDesc')}
               </p>
             </div>
 
@@ -1277,7 +1285,7 @@ export default function AlertsPage() {
               onClick={() => setIsCreateOpen(false)}
               disabled={submitting}
             >
-              Hủy
+              {tAlerts('cancelBtn')}
             </Button>
             <Button
               className="h-10 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 text-xs"
@@ -1287,7 +1295,7 @@ export default function AlertsPage() {
               {submitting ? (
                 <>
                   <RefreshCw size={13} className="mr-1.5 animate-spin" />
-                  Đang phát lệnh...
+                  {tAlerts('issueCommandLoading')}
                 </>
               ) : (
                 <>

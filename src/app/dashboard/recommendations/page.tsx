@@ -62,6 +62,37 @@ const getMappedTitle = (rec: any, tRec: any): string => {
   return rec.type_label || tRec('recTypeDefault');
 };
 
+const getPriorityConfig = (priority: string, tRec: any) => {
+  switch (priority) {
+    case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: tRec('priorityCritical') };
+    case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: tRec('priorityHigh') };
+    case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: tRec('priorityMedium') };
+    case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: tRec('priorityLow') };
+    default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: priority };
+  }
+};
+
+const getTypeConfig = (type: string, tRec: any) => {
+  switch (type) {
+    case 'evacuation': return { icon: '🚨', label: tRec('typeEvacuationLabel'), color: 'text-red-600 bg-red-100' };
+    case 'preparation': return { icon: '🛡️', label: tRec('typePreparationLabel'), color: 'text-blue-600 bg-blue-100' };
+    case 'prevention': return { icon: '⚠️', label: tRec('typePreventionLabel'), color: 'text-green-600 bg-green-100' };
+    case 'emergency': return { icon: '🚑', label: tRec('typeEmergencyLabel'), color: 'text-orange-600 bg-orange-100' };
+    case 'general': return { icon: '📋', label: tRec('typeGeneralLabel'), color: 'text-gray-600 bg-gray-100' };
+    default: return { icon: '📌', label: type, color: 'text-gray-600 bg-gray-100' };
+  }
+};
+
+const getStatusConfig = (status: string, tRec: any) => {
+  switch (status) {
+    case 'pending': return { label: tRec('statusPendingLabel'), color: 'text-yellow-600 border-yellow-200' };
+    case 'approved': return { label: tRec('statusApprovedLabel'), color: 'text-blue-600 border-blue-200' };
+    case 'executed': return { label: tRec('statusExecutedLabel'), color: 'text-green-600 border-green-200' };
+    case 'rejected': return { label: tRec('statusRejectedLabel'), color: 'text-red-600 border-red-200' };
+    default: return { label: status, color: 'text-gray-600' };
+  }
+};
+
 export default function RecommendationsPage() {
   const t = useTranslations('dashboard');
   const tRec = useTranslations('dashboard.recommendations');
@@ -107,7 +138,7 @@ export default function RecommendationsPage() {
       if (selectedRec && selectedRec.id === id) {
         setSelectedRec(prev => prev ? { ...prev, status: 'approved' } : null);
       }
-      toast.success('Đã duyệt và chuyển lệnh cho đội cứu hộ!');
+      toast.success(tRec('toastApproveSuccess'));
       setIsDetailOpen(false);
     } catch (e) {
       // toast is handled by interceptor
@@ -118,7 +149,7 @@ export default function RecommendationsPage() {
 
   const handleReject = async (id: number) => {
     if (!rejectReason.trim()) {
-      toast.error('Vui lòng nhập lý do từ chối!');
+      toast.error(tRec('toastRejectReasonRequired'));
       return;
     }
     setActionLoading(id);
@@ -129,7 +160,7 @@ export default function RecommendationsPage() {
       if (selectedRec && selectedRec.id === id) {
         setSelectedRec(prev => prev ? { ...prev, status: 'rejected' } : null);
       }
-      toast.success('Đã từ chối đề xuất này.');
+      toast.success(tRec('toastRejectSuccess'));
       setIsDetailOpen(false);
       setIsRejecting(false);
       setRejectReason('');
@@ -140,36 +171,6 @@ export default function RecommendationsPage() {
     }
   };
 
-  const getPriorityConfig = (priority: string) => {
-    switch (priority) {
-      case 'critical': return { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', label: 'Khẩn cấp' };
-      case 'high': return { color: 'bg-orange-500', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Cao' };
-      case 'medium': return { color: 'bg-yellow-500', text: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Trung bình' };
-      case 'low': return { color: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50', label: 'Thấp' };
-      default: return { color: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-50', label: priority };
-    }
-  };
-
-  const getTypeConfig = (type: string) => {
-    switch (type) {
-      case 'evacuation': return { icon: '🚨', label: 'Sơ tán', color: 'text-red-600 bg-red-100' };
-      case 'preparation': return { icon: '🛡️', label: 'Chuẩn bị', color: 'text-blue-600 bg-blue-100' };
-      case 'prevention': return { icon: '⚠️', label: 'Phòng ngừa', color: 'text-green-600 bg-green-100' };
-      case 'emergency': return { icon: '🚑', label: 'Khẩn cấp', color: 'text-orange-600 bg-orange-100' };
-      case 'general': return { icon: '📋', label: 'Chung', color: 'text-gray-600 bg-gray-100' };
-      default: return { icon: '📌', label: type, color: 'text-gray-600 bg-gray-100' };
-    }
-  };
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'pending': return { label: 'Chờ duyệt', color: 'text-yellow-600 border-yellow-200' };
-      case 'approved': return { label: 'Đã duyệt', color: 'text-blue-600 border-blue-200' };
-      case 'executed': return { label: 'Đã thực hiện', color: 'text-green-600 border-green-200' };
-      case 'rejected': return { label: 'Từ chối', color: 'text-red-600 border-red-200' };
-      default: return { label: status, color: 'text-gray-600' };
-    }
-  };
 
   const filteredRecommendations = recommendations.filter(rec => {
     if (typeFilter !== 'all' && rec.type !== typeFilter) return false;
@@ -189,12 +190,12 @@ export default function RecommendationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Khuyến nghị</h1>
-          <p className="text-sm text-muted-foreground">AI đề xuất hành động tối ưu</p>
+          <h1 className="text-2xl font-bold tracking-tight">{tRec('pageTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{tRec('headerSubtitle')}</p>
         </div>
         <Button variant="outline" className="gap-2">
           <RefreshCw size={16} />
-          Cập nhật
+          {tRec('updateBtn')}
         </Button>
       </div>
 
@@ -208,21 +209,21 @@ export default function RecommendationsPage() {
             <div>
               <p className="font-semibold">AI Recommendation Engine</p>
               <p className="text-xs text-muted-foreground">
-                {stats.pending} khuyến nghị chờ duyệt • {stats.critical} ưu tiên cao
+                {stats.pending} {tRec('statPending').toLowerCase()} • {stats.critical} {tRec('statsCritical').toLowerCase()}
               </p>
             </div>
           </div>
-          <Badge className="bg-yellow-100 text-yellow-700">Chờ duyệt</Badge>
+          <Badge className="bg-yellow-100 text-yellow-700">{tRec('statPending')}</Badge>
         </CardContent>
       </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Tổng khuyến nghị', value: stats.total, icon: CheckCircle2, color: 'text-blue-600 bg-blue-100' },
-          { label: 'Chờ duyệt', value: stats.pending, icon: TrendingUp, color: 'text-yellow-600 bg-yellow-100' },
-          { label: 'Đã thực hiện', value: stats.executed, icon: CheckCircle2, color: 'text-green-600 bg-green-100' },
-          { label: 'Khẩn cấp', value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
+          { label: tRec('statsTotal'), value: stats.total, icon: CheckCircle2, color: 'text-blue-600 bg-blue-100' },
+          { label: tRec('statsPending'), value: stats.pending, icon: TrendingUp, color: 'text-yellow-600 bg-yellow-100' },
+          { label: tRec('statsExecuted'), value: stats.executed, icon: CheckCircle2, color: 'text-green-600 bg-green-100' },
+          { label: tRec('statsCritical'), value: stats.critical, icon: AlertTriangle, color: 'text-red-600 bg-red-100' },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -249,27 +250,31 @@ export default function RecommendationsPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <Select value={typeFilter} onValueChange={(v) => v && setTypeFilter(v)}>
           <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Loại" />
+            <SelectValue placeholder={tRec('typeLabel')}>
+              {typeFilter === 'all' ? t('table.all') : getTypeConfig(typeFilter, tRec).label}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả loại</SelectItem>
-            <SelectItem value="evacuation">Sơ tán</SelectItem>
-            <SelectItem value="preparation">Chuẩn bị</SelectItem>
-            <SelectItem value="prevention">Phòng ngừa</SelectItem>
-            <SelectItem value="emergency">Khẩn cấp</SelectItem>
-            <SelectItem value="general">Chung</SelectItem>
+            <SelectItem value="all">{t('table.all')}</SelectItem>
+            <SelectItem value="evacuation">{tRec('typeEvacuationLabel')}</SelectItem>
+            <SelectItem value="preparation">{tRec('typePreparationLabel')}</SelectItem>
+            <SelectItem value="prevention">{tRec('typePreventionLabel')}</SelectItem>
+            <SelectItem value="emergency">{tRec('typeEmergencyLabel')}</SelectItem>
+            <SelectItem value="general">{tRec('typeGeneralLabel')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={priorityFilter} onValueChange={(v) => v && setPriorityFilter(v)}>
           <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Ưu tiên" />
+            <SelectValue placeholder={tRec('priorityLabel')}>
+              {priorityFilter === 'all' ? t('table.all') : getPriorityConfig(priorityFilter, tRec).label}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả ưu tiên</SelectItem>
-            <SelectItem value="critical">Khẩn cấp</SelectItem>
-            <SelectItem value="high">Cao</SelectItem>
-            <SelectItem value="medium">Trung bình</SelectItem>
-            <SelectItem value="low">Thấp</SelectItem>
+            <SelectItem value="all">{t('table.all')}</SelectItem>
+            <SelectItem value="critical">{tRec('priorityCritical')}</SelectItem>
+            <SelectItem value="high">{tRec('priorityHigh')}</SelectItem>
+            <SelectItem value="medium">{tRec('priorityMedium')}</SelectItem>
+            <SelectItem value="low">{tRec('priorityLow')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -277,9 +282,9 @@ export default function RecommendationsPage() {
       {/* Recommendations List */}
       <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="pending">Chờ duyệt ({filteredRecommendations.filter(r => r.status === 'pending').length})</TabsTrigger>
-          <TabsTrigger value="executed">Đã xử lý ({filteredRecommendations.filter(r => r.status === 'executed' || r.status === 'approved').length})</TabsTrigger>
-          <TabsTrigger value="all">Tất cả ({filteredRecommendations.length})</TabsTrigger>
+          <TabsTrigger value="pending">{tRec('tabPending', { count: filteredRecommendations.filter(r => r.status === 'pending').length })}</TabsTrigger>
+          <TabsTrigger value="executed">{tRec('tabProcessed', { count: filteredRecommendations.filter(r => r.status === 'executed' || r.status === 'approved').length })}</TabsTrigger>
+          <TabsTrigger value="all">{tRec('tabAll', { count: filteredRecommendations.length })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4">
@@ -309,9 +314,9 @@ export default function RecommendationsPage() {
             const mappedTitle = getMappedTitle(selectedRec, tRec);
             const confidenceVal = selectedRec.confidence ?? selectedRec.details?.confidence_score ?? 0.85;
 
-            const priority = getPriorityConfig(mappedPriority);
-            const type = getTypeConfig(selectedRec.type);
-            const status = getStatusConfig(selectedRec.status);
+            const priority = getPriorityConfig(mappedPriority, tRec);
+            const type = getTypeConfig(selectedRec.type, tRec);
+            const status = getStatusConfig(selectedRec.status, tRec);
 
             return (
               <>
@@ -511,9 +516,9 @@ export default function RecommendationsPage() {
       const mappedTitle = getMappedTitle(rec, tRec);
       const confidenceVal = rec.confidence ?? rec.details?.confidence_score ?? 0.85;
 
-      const priority = getPriorityConfig(mappedPriority);
-      const type = getTypeConfig(rec.type);
-      const status = getStatusConfig(rec.status);
+      const priority = getPriorityConfig(mappedPriority, tRec);
+      const type = getTypeConfig(rec.type, tRec);
+      const status = getStatusConfig(rec.status, tRec);
 
       return (
         <motion.div
@@ -553,12 +558,12 @@ export default function RecommendationsPage() {
                     ) : null}
                     {rec.impact && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        📊 Tác động: {rec.impact}
+                        📊 {rec.impact}
                       </span>
                     )}
                     {confidenceVal !== undefined && (
                       <span className={`text-xs font-medium ${confidenceVal >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {Math.round(confidenceVal * 100)}% độ tin cậy
+                        {Math.round(confidenceVal * 100)}% {tRec('aiConfidence').toLowerCase()}
                       </span>
                     )}
                     {rec.target_audience && rec.target_audience.length > 0 && (
@@ -570,12 +575,12 @@ export default function RecommendationsPage() {
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
                   {rec.status === 'pending' && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => handleApprove(rec.id)}
                       disabled={actionLoading === rec.id}
                     >
-                      {actionLoading === rec.id ? 'Đang duyệt...' : 'Duyệt & Triển khai'}
+                      {actionLoading === rec.id ? tRec('approvingAction') : tRec('approveAction')}
                     </Button>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => {
@@ -584,7 +589,7 @@ export default function RecommendationsPage() {
                     setIsRejecting(false);
                     setRejectReason('');
                   }}>
-                    Chi tiết
+                    {t('actions.edit')}
                   </Button>
                 </div>
               </div>

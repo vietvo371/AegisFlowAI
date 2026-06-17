@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import AiForecastPanel from '@/components/panels/ai-forecast-panel';
 
 type PredictionType = 'flood' | 'rainfall' | 'water_level';
 type PredictionSeverity = 'low' | 'medium' | 'high' | 'critical';
@@ -176,7 +177,7 @@ function mapPrediction(p: ApiPrediction, formatHorizonFn: (m?: number) => string
     model_version: p.model_version ?? p.model?.version ?? undefined,
     flood_zone: p.flood_zone ?? null,
     type: normalizeType(p.prediction_type === 'flood_risk' ? 'flood' : p.prediction_type),
-    area: p.flood_zone?.name || p.district?.name || 'Khu vực chung',
+    area: p.flood_zone?.name || p.district?.name || '',
     predicted_at: p.prediction_for || p.issued_at || p.created_at || new Date().toISOString(),
     time_range: formatHorizonFn(p.horizon_minutes ?? undefined),
     water_level_prediction: waterLevelPrediction,
@@ -224,6 +225,16 @@ export default function PredictionsPage() {
   const [timeFilter, setTimeFilter] = React.useState('all');
   const [horizon, setHorizon] = React.useState<HorizonMinutes>(60);
   const [pendingRecCount, setPendingRecCount] = React.useState<number>(0);
+
+  const periodLabels: Record<string, string> = {
+    all: t('periodAll'),
+    '1h': t('period1h'),
+    '3h': t('period3h'),
+    '6h': t('period6h'),
+    '12h': t('period12h'),
+    '24h': t('period24h'),
+    '48h': t('period48h'),
+  };
 
   function formatHorizon(minutes?: number): string {
     if (!minutes) return t('unknownHorizon');
@@ -403,7 +414,9 @@ export default function PredictionsPage() {
                 <p className="text-xs font-medium text-muted-foreground">{t('manualHorizonLabel')}</p>
                 <Select value={String(horizon)} onValueChange={(value) => setHorizon(Number(value) as HorizonMinutes)}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {formatHorizon(horizon)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="15">{t('horizonMinutes', { minutes: 15 })}</SelectItem>
@@ -485,6 +498,15 @@ export default function PredictionsPage() {
         ))}
       </div>
 
+      <AiForecastPanel
+        currentRisk={latestPrediction ? {
+          risk_score: riskPercent(latestPrediction),
+          risk_level: latestPrediction.severity,
+          confidence: latestPrediction.confidence,
+        } : undefined}
+        autoRefreshSeconds={60}
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{t('sectionTitle')}</h2>
@@ -492,7 +514,9 @@ export default function PredictionsPage() {
         </div>
         <Select value={timeFilter} onValueChange={(value) => value && setTimeFilter(value)}>
           <SelectTrigger className="w-full sm:w-[190px]">
-            <SelectValue placeholder={t('selectPeriodPlaceholder')} />
+            <SelectValue placeholder={t('selectPeriodPlaceholder')}>
+              {periodLabels[timeFilter] || timeFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('periodAll')}</SelectItem>
@@ -573,7 +597,7 @@ export default function PredictionsPage() {
                         {prediction.type === 'flood' ? <Waves size={24} /> : prediction.type === 'rainfall' ? <Droplets size={24} /> : <Gauge size={24} />}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-semibold">{prediction.area}</h3>
+                        <h3 className="truncate font-semibold">{prediction.area || t('unknownArea')}</h3>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           <Badge className={`${severity.bg} ${severity.text}`}>
                             {getSeverityLabel(prediction.severity)}

@@ -165,6 +165,7 @@
       "floodZones": "เขตน้ำท่วม",
       "analytics": "การวิเคราะห์",
       "users": "ผู้ใช้",
+      "roles": "บทบาทและสิทธิ์",
       "notifications": "การแจ้งเตือน",
       "settings": "การตั้งค่า"
     },
@@ -385,7 +386,9 @@
       "toastCreateSuccess": "ออกการแจ้งเตือนเรียบร้อยแล้ว!",
       "toastCreateError": "เกิดข้อผิดพลาดในการออกการแจ้งเตือน",
       "toastDetailError": "โหลดรายละเอียดการแจ้งเตือนไม่สำเร็จ",
-      "toastResolveSuccess": "แก้ไขการแจ้งเตือนเรียบร้อยแล้ว"
+      "toastResolveSuccess": "แก้ไขการแจ้งเตือนเรียบร้อยแล้ว",
+      "fieldIncident": "เหตุการณ์ที่ต้องแจ้งเตือน *",
+      "fieldIncidentLoading": "กำลังโหลดเหตุการณ์..."
     },
     "sensors": {
       "subtitle": "ระบบตรวจสอบระดับน้ำและสภาพอากาศแบบเรียลไทม์",
@@ -885,7 +888,23 @@
       "targetAudienceDefault": "ทีมกู้ภัย ประชาชน",
       "confirmReject": "ยืนยันการปฏิเสธ",
       "approvePublish": "อนุมัติและเผยแพร่",
-      "defaultArea": "เลียนเจียว, ดานัง"
+      "defaultArea": "เลียนเจียว, ดานัง",
+      "priorityCritical": "เร่งด่วน",
+      "priorityHigh": "สูง",
+      "priorityMedium": "ปานกลาง",
+      "priorityLow": "ต่ำ",
+      "typeEvacuationLabel": "อพยพ",
+      "typePreparationLabel": "เตรียมการ",
+      "typePreventionLabel": "ป้องกัน",
+      "typeEmergencyLabel": "ฉุกเฉิน",
+      "typeGeneralLabel": "ทั่วไป",
+      "statusPendingLabel": "รอการตรวจสอบ",
+      "statusApprovedLabel": "อนุมัติแล้ว",
+      "statusExecutedLabel": "ดำเนินการแล้ว",
+      "statusRejectedLabel": "ปฏิเสธแล้ว",
+      "approveAction": "อนุมัติและดำเนินการ",
+      "approvingAction": "กำลังอนุมัติ...",
+      "headerSubtitle": "AI เสนอ ผู้ปฏิบัติการอนุมัติก่อนดำเนินการ"
     },
     "floodZones": {
       "subtitle": "จัดการและติดตามพื้นที่น้ำท่วมในดานัง",
@@ -989,7 +1008,14 @@
       "riskLow": "ปลอดภัย",
       "riskMedium": "ปานกลาง",
       "riskHigh": "สูง",
-      "riskCritical": "วิกฤต"
+      "riskCritical": "วิกฤต",
+      "aiForecastTitle": "AI พยากรณ์ (1ช/3ช/6ช)",
+      "now": "ตอนนี้",
+      "loading": "กำลังโหลดพยากรณ์...",
+      "refresh": "รีเฟรชพยากรณ์",
+      "rainfallNow": "ปริมาณฝนปัจจุบัน",
+      "wind": "ลม",
+      "pressure": "ความดัน"
     },
     "relief": {
       "sosBtn": "SOS — รายงานเหตุการณ์ฉุกเฉิน",
@@ -1555,7 +1581,26 @@
         "assigned": "ยอมรับภารกิจแล้ว",
         "in_progress": "อยู่ระหว่างดำเนินการ",
         "completed": "สมบูรณ์"
-      }
+      },
+      "rescueRequestsTitle": "คำร้องช่วยเหลือ",
+      "requestsCount": "{count} รอดำเนินการหรือกำลังดำเนินการ",
+      "requestDetailTitle": "รายละเอียดคำร้อง",
+      "locationLabel": "ตำแหน่ง",
+      "contactLabel": "ติดต่อ",
+      "peopleLabel": "คน",
+      "timeLabel": "เวลา",
+      "notesLabel": "หมายเหตุ",
+      "noRequestsMsg": "ไม่มีคำร้องช่วยเหลือ",
+      "clickToViewMsg": "คลิกคำร้องเพื่อดูรายละเอียด",
+      "updatingMsg": "กำลังอัปเดต...",
+      "acceptRequest": "รับคำร้อง",
+      "startProcessing": "เริ่มดำเนินการ",
+      "noAvailableTeam": "ไม่มีทีมกู้ภัยที่พร้อมใช้งาน",
+      "requestAccepted": "รับคำร้องจาก {name} แล้ว",
+      "startedProcessing": "เริ่มดำเนินการคำร้องแล้ว",
+      "requestCompleted": "คำร้องเสร็จสิ้น",
+      "requestUpdateError": "ไม่สามารถอัปเดตคำร้องได้",
+      "loadError": "โหลดคำร้องช่วยเหลือไม่สำเร็จ"
     },
     "profile": {
       "title": "โปรไฟล์สมาชิกทีม",

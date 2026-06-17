@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import api from '@/lib/api';
+import { useFcmToken } from '@/hooks/useFcmToken';
 import {
   clearPortalToken,
   getPortalForPath,
@@ -188,6 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Refresh user error:', error);
     }
   };
+
+  // Register FCM token after user logs in
+  useFcmToken(!!user);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Loader2, MapPin, Phone, Users, Clock, CheckCircle, AlertTriangle, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 const MapComponent = dynamic(() => import('@/components/map/MapComponent'));
 
@@ -69,20 +70,21 @@ function getRequestCoordinates(request?: RescueRequest | null): { lat: number; l
   return { lat, lng };
 }
 
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    pending: 'Chờ tiếp nhận',
-    assigned: 'Đã tiếp nhận',
-    in_progress: 'Đang thực hiện',
-    completed: 'Hoàn thành',
-    resolved: 'Hoàn thành',
-    cancelled: 'Đã hủy',
-  };
-
-  return labels[status] || status;
-}
-
 export default function TeamMapPage() {
+  const tMissions = useTranslations('team.missions');
+  const tEnums = useTranslations('enums');
+
+  const getStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      pending: tEnums('rescueStatus.pending'),
+      assigned: tEnums('rescueStatus.assigned'),
+      in_progress: tEnums('rescueStatus.in_progress'),
+      completed: tEnums('rescueStatus.completed'),
+      resolved: tEnums('rescueStatus.completed'),
+      cancelled: tEnums('rescueStatus.cancelled'),
+    };
+    return labels[status] || status;
+  };
   const searchParams = useSearchParams();
   const requestId = Number(searchParams.get('requestId'));
   const rawLat = searchParams.get('lat');
@@ -125,7 +127,7 @@ export default function TeamMapPage() {
       if (linkedRequest) setSelectedRequest(linkedRequest);
     } catch (e) {
       console.error('Failed to fetch rescue requests', e);
-      toast.error('Lỗi khi tải danh sách yêu cầu cứu hộ');
+      toast.error(tMissions('loadError'));
     } finally {
       setLoading(false);
     }
@@ -159,13 +161,13 @@ export default function TeamMapPage() {
 
     return {
       id: selectedRequest?.id ?? requestId,
-      name: selectedRequest?.caller_name || selectedRequest?.address || 'Yêu cầu cứu hộ',
+      name: selectedRequest?.caller_name || selectedRequest?.address || tMissions('rescueRequestsTitle'),
       latitude: latCandidate,
       longitude: lngCandidate,
       type: 'rescue_request' as const,
       subtitle: selectedRequest
-        ? `${getStatusLabel(selectedRequest.status)} • ${selectedRequest.people_count} người cần hỗ trợ`
-        : 'Vị trí yêu cầu cứu hộ',
+        ? `${getStatusLabel(selectedRequest.status)} • ${selectedRequest.people_count}`
+        : tMissions('rescueRequestsTitle'),
       status: selectedRequest?.status,
     };
   }, [fallbackLat, fallbackLng, requestId, selectedCoordinates?.lat, selectedCoordinates?.lng, selectedRequest]);
@@ -182,23 +184,23 @@ export default function TeamMapPage() {
         const availableTeam = teams.find((team) => team.status === 'available') ?? teams[0];
 
         if (!availableTeam) {
-          toast.error('Không tìm thấy đội cứu hộ khả dụng');
+          toast.error(tMissions('noAvailableTeam'));
           return;
         }
 
         await api.put(`/rescue-requests/${request.id}/assign`, { team_id: availableTeam.id });
-        toast.success(`Đã tiếp nhận yêu cầu từ ${request.caller_name || 'người dân'}`);
+        toast.success(tMissions('requestAccepted', { name: request.caller_name || '—' }));
       } else if (request.status === 'assigned') {
         await api.put(`/rescue-requests/${request.id}/status`, { status: 'in_progress' });
-        toast.success('Đã bắt đầu xử lý yêu cầu');
+        toast.success(tMissions('startedProcessing'));
       } else if (request.status === 'in_progress') {
         await api.put(`/rescue-requests/${request.id}/status`, { status: 'completed' });
-        toast.success('Đã hoàn thành yêu cầu');
+        toast.success(tMissions('requestCompleted'));
       }
 
       await fetchRequests();
     } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, 'Không cập nhật được yêu cầu'));
+      toast.error(getApiErrorMessage(e, tMissions('requestUpdateError')));
       console.error(e);
     } finally {
       setIsAccepting(false);
@@ -214,20 +216,20 @@ export default function TeamMapPage() {
     }
   };
 
-  const getUrgencyLabel = (urgency: string) => {
+  const getUrgencyLabel = (urgency: string): string => {
     const labels: Record<string, string> = {
-      'critical': 'Khẩn cấp',
-      'high': 'Cao',
-      'medium': 'Trung bình',
-      'low': 'Thấp'
+      critical: tEnums('urgency.critical'),
+      high: tEnums('urgency.high'),
+      medium: tEnums('urgency.medium'),
+      low: tEnums('urgency.low'),
     };
     return labels[urgency] || urgency;
   };
 
-  const getPrimaryActionLabel = (status: RescueRequest['status']) => {
-    if (status === 'pending') return 'Tiếp nhận yêu cầu';
-    if (status === 'assigned') return 'Bắt đầu xử lý';
-    if (status === 'in_progress') return 'Hoàn thành';
+  const getPrimaryActionLabel = (status: RescueRequest['status']): string | null => {
+    if (status === 'pending') return tMissions('acceptRequest');
+    if (status === 'assigned') return tMissions('startProcessing');
+    if (status === 'in_progress') return tMissions('completed');
     return null;
   };
 
@@ -248,12 +250,12 @@ export default function TeamMapPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <MapPin size={18} className="text-primary" />
-              Yêu cầu cứu hộ
+              {tMissions('rescueRequestsTitle')}
             </CardTitle>
             {loading && <Loader2 size={16} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {rescueRequests.length} yêu cầu đang chờ hoặc đang xử lý
+            {tMissions('requestsCount', { count: rescueRequests.length })}
           </p>
         </CardHeader>
 
@@ -265,7 +267,7 @@ export default function TeamMapPage() {
             </div>
           ) : rescueRequests.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              Không có yêu cầu cứu hộ nào
+              {tMissions('noRequestsMsg')}
             </div>
           ) : (
             <div className="space-y-2 p-3">
@@ -280,7 +282,7 @@ export default function TeamMapPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <p className="text-sm font-semibold flex items-center gap-2">
-                            {request.caller_name || 'Người dùng'}
+                            {request.caller_name || tMissions('unknownName')}
                             <Badge variant="outline" className={`text-white ${getUrgencyColor(request.urgency)}`}>
                               {getUrgencyLabel(request.urgency)}
                             </Badge>
@@ -293,7 +295,7 @@ export default function TeamMapPage() {
                       </div>
 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Users size={12} /> {request.people_count} người
+                        <Users size={12} /> {request.people_count} {tMissions('peopleLabel')}
                         {request.caller_phone && (
                           <>
                             <span>•</span>
@@ -315,7 +317,7 @@ export default function TeamMapPage() {
         <Card className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-sm rounded-xl">
           <CardContent className="pt-3 pb-3 text-xs text-muted-foreground">
             {rescueRequests.length > 0 && (
-              <p>👉 Click các yêu cầu để xem chi tiết</p>
+              <p>👉 {tMissions('clickToViewMsg')}</p>
             )}
           </CardContent>
         </Card>
@@ -327,7 +329,7 @@ export default function TeamMapPage() {
           <div className="bg-transparent border-b border-white/20 p-4 flex justify-between items-center shrink-0">
             <h2 className="font-bold text-lg flex items-center gap-2">
               <AlertTriangle size={18} className="text-orange-500" />
-              Chi tiết yêu cầu
+              {tMissions('requestDetailTitle')}
             </h2>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/5" onClick={() => setSelectedRequest(null)}>
               <X size={16} />
@@ -337,7 +339,7 @@ export default function TeamMapPage() {
           <div className="p-6 space-y-6 overflow-y-auto flex-1">
             {/* Header */}
             <div className="space-y-2">
-              <h3 className="text-lg font-bold">{selectedRequest.caller_name || 'Người dùng'}</h3>
+              <h3 className="text-lg font-bold">{selectedRequest.caller_name || tMissions('unknownName')}</h3>
               <div className="flex gap-2">
                 <Badge className={`text-white ${getUrgencyColor(selectedRequest.urgency)}`}>
                   {getUrgencyLabel(selectedRequest.urgency)}
@@ -353,7 +355,7 @@ export default function TeamMapPage() {
               <div className="flex items-start gap-3">
                 <MapPin size={16} className="text-primary mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground">Địa điểm</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{tMissions('locationLabel')}</p>
                   <p className="text-sm font-medium">{selectedRequest.address}</p>
                 </div>
               </div>
@@ -361,7 +363,7 @@ export default function TeamMapPage() {
               <div className="flex items-start gap-3">
                 <Phone size={16} className="text-primary mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground">Liên hệ</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{tMissions('contactLabel')}</p>
                   <p className="text-sm font-medium">{selectedRequest.caller_phone || 'N/A'}</p>
                 </div>
               </div>
@@ -369,7 +371,7 @@ export default function TeamMapPage() {
               <div className="flex items-start gap-3">
                 <Users size={16} className="text-primary mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground">Số người</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{tMissions('peopleLabel')}</p>
                   <p className="text-sm font-medium">{selectedRequest.people_count}</p>
                 </div>
               </div>
@@ -377,9 +379,9 @@ export default function TeamMapPage() {
               <div className="flex items-start gap-3">
                 <Clock size={16} className="text-primary mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground">Thời gian</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{tMissions('timeLabel')}</p>
                   <p className="text-sm font-medium">
-                    {new Date(selectedRequest.created_at).toLocaleString('vi-VN')}
+                    {new Date(selectedRequest.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -388,7 +390,7 @@ export default function TeamMapPage() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle size={16} className="text-primary mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground">Ghi chú</p>
+                    <p className="text-xs font-semibold text-muted-foreground">{tMissions('notesLabel')}</p>
                     <p className="text-sm font-medium">{selectedRequest.description}</p>
                   </div>
                 </div>
@@ -406,7 +408,7 @@ export default function TeamMapPage() {
                 {isAccepting ? (
                   <>
                     <Loader2 size={18} className="mr-2 animate-spin" />
-                    Đang cập nhật...
+                    {tMissions('updatingMsg')}
                   </>
                 ) : (
                   <>
@@ -421,7 +423,7 @@ export default function TeamMapPage() {
               <div className="bg-emerald-50/80 backdrop-blur-sm border border-emerald-200 rounded-xl p-3 mt-2">
                 <p className="text-xs text-emerald-700 font-medium flex items-center">
                   <CheckCircle size={14} className="mr-1.5" />
-                  Yêu cầu này đã được {getStatusLabel(selectedRequest.status).toLowerCase()}
+                  {getStatusLabel(selectedRequest.status)}
                 </p>
               </div>
             )}

@@ -425,7 +425,7 @@ export default function RescueTeamsPage() {
                         {/* Quick metrics indicators */}
                         <div className="grid grid-cols-2 gap-2 mt-2 mb-1.5">
                           <div className="p-2 bg-muted/20 border border-border/50 rounded-xl flex flex-col justify-between">
-                            <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-wide">{t('rescueTeams.personnel')}</span>
+                            <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-wide">{t('rescueTeams.users')}</span>
                             <span className="font-extrabold text-xs text-foreground mt-1 flex items-center gap-1">
                               <Users size={12} className="text-muted-foreground" />
                               {t('rescueTeams.peopleCount', { count: getMemberCount(team) })}

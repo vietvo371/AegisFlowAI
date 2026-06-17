@@ -165,6 +165,7 @@
       "floodZones": "Mga Sona ng Baha",
       "analytics": "Analytics",
       "users": "Mga gumagamit",
+      "roles": "Mga Tungkulin at Pahintulot",
       "notifications": "Mga abiso",
       "settings": "Mga setting"
     },
@@ -385,7 +386,9 @@
       "toastCreateSuccess": "Matagumpay na naibigay ang alerto!",
       "toastCreateError": "Error sa pagbibigay ng alerto",
       "toastDetailError": "Nabigong i-load ang mga detalye ng alerto",
-      "toastResolveSuccess": "Matagumpay na nalutas ang alerto"
+      "toastResolveSuccess": "Matagumpay na nalutas ang alerto",
+      "fieldIncident": "Insidente na kailangang alertuhan *",
+      "fieldIncidentLoading": "Nilo-load ang mga insidente..."
     },
     "sensors": {
       "subtitle": "Real-time na antas ng tubig at sistema ng pagsubaybay sa panahon",
@@ -885,7 +888,23 @@
       "targetAudienceDefault": "Mga Rescue Team, Mga Mamamayan",
       "confirmReject": "Kumpirmahin ang Pagtanggi",
       "approvePublish": "Aprubahan at I-publish",
-      "defaultArea": "Lien Chieu, Da Nang"
+      "defaultArea": "Lien Chieu, Da Nang",
+      "priorityCritical": "Apurahan",
+      "priorityHigh": "Mataas",
+      "priorityMedium": "Katamtaman",
+      "priorityLow": "Mababa",
+      "typeEvacuationLabel": "Ebakwasyon",
+      "typePreparationLabel": "Paghahanda",
+      "typePreventionLabel": "Pag-iwas",
+      "typeEmergencyLabel": "Emergency",
+      "typeGeneralLabel": "Pangkalahatan",
+      "statusPendingLabel": "Naghihintay sa Pagsusuri",
+      "statusApprovedLabel": "Naaprubahan",
+      "statusExecutedLabel": "Naisakatuparan",
+      "statusRejectedLabel": "Tinanggihan",
+      "approveAction": "Aprubahan at I-deploy",
+      "approvingAction": "Inaprubahan...",
+      "headerSubtitle": "Inimungkahi ng AI, inaprubahan ng operator bago isagawa"
     },
     "floodZones": {
       "subtitle": "Pamahalaan at subaybayan ang mga flood zone sa Da Nang",
@@ -989,7 +1008,14 @@
       "riskLow": "Ligtas",
       "riskMedium": "Katamtaman",
       "riskHigh": "Mataas",
-      "riskCritical": "Kritikal"
+      "riskCritical": "Kritikal",
+      "aiForecastTitle": "AI Forecast (1h/3h/6h)",
+      "now": "Ngayon",
+      "loading": "Naglo-load ng forecast...",
+      "refresh": "I-refresh ang forecast",
+      "rainfallNow": "Kasalukuyang pag-ulan",
+      "wind": "Hangin",
+      "pressure": "Presyon"
     },
     "relief": {
       "sosBtn": "SOS — MAG-ULAT NG EMERGENCY INSIDENTE",
@@ -1555,7 +1581,26 @@
         "assigned": "Tinanggap ang Misyon",
         "in_progress": "Isinasagawa",
         "completed": "Nakumpleto"
-      }
+      },
+      "rescueRequestsTitle": "Mga Kahilingan sa Pagliligtas",
+      "requestsCount": "{count} nakabinbin o isinasagawa",
+      "requestDetailTitle": "Detalye ng Kahilingan",
+      "locationLabel": "Lokasyon",
+      "contactLabel": "Makipag-ugnayan",
+      "peopleLabel": "Mga Tao",
+      "timeLabel": "Oras",
+      "notesLabel": "Mga Tala",
+      "noRequestsMsg": "Walang mga kahilingan sa pagliligtas",
+      "clickToViewMsg": "I-click ang kahilingan para makita ang mga detalye",
+      "updatingMsg": "Ina-update...",
+      "acceptRequest": "Tanggapin ang Kahilingan",
+      "startProcessing": "Simulan ang Pagproseso",
+      "noAvailableTeam": "Walang available na rescue team",
+      "requestAccepted": "Natanggap ang kahilingan mula kay {name}",
+      "startedProcessing": "Nagsimulang iproseso ang kahilingan",
+      "requestCompleted": "Nakumpleto ang kahilingan",
+      "requestUpdateError": "Hindi ma-update ang kahilingan",
+      "loadError": "Nabigo sa pag-load ng mga kahilingan sa pagliligtas"
     },
     "profile": {
       "title": "Profile ng Miyembro ng Koponan",

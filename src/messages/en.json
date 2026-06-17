@@ -165,6 +165,7 @@
       "floodZones": "Flood Zones",
       "analytics": "Analytics",
       "users": "Users",
+      "roles": "Roles & Permissions",
       "notifications": "Notifications",
       "settings": "Settings"
     },
@@ -272,7 +273,9 @@
       "noAddress": "Location address not set",
       "latitudeLabel": "Latitude",
       "longitudeLabel": "Longitude",
-      "indefinite": "Indefinite (Active until resolved)"
+      "indefinite": "Indefinite (Active until resolved)",
+      "createAlertBtn": "Create Alert",
+      "viewRescueBtn": "Rescue Requests"
     },
     "alerts": {
       "subtitle": "Manage and issue disaster warnings",
@@ -377,6 +380,8 @@
       "typeDamWarning": "Dam Warning",
       "typeWeather": "Weather",
       "typeAllClear": "All Clear",
+      "fieldIncident": "Incident to Alert *",
+      "fieldIncidentLoading": "Loading incidents...",
       "toastLoadError": "Failed to load alerts",
       "toastContextError": "Failed to load incident/zone context",
       "toastTitleContentRequired": "Please enter alert title and content",
@@ -385,7 +390,8 @@
       "toastCreateSuccess": "Alert issued successfully!",
       "toastCreateError": "Error issuing alert",
       "toastDetailError": "Failed to load alert details",
-      "toastResolveSuccess": "Alert resolved successfully"
+      "toastResolveSuccess": "Alert resolved successfully",
+      "liveFeed": "Live Feed"
     },
     "sensors": {
       "subtitle": "Real-time water level and weather monitoring system",
@@ -468,7 +474,8 @@
       "statusOnlineLabel": "Online",
       "statusOfflineLabel": "Offline",
       "statusWarningLabel": "Warning",
-      "statusErrorLabel": "Connection Lost"
+      "statusErrorLabel": "Connection Lost",
+      "liveNetwork": "Live Network"
     },
     "rescueRequests": {
       "subtitle": "Manage and coordinate emergency rescue requests",
@@ -544,7 +551,11 @@
       "dispatchTitle": "Dispatch & Update Status",
       "acceptBtn": "Accept",
       "completeBtn": "Complete",
-      "viewMapBtn": "View Map"
+      "viewMapBtn": "View Map",
+      "requestNumber": "Request #",
+      "liveBroadcast": "Live",
+      "selectTeamPlaceholder": "Select rescue team...",
+      "noTeam": "No team available"
     },
     "rescueTeams": {
       "title": "Emergency Rescue Teams",
@@ -784,7 +795,8 @@
       "horizonMinutes": "{minutes} minutes",
       "horizonHours": "{hours} hours",
       "noPredictionCreated": "Not yet generated",
-      "generalArea": "General Area"
+      "generalArea": "General Area",
+      "unknownArea": "General Area"
     },
     "recommendations": {
       "recId": "Recommendation ID",
@@ -885,7 +897,23 @@
       "targetAudienceDefault": "Rescue Teams, Citizens",
       "confirmReject": "Confirm Rejection",
       "approvePublish": "Approve & Publish",
-      "defaultArea": "Lien Chieu, Da Nang"
+      "defaultArea": "Lien Chieu, Da Nang",
+      "priorityCritical": "Urgent",
+      "priorityHigh": "High",
+      "priorityMedium": "Medium",
+      "priorityLow": "Low",
+      "typeEvacuationLabel": "Evacuation",
+      "typePreparationLabel": "Preparation",
+      "typePreventionLabel": "Prevention",
+      "typeEmergencyLabel": "Emergency",
+      "typeGeneralLabel": "General",
+      "statusPendingLabel": "Pending Review",
+      "statusApprovedLabel": "Approved",
+      "statusExecutedLabel": "Executed",
+      "statusRejectedLabel": "Rejected",
+      "approveAction": "Approve & Deploy",
+      "approvingAction": "Approving...",
+      "headerSubtitle": "AI proposes, operator approves before execution"
     },
     "floodZones": {
       "subtitle": "Manage and monitor flood zones in Da Nang",
@@ -989,7 +1017,14 @@
       "riskLow": "Safe",
       "riskMedium": "Medium",
       "riskHigh": "High",
-      "riskCritical": "Critical"
+      "riskCritical": "Critical",
+      "aiForecastTitle": "AI Forecast (1h/3h/6h)",
+      "now": "Now",
+      "loading": "Loading forecast...",
+      "refresh": "Refresh forecast",
+      "rainfallNow": "Current rainfall",
+      "wind": "Wind",
+      "pressure": "Pressure"
     },
     "relief": {
       "sosBtn": "SOS — REPORT EMERGENCY INCIDENT",
@@ -1502,7 +1537,11 @@
       "successTitle": "Report Submitted!",
       "successDesc": "Your rescue request has been sent. A rescue team will contact you shortly.",
       "viewMyRequest": "View My Request",
-      "backHome": "Back to Home"
+      "viewOnMap": "View on Map",
+      "backHome": "Back to Home",
+      "photosLabel": "Scene Photos (max 5)",
+      "addPhoto": "Add Photo",
+      "maxPhotos": "Maximum 5 photos"
     },
     "shelters": {
       "title": "Shelters",
@@ -1555,7 +1594,26 @@
         "assigned": "Mission Accepted",
         "in_progress": "In Progress",
         "completed": "Completed"
-      }
+      },
+      "rescueRequestsTitle": "Rescue Requests",
+      "requestsCount": "{count} pending or in progress",
+      "requestDetailTitle": "Request Details",
+      "locationLabel": "Location",
+      "contactLabel": "Contact",
+      "peopleLabel": "People",
+      "timeLabel": "Time",
+      "notesLabel": "Notes",
+      "noRequestsMsg": "No rescue requests",
+      "clickToViewMsg": "Click a request to view details",
+      "updatingMsg": "Updating...",
+      "acceptRequest": "Accept Request",
+      "startProcessing": "Start Processing",
+      "noAvailableTeam": "No available rescue team found",
+      "requestAccepted": "Request accepted from {name}",
+      "startedProcessing": "Started processing request",
+      "requestCompleted": "Request completed",
+      "requestUpdateError": "Could not update request",
+      "loadError": "Failed to load rescue requests"
     },
     "profile": {
       "title": "Team Member Profile",

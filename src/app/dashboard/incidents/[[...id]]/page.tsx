@@ -19,8 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import {
   RefreshCw, Search, Plus, MapPin, CheckCircle2, Route,
-  ChevronLeft, ChevronRight, X, Activity, AlertTriangle, Clock
+  ChevronLeft, ChevronRight, X, Activity, AlertTriangle, Clock,
+  Bell, HeartPulse
 } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -691,6 +693,30 @@ export default function IncidentsPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Shortcut actions */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="gap-2 rounded-xl h-10 text-xs font-bold border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                      >
+                        <Link href={`/dashboard/alerts?incident_id=${selectedIncident.id}&incident_title=${encodeURIComponent(selectedIncident.title)}`}>
+                          <Bell size={13} />
+                          {t('incidents.createAlertBtn')}
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="gap-2 rounded-xl h-10 text-xs font-bold border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
+                      >
+                        <Link href="/dashboard/rescue-requests">
+                          <HeartPulse size={13} />
+                          {t('incidents.viewRescueBtn')}
+                        </Link>
+                      </Button>
+                    </div>
 
                     {/* Map Navigation and resolution button */}
                     <div className="flex gap-2.5">

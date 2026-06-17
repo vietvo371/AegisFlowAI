@@ -212,10 +212,15 @@ function createFallbackFloodZoneFrame(focusPoint: NonNullable<Props['focusPoint'
   };
 }
 
+const OSM_FALLBACK_STYLE = 'https://tiles.stadiamaps.com/styles/osm_bright.json';
+
 async function loadOpenMapStyle(): Promise<string | MapStyleJson> {
   try {
-    const response = await fetch(OPENMAP_STYLE);
-    if (!response.ok) return OPENMAP_STYLE;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(OPENMAP_STYLE, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!response.ok) return OSM_FALLBACK_STYLE;
 
     const style = await response.json() as MapStyleJson;
     delete style.terrain;
@@ -234,7 +239,7 @@ async function loadOpenMapStyle(): Promise<string | MapStyleJson> {
 
     return style;
   } catch {
-    return OPENMAP_STYLE;
+    return OSM_FALLBACK_STYLE;
   }
 }
 
@@ -342,6 +347,9 @@ export default function MapComponent({ evacuationRoute, focusTeam, focusPoint, f
     const initMap = async () => {
       const style = await loadOpenMapStyle();
       if (cancelled || !mapContainer.current || map.current) return;
+
+      console.log('[AegisFlow Map] style loaded:', typeof style === 'string' ? style.substring(0, 80) : 'object');
+      console.log('[AegisFlow Map] container size:', mapContainer.current.offsetWidth, 'x', mapContainer.current.offsetHeight);
 
       map.current = new maplibregl.Map({
         container: mapContainer.current,

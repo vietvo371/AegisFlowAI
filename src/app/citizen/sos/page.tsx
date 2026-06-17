@@ -126,7 +126,7 @@ export default function CitizenSOSPage() {
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (photos.length + files.length > 5) {
-      toast.error('Tối đa 5 ảnh');
+      toast.error(tCitizen('sos.maxPhotos'));
       return;
     }
     const newPhotos = [...photos, ...files].slice(0, 5);
@@ -253,7 +253,7 @@ export default function CitizenSOSPage() {
               <Link href={`/citizen/map?lat=${coords.lat}&lng=${coords.lng}&zoom=16`}>
                 <Button variant="outline" className="w-full border-blue-300 text-blue-600 hover:bg-blue-50">
                   <MapPin size={16} className="mr-2" />
-                  Xem trên bản đồ
+                  {tCitizen('sos.viewOnMap')}
                 </Button>
               </Link>
               <Link href="/citizen">
@@ -267,6 +267,21 @@ export default function CitizenSOSPage() {
       </div>
     );
   }
+
+  const typeMap: Record<string, string> = {
+    flood: t('typeFlood'),
+    heavy_rain: t('typeHeavyRain'),
+    landslide: t('typeLandslide'),
+    dam_failure: t('typeDamFailure'),
+    other: t('typeOther'),
+  };
+
+  const severityMap: Record<string, string> = {
+    low: t('sevLow'),
+    medium: t('sevMedium'),
+    high: t('sevHigh'),
+    critical: t('sevCritical'),
+  };
 
   return (
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -319,7 +334,11 @@ export default function CitizenSOSPage() {
               {t('fieldType')}
             </Label>
             <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v ?? 'flood' }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {typeMap[form.type] || form.type}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="flood">{t('typeFlood')}</SelectItem>
                 <SelectItem value="heavy_rain">{t('typeHeavyRain')}</SelectItem>
@@ -334,7 +353,11 @@ export default function CitizenSOSPage() {
               {t('fieldSeverity')}
             </Label>
             <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v ?? 'high' }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {severityMap[form.severity] || form.severity}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">{t('sevLow')}</SelectItem>
                 <SelectItem value="medium">{t('sevMedium')}</SelectItem>
@@ -408,7 +431,7 @@ export default function CitizenSOSPage() {
         {/* Photos */}
         <div className="space-y-2">
           <Label className="text-[10px] font-bold uppercase text-muted-foreground">
-            Hình ảnh hiện trường (tối đa 5)
+            {tCitizen('sos.photosLabel')}
           </Label>
           <input
             ref={fileInputRef}
@@ -439,7 +462,7 @@ export default function CitizenSOSPage() {
                 className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 <ImagePlus size={20} />
-                <span className="text-[9px] font-medium">Thêm ảnh</span>
+                <span className="text-[9px] font-medium">{tCitizen('sos.addPhoto')}</span>
               </button>
             )}
           </div>

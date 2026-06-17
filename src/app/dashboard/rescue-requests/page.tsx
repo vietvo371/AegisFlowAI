@@ -44,6 +44,12 @@ interface RescueRequest {
   location?: { lat: number; lng: number } | null;
 }
 
+interface RescueTeam {
+  id: number;
+  name: string;
+  status: string;
+}
+
 const ACTIVE_STATUSES = ['pending', 'assigned', 'in_progress'];
 const TERMINAL_STATUSES = ['completed', 'cancelled'];
 
@@ -57,10 +63,23 @@ export default function RescueRequestsPage() {
   const [statusFilter, setStatusFilter] = React.useState('active');
   const [selectedRequest, setSelectedRequest] = React.useState<RescueRequest | null>(null);
   const [actionLoading, setActionLoading] = React.useState<number | null>(null);
+  const [teams, setTeams] = React.useState<RescueTeam[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = React.useState<string>('');
 
   // Pagination
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 6;
+
+  React.useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const api = (await import('@/lib/api')).default;
+        const res = await api.get('/rescue-teams', { params: { per_page: 100, status: 'available' } });
+        setTeams(res.data?.data ?? []);
+      } catch { /* silent */ }
+    };
+    void fetchTeams();
+  }, []);
 
   const fetchRequests = React.useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -89,10 +108,19 @@ export default function RescueRequestsPage() {
     setActionLoading(id);
     try {
       const api = (await import('@/lib/api')).default;
-      await api.put(`/rescue-requests/${id}/status`, { status: 'assigned' });
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'assigned' } : r));
-      if (selectedRequest?.id === id) {
-        setSelectedRequest(prev => prev ? { ...prev, status: 'assigned' } : null);
+      const team = teams.find(t => t.id === Number(selectedTeamId));
+      if (selectedTeamId) {
+        await api.put(`/rescue-requests/${id}/assign`, { team_id: Number(selectedTeamId) });
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'assigned', assigned_team: team ? { id: team.id, name: team.name } : r.assigned_team } : r));
+        if (selectedRequest?.id === id) {
+          setSelectedRequest(prev => prev ? { ...prev, status: 'assigned', assigned_team: team ? { id: team.id, name: team.name } : prev.assigned_team } : null);
+        }
+      } else {
+        await api.put(`/rescue-requests/${id}/status`, { status: 'assigned' });
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'assigned' } : r));
+        if (selectedRequest?.id === id) {
+          setSelectedRequest(prev => prev ? { ...prev, status: 'assigned' } : null);
+        }
       }
       toast.success(t('toastAssigned'));
     } catch {
@@ -339,7 +367,7 @@ export default function RescueRequestsPage() {
               <h2 className="font-black text-sm tracking-tight">{t('listTitle')}</h2>
               <Badge variant="outline" className="border-rose-500/20 bg-rose-500/5 text-rose-400 text-[10px] font-bold flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
-                Live Broadcast Channel
+                {t('liveBroadcast')}
               </Badge>
             </div>
 
@@ -478,7 +506,7 @@ export default function RescueRequestsPage() {
                 <div className="border-b border-border/50 px-5 py-4 flex items-center justify-between bg-muted/10">
                   <div className="min-w-0">
                     <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                      Request Number: {selectedRequest.request_number}
+                      {t('requestNumber')} {selectedRequest.request_number}
                     </p>
                     <h2 className="font-black text-sm tracking-tight mt-0.5 truncate text-foreground">
                       {t('detailTitle')}
@@ -575,8 +603,8 @@ export default function RescueRequestsPage() {
                       <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
                         <MapPin size={12} className="text-rose-400" /> {t('coordsLabel')}
                       </p>
-                      <p className="font-semibold text-foreground">{selectedRequest.address || 'Da Nang'}</p>
-                      {selectedRequest.location && (
+                      <p className="font-semibold text-foreground">{selectedRequest.address || t('hiddenAddress')}</p>
+                      {selectedRequest.location && selectedRequest.location.lat != null && selectedRequest.location.lng != null && (
                         <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-bold text-muted-foreground">
                           <span>{t('latitudeLabel', { lat: selectedRequest.location.lat.toFixed(5) })}</span>
                           <span>{t('longitudeLabel', { lng: selectedRequest.location.lng.toFixed(5) })}</span>
@@ -591,6 +619,23 @@ export default function RescueRequestsPage() {
                         {t('dispatchTitle')}
                       </p>
                       
+                      {selectedRequest.status === 'pending' && teams.length > 0 && (
+                        <Select value={selectedTeamId} onValueChange={(val) => setSelectedTeamId(val ?? '')}>
+                          <SelectTrigger className="w-full h-9 rounded-xl border-border bg-background/50 text-xs font-semibold focus:ring-rose-500 text-foreground mb-2">
+                            <SelectValue placeholder={t('selectTeamPlaceholder')}>
+                              {teams.find(team => String(team.id) === selectedTeamId)?.name}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="border-border">
+                            {teams.map(team => (
+                              <SelectItem key={team.id} value={String(team.id)} className="text-xs font-semibold">
+                                {team.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
                       <div className="flex gap-2">
                         {selectedRequest.status === 'pending' && (
                           <Button
@@ -614,7 +659,7 @@ export default function RescueRequestsPage() {
                             {actionLoading === selectedRequest.id ? t('saving') : t('completeBtn')}
                           </Button>
                         )}
-                        {selectedRequest.location && !isTerminalStatus(selectedRequest.status) && (
+                        {selectedRequest.location && selectedRequest.location.lat != null && selectedRequest.location.lng != null && !isTerminalStatus(selectedRequest.status) && (
                           <Button
                             asChild
                             className="flex-1 h-9 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 border border-border text-foreground"

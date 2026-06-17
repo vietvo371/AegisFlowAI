@@ -273,7 +273,9 @@
       "noAddress": "Chưa có địa chỉ định vị",
       "latitudeLabel": "Vĩ độ",
       "longitudeLabel": "Kinh độ",
-      "indefinite": "Vô thời hạn (Hoạt động cho đến khi giải quyết)"
+      "indefinite": "Vô thời hạn (Hoạt động cho đến khi giải quyết)",
+      "createAlertBtn": "Tạo cảnh báo",
+      "viewRescueBtn": "Yêu cầu cứu hộ"
     },
     "alerts": {
       "subtitle": "Quản lý và ban hành cảnh báo thiên tai",
@@ -378,6 +380,8 @@
       "typeDamWarning": "Cảnh báo đập",
       "typeWeather": "Thời tiết",
       "typeAllClear": "Dỡ cảnh báo",
+      "fieldIncident": "Vụ/sự cố cần cảnh báo *",
+      "fieldIncidentLoading": "Đang tải sự cố...",
       "toastLoadError": "Không tải được danh sách cảnh báo",
       "toastContextError": "Không tải được danh sách sự cố/khu vực cảnh báo",
       "toastTitleContentRequired": "Vui lòng nhập tiêu đề và nội dung cảnh báo",
@@ -386,7 +390,8 @@
       "toastCreateSuccess": "Ban hành cảnh báo thành công!",
       "toastCreateError": "Lỗi khi phát hành cảnh báo",
       "toastDetailError": "Không tải được chi tiết cảnh báo",
-      "toastResolveSuccess": "Đã giải quyết cảnh báo"
+      "toastResolveSuccess": "Đã giải quyết cảnh báo",
+      "liveFeed": "Dữ liệu trực tiếp"
     },
     "sensors": {
       "subtitle": "Hệ thống quan trắc mực nước và thời tiết thời gian thực",
@@ -469,7 +474,8 @@
       "statusOnlineLabel": "Trực tuyến",
       "statusOfflineLabel": "Ngoại tuyến",
       "statusWarningLabel": "Cảnh báo",
-      "statusErrorLabel": "Mất kết nối"
+      "statusErrorLabel": "Mất kết nối",
+      "liveNetwork": "Mạng trực tiếp"
     },
     "rescueRequests": {
       "subtitle": "Quản lý và điều phối các yêu cầu cứu trợ khẩn cấp",
@@ -545,7 +551,11 @@
       "dispatchTitle": "Điều phối & Cập nhật trạng thái",
       "acceptBtn": "Tiếp nhận",
       "completeBtn": "Hoàn thành",
-      "viewMapBtn": "Xem bản đồ"
+      "viewMapBtn": "Xem bản đồ",
+      "requestNumber": "Yêu cầu số",
+      "liveBroadcast": "Trực tiếp",
+      "selectTeamPlaceholder": "Chọn đội cứu hộ...",
+      "noTeam": "Không có đội nào"
     },
     "rescueTeams": {
       "title": "Đội cứu hộ khẩn cấp",
@@ -561,7 +571,8 @@
       "teamStatusLabel": "Trạng thái đội",
       "allStatuses": "Tất cả trạng thái",
       "listTitle": "Danh sách lực lượng phản ứng",
-      "personnel": "Nhân sự",
+      "users": "Nhân sự",
+      "roles": "Phân quyền",
       "vehiclesLabel": "Phương tiện",
       "peopleCount": "{count} người",
       "vehiclesCount": "{count} xe",
@@ -784,7 +795,8 @@
       "horizonMinutes": "{minutes} phút tới",
       "horizonHours": "{hours} giờ tới",
       "noPredictionCreated": "Chưa có",
-      "generalArea": "Khu vực chung"
+      "generalArea": "Khu vực chung",
+      "unknownArea": "Khu vực chung"
     },
     "recommendations": {
       "recId": "ID Đề xuất",
@@ -885,7 +897,23 @@
       "targetAudienceDefault": "Đội cứu hộ, cư dân",
       "confirmReject": "Xác nhận từ chối",
       "approvePublish": "Phê duyệt & Ban hành",
-      "defaultArea": "Liên Chiểu, Đà Nẵng"
+      "defaultArea": "Liên Chiểu, Đà Nẵng",
+      "priorityCritical": "Khẩn cấp",
+      "priorityHigh": "Cao",
+      "priorityMedium": "Trung bình",
+      "priorityLow": "Thấp",
+      "typeEvacuationLabel": "Sơ tán",
+      "typePreparationLabel": "Chuẩn bị",
+      "typePreventionLabel": "Phòng ngừa",
+      "typeEmergencyLabel": "Khẩn cấp",
+      "typeGeneralLabel": "Chung",
+      "statusPendingLabel": "Chờ duyệt",
+      "statusApprovedLabel": "Đã duyệt",
+      "statusExecutedLabel": "Đã thực hiện",
+      "statusRejectedLabel": "Từ chối",
+      "approveAction": "Duyệt & Triển khai",
+      "approvingAction": "Đang duyệt...",
+      "headerSubtitle": "AI đề xuất, người điều hành phê duyệt trước khi thực thi"
     },
     "floodZones": {
       "subtitle": "Quản lý và giám sát các vùng ngập lụt trên địa bàn Đà Nẵng",
@@ -989,7 +1017,14 @@
       "riskLow": "An toàn",
       "riskMedium": "Trung bình",
       "riskHigh": "Cao",
-      "riskCritical": "Nguy cấp"
+      "riskCritical": "Nguy cấp",
+      "aiForecastTitle": "Dự báo AI (1h/3h/6h)",
+      "now": "Hiện tại",
+      "loading": "Đang tải dự báo...",
+      "refresh": "Làm mới dự báo",
+      "rainfallNow": "Mưa hiện tại",
+      "wind": "Gió",
+      "pressure": "Áp suất"
     },
     "relief": {
       "sosBtn": "SOS — BÁO CÁO SỰ CỐ KHẨN CẤP",
@@ -1502,7 +1537,11 @@
       "successTitle": "Báo cáo thành công!",
       "successDesc": "Yêu cầu cứu hộ của bạn đã được gửi. Đội cứu hộ sẽ liên hệ sớm nhất.",
       "viewMyRequest": "Xem yêu cầu của tôi",
-      "backHome": "Quay về trang chủ"
+      "viewOnMap": "Xem trên bản đồ",
+      "backHome": "Quay về trang chủ",
+      "photosLabel": "Hình ảnh hiện trường (tối đa 5)",
+      "addPhoto": "Thêm ảnh",
+      "maxPhotos": "Tối đa 5 ảnh"
     },
     "shelters": {
       "title": "Điểm sơ tán",
@@ -1555,7 +1594,26 @@
         "assigned": "Đã nhận nhiệm vụ",
         "in_progress": "Đang cứu hộ",
         "completed": "Hoàn thành"
-      }
+      },
+      "rescueRequestsTitle": "Yêu cầu cứu hộ",
+      "requestsCount": "{count} yêu cầu đang chờ hoặc đang xử lý",
+      "requestDetailTitle": "Chi tiết yêu cầu",
+      "locationLabel": "Địa điểm",
+      "contactLabel": "Liên hệ",
+      "peopleLabel": "Số người",
+      "timeLabel": "Thời gian",
+      "notesLabel": "Ghi chú",
+      "noRequestsMsg": "Không có yêu cầu cứu hộ nào",
+      "clickToViewMsg": "Click các yêu cầu để xem chi tiết",
+      "updatingMsg": "Đang cập nhật...",
+      "acceptRequest": "Tiếp nhận yêu cầu",
+      "startProcessing": "Bắt đầu xử lý",
+      "noAvailableTeam": "Không tìm thấy đội cứu hộ khả dụng",
+      "requestAccepted": "Đã tiếp nhận yêu cầu từ {name}",
+      "startedProcessing": "Đã bắt đầu xử lý yêu cầu",
+      "requestCompleted": "Đã hoàn thành yêu cầu",
+      "requestUpdateError": "Không cập nhật được yêu cầu",
+      "loadError": "Lỗi khi tải danh sách yêu cầu cứu hộ"
     },
     "profile": {
       "title": "Hồ sơ đội viên",
