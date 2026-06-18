@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { FC } from 'react';
 import { TechMarquee } from '@/components/landing/TechMarquee';
+import { DemoSimulation } from '@/components/landing/DemoSimulation';
 
 // ── Inline diagram components (slide-style) ──────────────────────────────────
 
@@ -321,6 +322,8 @@ export default function LandingPage() {
       </section>
 
       <TechMarquee />
+
+      <DemoSimulation />
 
       {/* ── 3 Khoảng Trống (Problem Gaps) ── */}
       <section className="py-24 relative overflow-hidden bg-background">
