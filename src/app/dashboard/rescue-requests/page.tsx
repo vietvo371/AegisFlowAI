@@ -42,6 +42,7 @@ interface RescueRequest {
   created_at: string;
   updated_at: string;
   location?: { lat: number; lng: number } | null;
+  priority_score?: number | null;
 }
 
 interface RescueTeam {
@@ -434,10 +435,22 @@ export default function RescueRequestsPage() {
                         </p>
 
                         <div className="flex items-center justify-between mt-auto text-[10px] font-bold text-muted-foreground border-t border-border/50 pt-2.5">
-                          <Badge variant="outline" className={cn("text-[8px] h-4.5 font-bold uppercase gap-0.5", status.border, status.text)}>
-                            {request.status === 'pending' && <span className="size-1 rounded-full bg-yellow-500 mr-0.5" />}
-                            {status.label}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={cn("text-[8px] h-4.5 font-bold uppercase gap-0.5", status.border, status.text)}>
+                              {request.status === 'pending' && <span className="size-1 rounded-full bg-yellow-500 mr-0.5" />}
+                              {status.label}
+                            </Badge>
+                            {request.priority_score != null && (
+                              <Badge variant="outline" className={cn(
+                                "text-[8px] h-4.5 font-black gap-0.5",
+                                request.priority_score >= 75 ? 'border-purple-500/20 bg-purple-500/10 text-purple-400' :
+                                request.priority_score >= 50 ? 'border-amber-500/20 bg-amber-500/10 text-amber-400' :
+                                'border-blue-500/20 bg-blue-500/10 text-blue-400'
+                              )}>
+                                <Sparkles size={8} /> {request.priority_score}
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[9px] text-muted-foreground flex items-center gap-1 font-semibold">
                             <Clock size={10} />
                             {new Date(request.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
@@ -546,6 +559,51 @@ export default function RescueRequestsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* AI Priority Score */}
+                    {selectedRequest.priority_score != null && (
+                      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
+                        <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                          <Sparkles size={12} className="text-purple-400" /> Điểm ưu tiên AI
+                        </p>
+                        <div className="flex items-center gap-4">
+                          <div className="relative flex size-16 shrink-0 items-center justify-center">
+                            <svg className="size-16 -rotate-90" viewBox="0 0 64 64">
+                              <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" strokeWidth="6" className="text-purple-500/10" />
+                              <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" strokeWidth="6"
+                                strokeDasharray={`${2 * Math.PI * 26}`}
+                                strokeDashoffset={`${2 * Math.PI * 26 * (1 - selectedRequest.priority_score / 100)}`}
+                                strokeLinecap="round"
+                                className={cn(
+                                  selectedRequest.priority_score >= 75 ? 'text-rose-500' :
+                                  selectedRequest.priority_score >= 50 ? 'text-amber-500' : 'text-blue-500'
+                                )}
+                              />
+                            </svg>
+                            <span className={cn(
+                              "absolute text-base font-black",
+                              selectedRequest.priority_score >= 75 ? 'text-rose-400' :
+                              selectedRequest.priority_score >= 50 ? 'text-amber-400' : 'text-blue-400'
+                            )}>
+                              {selectedRequest.priority_score}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn(
+                              "text-sm font-black",
+                              selectedRequest.priority_score >= 75 ? 'text-rose-400' :
+                              selectedRequest.priority_score >= 50 ? 'text-amber-400' : 'text-blue-400'
+                            )}>
+                              {selectedRequest.priority_score >= 75 ? 'Ưu tiên cao — Cần cứu hộ ngay' :
+                               selectedRequest.priority_score >= 50 ? 'Ưu tiên trung bình' : 'Ưu tiên thấp'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                              AI chấm điểm dựa trên: số người, mức độ khẩn, mực nước, thời gian chờ
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Detailed Situation Report */}
                     <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
