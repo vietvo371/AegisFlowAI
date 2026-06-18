@@ -22,7 +22,8 @@
     "language": "Ngôn ngữ",
     "darkMode": "Chế độ tối",
     "lightMode": "Chế độ sáng",
-    "cityName": "Đà Nẵng"
+    "cityName": "Đà Nẵng",
+    "close": "Đóng"
   },
   "nav": {
     "solutions": "Giải pháp",

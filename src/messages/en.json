@@ -22,7 +22,8 @@
     "language": "Language",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
-    "cityName": "Da Nang"
+    "cityName": "Da Nang",
+    "close": "Close"
   },
   "nav": {
     "solutions": "Solutions",
