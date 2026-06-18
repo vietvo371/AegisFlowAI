@@ -419,7 +419,19 @@ export function ForecastPanel() {
             <div className="space-y-2">
               {Object.entries(floodRisk.contributing_factors).map(([key, val]) => (
                 <div key={key} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground capitalize">{key.replace('_', ' ')}</span>
+                  <span className="text-muted-foreground capitalize">{
+                    (() => {
+                      const keyMap: Record<string, string> = {
+                        water_level: tF('factorWaterLevel'),
+                        rainfall: tF('factorRainfall'),
+                        ai_prediction: tF('factorAiPrediction'),
+                        tide: tF('factorTide'),
+                        history: tF('factorHistory'),
+                        rising_trend: tF('factorRisingTrend'),
+                      };
+                      return keyMap[key] ?? key.replace('_', ' ');
+                    })()
+                  }</span>
                   <div className="flex items-center gap-2">
                     <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full" style={{ width: `${(val / 40) * 100}%` }} />
