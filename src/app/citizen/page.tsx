@@ -125,7 +125,7 @@ export default function CitizenDashboard() {
             const v = parseFloat(s.last_value);
             if (!isNaN(v)) (merged as any)[type] = v;
           };
-          fallback('rainfall'); fallback('temperature'); fallback('humidity');
+          fallback('rainfall'); fallback('temperature'); fallback('humidity'); fallback('wind_speed');
         }
 
         if (allSensorsRes.status === 'fulfilled') {
@@ -137,7 +137,7 @@ export default function CitizenDashboard() {
             const v = parseFloat(s.last_value);
             if (!isNaN(v)) (merged as any)[type] = v;
           };
-          fallback2('rainfall'); fallback2('temperature'); fallback2('humidity');
+          fallback2('rainfall'); fallback2('temperature'); fallback2('humidity'); fallback2('wind_speed');
         }
 
         setSensors({
