@@ -71,16 +71,17 @@ export default function RescueRequestsPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 6;
 
-  React.useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const api = (await import('@/lib/api')).default;
-        const res = await api.get('/rescue-teams', { params: { per_page: 100, status: 'available' } });
-        setTeams(res.data?.data ?? []);
-      } catch { /* silent */ }
-    };
-    void fetchTeams();
+  const fetchTeams = React.useCallback(async () => {
+    try {
+      const api = (await import('@/lib/api')).default;
+      const res = await api.get('/rescue-teams', { params: { per_page: 100, status: 'available' } });
+      setTeams(res.data?.data ?? []);
+    } catch { /* silent */ }
   }, []);
+
+  React.useEffect(() => {
+    void fetchTeams();
+  }, [fetchTeams]);
 
   const fetchRequests = React.useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -124,6 +125,7 @@ export default function RescueRequestsPage() {
         }
       }
       toast.success(t('toastAssigned'));
+      void fetchTeams();
     } catch {
       // toast is handled by interceptor
     } finally {
@@ -141,6 +143,7 @@ export default function RescueRequestsPage() {
         setSelectedRequest(prev => prev ? { ...prev, status: 'completed' } : null);
       }
       toast.success(t('toastCompleted'));
+      void fetchTeams();
     } catch {
       // toast is handled by interceptor
     } finally {
