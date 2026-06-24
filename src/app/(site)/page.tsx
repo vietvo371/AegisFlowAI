@@ -269,7 +269,7 @@ export default function LandingPage() {
             <div className="relative rounded-3xl overflow-hidden border border-border shadow-[0_0_100px_-20px_rgba(59,130,246,0.3)] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] [transform:rotateX(12deg)_scale(0.95)] group-hover:[transform:rotateX(0deg)_scale(1)] bg-slate-900/50">
               <div className="aspect-[1904/849] relative">
                 <Image 
-                  src="/dashboard-preview-v2.png" 
+                  src="/s1.jpg" 
                   alt="AegisFlow Dashboard Preview" 
                   fill 
                   className="object-cover transition-opacity" 
