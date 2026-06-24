@@ -103,7 +103,11 @@ export default function RescueRequestsPage() {
 
     const handler = () => void fetchRequests(false);
     window.addEventListener('aegis:rescue_request:created', handler);
-    return () => window.removeEventListener('aegis:rescue_request:created', handler);
+    window.addEventListener('aegis:rescue_request:updated', handler);
+    return () => {
+      window.removeEventListener('aegis:rescue_request:created', handler);
+      window.removeEventListener('aegis:rescue_request:updated', handler);
+    };
   }, [fetchRequests]);
 
   const handleAssign = async (id: number) => {

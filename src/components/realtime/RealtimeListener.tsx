@@ -44,6 +44,7 @@ function mapNotificationType(backendType: string): 'incident' | 'alert' | 'rescu
   if (backendType === 'PredictionReceived') return 'prediction';
   if (backendType === 'RecommendationApproved') return 'prediction';
   if (backendType === 'SensorReadingReceived') return 'sensor';
+  if (backendType === 'team_rejected') return 'rescue';
   return 'system';
 }
 
@@ -288,6 +289,56 @@ export function RealtimeListener() {
       }
     };
   }, []);
+
+  // Subscribe kênh private user để nhận team_rejected và các thông báo dành riêng cho admin
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') return;
+
+    let privateChannel: any = null;
+    try {
+      const echo = getEcho();
+      privateChannel = echo.private(`user.${user.id}`);
+      privateChannel.listen('.notification.sent', (data: any) => {
+        if (isDev) console.log('[RealtimeListener] 🔔 notification.sent (private):', data);
+
+        if (data.type === 'team_rejected') {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span className="font-medium flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {data.title || '⚠️ Đội từ chối nhiệm vụ'}
+              </span>
+              <span className="text-sm opacity-90">{data.message || data.noi_dung || ''}</span>
+            </div>,
+            { duration: 10000, dismissible: true }
+          );
+
+          addNotification({
+            title: data.title || 'Đội từ chối nhiệm vụ',
+            message: data.message || data.noi_dung || '',
+            type: 'rescue',
+            severity: 'high',
+            link: '/dashboard/rescue-requests',
+            data,
+          });
+
+          // Trigger refresh danh sách rescue requests
+          window.dispatchEvent(new CustomEvent('aegis:rescue_request:updated', { detail: data }));
+        }
+      });
+
+      if (isDev) console.log(`[RealtimeListener] 🔒 Subscribed to private-user.${user.id}`);
+    } catch (err) {
+      console.warn('[RealtimeListener] ⚠️ Private channel error:', err);
+    }
+
+    return () => {
+      try {
+        privateChannel?.stopListening('.notification.sent');
+      } catch { /* ignore */ }
+    };
+  }, [user?.id, addNotification]);
+
 
   return null;
 }
